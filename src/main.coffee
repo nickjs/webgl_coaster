@@ -9,6 +9,11 @@
 
 # Some THREE objects don't create their prototype constructor chains correctly
 THREE.Mesh::constructor = THREE.Mesh
+THREE.Object3D::clear = ->
+    child = @children[0]
+    while child
+      @remove(child)
+      child = @children[0]
 
 Physijs.scripts.worker = '/assets/physijs_worker.js'
 Physijs.scripts.ammo = '/assets/ammo.js'
@@ -53,10 +58,11 @@ window.LW =
     @edit.renderTrack()
     renderer.scene.add(@edit)
 
-    # @track = new LW.BMTrack(@spline)
-    # @track.position.set(0, 3, -50)
-    # @track.renderTrack()
-    # renderer.scene.add(@track)
+    @track = new LW.BMTrack(@spline)
+    @track.position.set(0, 3, -50)
+    @track.renderRails = false
+    @track.renderTrack()
+    renderer.scene.add(@track)
 
     controls = @controls = new THREE.OrbitControls(renderer.camera, renderer.domElement)
     controls.target = @edit.position.clone()
@@ -71,6 +77,7 @@ window.LW =
       trackFolder.addColor(color: "#ff0000", 'color').onChange (value) => @track.material.color.setHex(value.replace('#', '0x'))
       # trackFolder.add(renderer.spline.beziers[0].v0, 'x', -100, 0).onChange (value) -> renderer.scene.remove(@track); renderer.drawTrack(renderer.spline)
       trackFolder.add(@track.material, 'wireframe')
+      trackFolder.add(@track, 'renderRails').onChange -> LW.track.renderTrack()
 
     if @track
       pos = trackFolder.addFolder('Position')

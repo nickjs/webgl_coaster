@@ -3,7 +3,11 @@ class LW.BMTrack extends THREE.Object3D
     super()
     @material = new THREE.MeshLambertMaterial(color: 0xff0000, wireframe: true)
 
+  renderRails: true
+
   renderTrack: ->
+    @clear()
+
     # Shapes
     boxSize = 2
     offsetY = -3.5
@@ -46,10 +50,11 @@ class LW.BMTrack extends THREE.Object3D
     # boxMesh = THREE.SceneUtils.createMultiMaterialObject(@boxGeo, [mat, wireMat])
     @add(boxMesh)
 
-    rail1Geo = new THREE.ExtrudeGeometry(rail1Shape, steps: Math.floor(steps * 6), extrudePath: @spline)
-    rail1Mesh = new THREE.Mesh(rail1Geo, @material)
-    @add(rail1Mesh)
+    if @renderRails
+      rail1Geo = new THREE.ExtrudeGeometry(rail1Shape, steps: Math.floor(steps * 6), extrudePath: @spline)
+      rail1Mesh = new THREE.Mesh(rail1Geo, @material)
+      @add(rail1Mesh)
 
-    rail2Geo = new THREE.ExtrudeGeometry(rail2Shape, steps: Math.floor(steps * 6), extrudePath: @spline)
-    rail2Mesh = new THREE.Mesh(rail2Geo, @material)
-    @add(rail2Mesh)
+      rail2Geo = new THREE.ExtrudeGeometry(rail2Shape, steps: Math.floor(steps * 6), extrudePath: @spline)
+      rail2Mesh = new THREE.Mesh(rail2Geo, @material)
+      @add(rail2Mesh)

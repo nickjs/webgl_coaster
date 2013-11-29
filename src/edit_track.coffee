@@ -85,6 +85,7 @@ class LW.EditTrack extends THREE.Object3D
       @rerenderTimeout = setTimeout =>
         @rerenderTimeout = null
         @renderCurve()
+        LW.track.renderTrack()
       , 10
 
   renderTrack: ->
