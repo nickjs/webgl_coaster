@@ -66,8 +66,8 @@ window.LW =
     @track.renderTrack()
     renderer.scene.add(@track)
 
-    controls = @controls = new THREE.OrbitControls(renderer.camera, renderer.domElement)
-    controls.target = @edit.position.clone()
+    controls = @controls = new THREE.EditorControls(renderer.camera, renderer.domElement)
+    controls.center.copy(@edit.position)
 
     renderer.render()
 
