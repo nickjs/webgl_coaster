@@ -43,10 +43,10 @@ class LW.Renderer
       new THREE.Vector3(0, 10, 20)
     )
 
-    @track = new LW.EditTrack(@spline)
-    @track.position.setZ(-50)
-    @track.renderTrack()
-    @scene.add(@track)
+    @edit = new LW.EditTrack(@spline)
+    @edit.position.setZ(-50)
+    @edit.renderTrack()
+    @scene.add(@edit)
 
     @track = new LW.BMTrack(@spline)
     @track.position.setZ(-50)
