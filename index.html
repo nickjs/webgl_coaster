@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lightning Wheels</title>
+
+  <style>
+    body { margin: 0; padding: 0; overflow: hidden; }
+  </style>
+
+  <script src="/assets/three.js"></script>
+  <script src="/assets/physi.js"></script>
+  <script src="/assets/dat.gui.js"></script>
+  <script src="/assets/dat.color.js"></script>
+
+  <script src="/assets/orbit_controls.js"></script>
+  <script src="/assets/main.js"></script>
+
+  <script>
+  Physijs.scripts.worker = '/assets/physijs_worker.js'
+  Physijs.scripts.ammo = '/assets/ammo.js'
+
+  window.onload = function() {
+    LW.renderer = new LW.Renderer
+    document.body.appendChild(LW.renderer.domElement)
+
+    LW.terrain = new LW.Terrain(LW.renderer)
+
+    LW.controls = new THREE.OrbitControls(LW.renderer.camera, LW.renderer.domElement)
+    LW.controls.target = LW.renderer.track.position.clone()
+    // LW.controls.movementSpeed = 20;
+    // LW.controls.lookSpeed = 0.2;
+
+    LW.renderer.render()
+
+    var gui = new dat.GUI()
+    var track = gui.addFolder('Track')
+
+    var params = {color: "#ff0000"}
+    track.addColor(params, 'color').onChange(function(value) {LW.renderer.track.mat.color.setHex(value.replace('#', '0x'))})
+    track.add(LW.renderer.spline.beziers[0].v0, 'x', -100, 0).onChange(function(value) {LW.renderer.scene.remove(LW.renderer.track); LW.renderer.drawTrack(LW.renderer.spline)})
+    track.add(LW.renderer.track.mat, 'wireframe')
+    track.open()
+
+    var pos = track.addFolder('Position')
+    pos.add(LW.renderer.track.position, 'x', -100, 100)
+    pos.add(LW.renderer.track.position, 'y', -100, 100)
+    pos.add(LW.renderer.track.position, 'z', -100, 100)
+
+    var rot = track.addFolder('Rotation')
+    rot.add(LW.renderer.track.rotation, 'x', 0, Math.PI * 2)
+    rot.add(LW.renderer.track.rotation, 'y', 0, Math.PI * 2).step(0.05)
+    rot.add(LW.renderer.track.rotation, 'z', 0, Math.PI * 2)
+    rot.open()
+  };
+  </script>
+</head>
+
+<body>
+</body>
+
+</html>

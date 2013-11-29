@@ -1,0 +1,2 @@
+class LW.Spline
+
