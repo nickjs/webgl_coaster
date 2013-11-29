@@ -6,16 +6,17 @@ class LW.BMTrack extends THREE.Object3D
   renderTrack: ->
     # Shapes
     boxSize = 2
+    offsetY = -3.5
     boxShape = new THREE.Shape
-    boxShape.moveTo(-boxSize, -boxSize)
-    boxShape.lineTo(-boxSize, boxSize)
-    boxShape.lineTo(boxSize, boxSize)
-    boxShape.lineTo(boxSize, -boxSize)
-    boxShape.lineTo(-boxSize, -boxSize)
+    boxShape.moveTo(-boxSize, -boxSize + offsetY)
+    boxShape.lineTo(-boxSize, boxSize + offsetY)
+    boxShape.lineTo(boxSize, boxSize + offsetY)
+    boxShape.lineTo(boxSize, -boxSize + offsetY)
+    boxShape.lineTo(-boxSize, -boxSize + offsetY)
 
     radius = 0.5
     offsetX = boxSize + 1.5
-    offsetY = boxSize * 2 - 0.5
+    offsetY = 0
 
     rail1Shape = new THREE.Shape
     rail1Shape.moveTo(offsetX + radius, offsetY)
