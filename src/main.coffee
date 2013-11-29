@@ -68,6 +68,8 @@ window.LW =
 
     controls = @controls = new THREE.EditorControls(renderer.camera, renderer.domElement)
     controls.center.copy(@edit.position)
+    controls.addEventListener 'change', =>
+      @edit?.transformControl?.update()
 
     renderer.render()
 

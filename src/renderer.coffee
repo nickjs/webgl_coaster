@@ -3,7 +3,6 @@ class LW.Renderer
     @scene = new THREE.Scene
 
     @camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000)
-    @clock = new THREE.Clock
 
     @renderer = new THREE.WebGLRenderer(antialias: true)
     @renderer.setSize(window.innerWidth, window.innerHeight)
@@ -22,9 +21,5 @@ class LW.Renderer
     # @scene.add(@carv)
 
   render: =>
-    LW.controls?.update(@clock.getDelta())
-
-    # @scene.simulate()
     @renderer.render(@scene, @camera)
-
     requestAnimationFrame(@render)
