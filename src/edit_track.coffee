@@ -7,62 +7,99 @@ class LW.EditTrack extends THREE.Object3D
     super()
 
     @projector = new THREE.Projector
-    @raycaster = new THREE.Raycaster
 
     @mouse = new THREE.Vector2
+    @offset = new THREE.Vector3
 
-    document.addEventListener 'click', (event) =>
-      @mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-      @mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+    @controlPoints = []
 
-      @pick()
+    @plane = new THREE.Mesh( new THREE.PlaneGeometry( 2000, 2000, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true, wireframe: true } ) );
+    # @plane.visible = false;
+    @add(@plane)
 
-  renderTrack: ->
-    for curve, i in @spline.beziers
-      @renderBezier(curve, i > 0)
+    LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
+    LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
+    LW.renderer.domElement.addEventListener('mousemove', @onMouseMove, false)
 
-  renderBezier: (curve, skipFirst) ->
-    for i in [0..3]
-      continue if i == 0 and skipFirst
-      isControl = i in [0, 3]
+  onMouseDown: (event) =>
+    event.preventDefault()
 
-      geo = new THREE.SphereGeometry(1)
-      mat = new THREE.MeshLambertMaterial(color: if isControl then CONTROL_COLOR else POINT_COLOR)
-      mesh = new THREE.Mesh(geo, mat)
-      mesh.position.copy(curve["v#{i}"])
-      if isControl
-        mesh.isControl = true
-        mesh.left = @lastMesh
-      else
-        mesh.visible = false
-        @lastMesh.right = mesh
-
-      @lastMesh = mesh
-      @add(mesh)
-
-  pick: ->
     vector = new THREE.Vector3(@mouse.x, @mouse.y, 1)
     @projector.unprojectVector(vector, LW.renderer.camera)
 
-    @raycaster.set(LW.renderer.camera.position, vector.sub(LW.renderer.camera.position).normalize())
+    raycaster = new THREE.Raycaster(LW.renderer.camera.position, vector.sub(LW.renderer.camera.position).normalize())
 
-    intersects = @raycaster.intersectObjects(@children, false)
+    intersects = raycaster.intersectObjects(@controlPoints)
 
     if intersects.length > 0
-      if @intersected != intersects[0].object
-        if @intersected
-          @intersected.material.color.setHex(CONTROL_COLOR)
-          @intersected.left?.visible = false
-          @intersected.right?.visible = false
+      LW.controls?.enabled = false
 
-        if intersects[0].object.isControl
-          @intersected = intersects[0].object
-          @intersected.material.color.setHex(SELECTED_COLOR)
-          @intersected.left?.visible = true
-          @intersected.right?.visible = true
+      if @selected != intersects[0].object
+        @selected?.select(false)
+
+        @selected = intersects[0].object
+        @selected.select(true)
+
+        @plane.position.copy(@selected.position)
+        @plane.lookAt(LW.renderer.camera.position)
+
+        intersects = raycaster.intersectObject(@plane)
+        @offset.copy(intersects[0].point).sub(@plane.position) if intersects.length
     else
-      if @intersected
-          @intersected.material.color.setHex(CONTROL_COLOR)
-          @intersected.left?.visible = false
-          @intersected.right?.visible = false
-          @intersected = null
+      @selected?.select(false)
+      @selected = null
+
+    @mouseDown = true
+
+  onMouseUp: (event) =>
+    event.preventDefault()
+
+    LW.controls?.enabled = true
+
+    @mouseDown = false
+
+  onMouseMove: (event) =>
+    @mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    @mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+    return if not @selected or not @mouseDown
+
+    vector = new THREE.Vector3(@mouse.x, @mouse.y, 1)
+    @projector.unprojectVector(vector, LW.renderer.camera)
+
+    raycaster = new THREE.Raycaster(LW.renderer.camera.position, vector.sub(LW.renderer.camera.position).normalize())
+
+    intersects = raycaster.intersectObject(@plane)
+    @selected.position.copy(intersects[0].point.sub(@offset)) if intersects.length
+
+  renderTrack: ->
+    lastNode = null
+    for curve, i in @spline.beziers
+      for j in [0..3]
+        continue if j == 0 and i > 0
+        isControl = j in [0, 3]
+
+        node = new LW.EditNode(isControl)
+        node.position = curve["v#{j}"]
+        @add(node)
+
+        if isControl
+          node.left = lastNode
+          @controlPoints.push(node)
+        else
+          lastNode.right = node
+
+        lastNode = node
+
+class LW.EditNode extends THREE.Mesh
+  constructor: (@isControl) ->
+    geo = new THREE.SphereGeometry(1)
+    mat = new THREE.MeshLambertMaterial(color: if isControl then CONTROL_COLOR else POINT_COLOR)
+
+    super(geo, mat)
+    @visible = isControl
+
+  select: (selected) ->
+    @material.color.setHex(if selected then SELECTED_COLOR else if @isControl then CONTROL_COLOR else POINT_COLOR)
+    @left?.visible = selected
+    @right?.visible = selected
