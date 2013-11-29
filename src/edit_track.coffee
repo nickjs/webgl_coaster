@@ -33,6 +33,7 @@ class LW.EditTrack extends THREE.Object3D
 
     if intersects.length > 0
       LW.controls?.enabled = false
+      @wantsToDeselect = false
 
       if @selected != intersects[0].object
         @selected?.select(false)
@@ -45,9 +46,11 @@ class LW.EditTrack extends THREE.Object3D
 
         intersects = raycaster.intersectObject(@plane)
         @offset.copy(intersects[0].point).sub(@plane.position) if intersects.length
+
+        @isDragging = true
     else
-      @selected?.select(false)
-      @selected = null
+      @wantsToDeselect = true
+      @isDragging = false
 
     @mouseDown = true
 
@@ -56,13 +59,19 @@ class LW.EditTrack extends THREE.Object3D
 
     LW.controls?.enabled = true
 
+    if @wantsToDeselect
+      @selected?.select(false)
+      @selected = null
+
     @mouseDown = false
+    @isDragging = false
 
   onMouseMove: (event) =>
     @mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
     @mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
-    return if not @selected or not @mouseDown
+    @wantsToDeselect = false if @mouseDown
+    return if not @selected or not @isDragging
 
     vector = new THREE.Vector3(@mouse.x, @mouse.y, 1)
     @projector.unprojectVector(vector, LW.renderer.camera)
