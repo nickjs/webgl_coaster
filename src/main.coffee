@@ -53,13 +53,13 @@ window.LW =
     @edit.renderTrack()
     renderer.scene.add(@edit)
 
-    @track = new LW.BMTrack(@spline)
-    @track.position.set(0, 3, -50)
-    @track.renderTrack()
-    renderer.scene.add(@track)
+    # @track = new LW.BMTrack(@spline)
+    # @track.position.set(0, 3, -50)
+    # @track.renderTrack()
+    # renderer.scene.add(@track)
 
     controls = @controls = new THREE.OrbitControls(renderer.camera, renderer.domElement)
-    controls.target = @track.position.clone()
+    controls.target = @edit.position.clone()
 
     renderer.render()
 
@@ -67,20 +67,21 @@ window.LW =
     trackFolder = gui.addFolder('Track')
     trackFolder.open()
 
-    if @track.material
+    if @track?.material
       trackFolder.addColor(color: "#ff0000", 'color').onChange (value) => @track.material.color.setHex(value.replace('#', '0x'))
       # trackFolder.add(renderer.spline.beziers[0].v0, 'x', -100, 0).onChange (value) -> renderer.scene.remove(@track); renderer.drawTrack(renderer.spline)
       trackFolder.add(@track.material, 'wireframe')
 
-    pos = trackFolder.addFolder('Position')
-    pos.add(@track.position, 'x', -100, 100)
-    pos.add(@track.position, 'y', -100, 100)
-    pos.add(@track.position, 'z', -100, 100)
+    if @track
+      pos = trackFolder.addFolder('Position')
+      pos.add(@track.position, 'x', -100, 100)
+      pos.add(@track.position, 'y', -100, 100)
+      pos.add(@track.position, 'z', -100, 100)
 
-    rot = trackFolder.addFolder('Rotation')
-    rot.add(@track.rotation, 'x', 0, Math.PI * 2)
-    rot.add(@track.rotation, 'y', 0, Math.PI * 2).step(0.05)
-    rot.add(@track.rotation, 'z', 0, Math.PI * 2)
-    rot.open()
+      rot = trackFolder.addFolder('Rotation')
+      rot.add(@track.rotation, 'x', 0, Math.PI * 2)
+      rot.add(@track.rotation, 'y', 0, Math.PI * 2).step(0.05)
+      rot.add(@track.rotation, 'z', 0, Math.PI * 2)
+      rot.open()
 
 window.onload = -> LW.init()

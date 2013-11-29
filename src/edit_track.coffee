@@ -81,6 +81,12 @@ class LW.EditTrack extends THREE.Object3D
     intersects = raycaster.intersectObject(@plane)
     @selected.position.copy(intersects[0].point.sub(@offset)) if intersects.length
 
+    if !@rerenderTimeout
+      @rerenderTimeout = setTimeout =>
+        @rerenderTimeout = null
+        @renderCurve()
+      , 10
+
   renderTrack: ->
     lastNode = null
     for curve, i in @spline.beziers
@@ -99,6 +105,24 @@ class LW.EditTrack extends THREE.Object3D
           lastNode.right = node
 
         lastNode = node
+
+    @renderCurve()
+
+  renderCurve: ->
+    @remove(@line) if @line
+
+    geo = new THREE.Geometry()
+    lastI = 0
+    for curve in @spline.beziers
+      curveLength = curve.getLength()
+      for i in [0..curveLength]
+        pos = curve.getPoint(i / curveLength)
+        geo.vertices[lastI + i] = pos
+      lastI += i
+
+    mat = new THREE.LineBasicMaterial(color: 0xff0000)
+    @line = new THREE.Line(geo, mat)
+    @add(@line)
 
 class LW.EditNode extends THREE.Mesh
   constructor: (@isControl) ->
