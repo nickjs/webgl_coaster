@@ -26,6 +26,7 @@ window.LW =
     terrain = new LW.Terrain(renderer)
 
     @spline = new LW.BezierPath(
+      new THREE.Vector3(-50, 0, 0)
       new THREE.Vector3(-40, 0, 0)
       new THREE.Vector3(-30, 0, 0)
 
@@ -51,6 +52,7 @@ window.LW =
 
       new THREE.Vector3(10, 10, 20)
       new THREE.Vector3(0, 10, 20)
+      new THREE.Vector3(-10, 10, 20)
     )
 
     @edit = new LW.EditTrack(@spline)
@@ -78,6 +80,14 @@ window.LW =
       # trackFolder.add(renderer.spline.beziers[0].v0, 'x', -100, 0).onChange (value) -> renderer.scene.remove(@track); renderer.drawTrack(renderer.spline)
       trackFolder.add(@track.material, 'wireframe')
       trackFolder.add(@track, 'renderRails').onChange -> LW.track.renderTrack()
+
+      trackFolder.add({addPoint: =>
+        @spline.addControlPoint(@spline.getPoint(1).clone().add(new THREE.Vector3(40, 0, 0)))
+        @edit.renderTrack()
+        @track.renderTrack()
+
+        @edit.selectNode()
+      }, 'addPoint')
 
     if @track
       pos = trackFolder.addFolder('Position')

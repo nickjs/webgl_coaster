@@ -11,11 +11,9 @@ class LW.EditTrack extends THREE.Object3D
     @mouse = new THREE.Vector2
     @offset = new THREE.Vector3
 
-    @controlPoints = []
-
     @plane = new THREE.Mesh( new THREE.PlaneGeometry( 2000, 2000, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true, wireframe: true } ) );
     # @plane.visible = false;
-    @add(@plane)
+
 
     LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
@@ -41,6 +39,7 @@ class LW.EditTrack extends THREE.Object3D
         @selected = intersects[0].object
         @selected.select(true)
 
+        @add(@plane)
         @plane.position.copy(@selected.position)
         @plane.lookAt(LW.renderer.camera.position)
 
@@ -88,24 +87,34 @@ class LW.EditTrack extends THREE.Object3D
         LW.track.renderTrack()
       , 10
 
+  selectNode: (node) ->
+    if not node
+      node = @controlPoints[@controlPoints.length - 1]
+
+    @selected?.select(false)
+    @selected = node
+    node.select(true)
+
   renderTrack: ->
+    @clear()
+
+    @controlPoints = []
     lastNode = null
-    for curve, i in @spline.beziers
-      for j in [0..3]
-        continue if j == 0 and i > 0
-        isControl = j in [0, 3]
 
-        node = new LW.EditNode(isControl)
-        node.position = curve["v#{j}"]
-        @add(node)
+    for vector, i in @spline.vectors
+      isControl = (i - 1) % 3 == 0
 
-        if isControl
-          node.left = lastNode
-          @controlPoints.push(node)
-        else
-          lastNode.right = node
+      node = new LW.EditNode(isControl)
+      node.position = vector
+      @add(node)
 
-        lastNode = node
+      if isControl
+        node.left = lastNode
+        @controlPoints.push(node)
+      else
+        lastNode?.right = node
+
+      lastNode = node
 
     @renderCurve()
 
@@ -113,13 +122,10 @@ class LW.EditTrack extends THREE.Object3D
     @remove(@line) if @line
 
     geo = new THREE.Geometry()
-    lastI = 0
-    for curve in @spline.beziers
-      curveLength = curve.getLength()
-      for i in [0..curveLength]
-        pos = curve.getPoint(i / curveLength)
-        geo.vertices[lastI + i] = pos
-      lastI += i
+    length = @spline.getLength()
+    for i in [0..100]
+      pos = @spline.getPoint(i / 100)
+      geo.vertices[i] = pos
 
     mat = new THREE.LineBasicMaterial(color: 0xff0000)
     @line = new THREE.Line(geo, mat)
