@@ -1,5 +1,5 @@
 CONTROL_COLOR = 0x0000ee
-POINT_COLOR = 0x00ee00
+POINT_COLOR = 0xdddddd
 SELECTED_COLOR = 0xffffff
 
 class LW.EditTrack extends THREE.Object3D
@@ -111,8 +111,9 @@ class LW.EditTrack extends THREE.Object3D
       if isControl
         node.left = lastNode
         @controlPoints.push(node)
-      else
-        lastNode?.right = node
+      else if lastNode?.isControl
+        lastNode.right = node
+        lastNode.addLine()
 
       lastNode = node
 
@@ -127,7 +128,7 @@ class LW.EditTrack extends THREE.Object3D
       pos = @spline.getPoint(i / 100)
       geo.vertices[i] = pos
 
-    mat = new THREE.LineBasicMaterial(color: 0xff0000)
+    mat = new THREE.LineBasicMaterial(color: 0xff0000, linewidth: 2)
     @line = new THREE.Line(geo, mat)
     @add(@line)
 
@@ -139,7 +140,20 @@ class LW.EditNode extends THREE.Mesh
     super(geo, mat)
     @visible = isControl
 
+  addLine: ->
+    geo = new THREE.Geometry
+    geo.vertices.push(@left.position)
+    geo.vertices.push(@position)
+    geo.vertices.push(@right.position)
+
+    mat = new THREE.LineBasicMaterial(color: POINT_COLOR, linewidth: 4)
+
+    @pointLine = new THREE.Line(geo, mat)
+    @pointLine.visible = false
+    @parent.add(@pointLine)
+
   select: (selected) ->
-    @material.color.setHex(if selected then SELECTED_COLOR else if @isControl then CONTROL_COLOR else POINT_COLOR)
+    @material.color.setHex(if selected then SELECTED_COLOR else CONTROL_COLOR)
     @left?.visible = selected
     @right?.visible = selected
+    @pointLine?.visible = selected
