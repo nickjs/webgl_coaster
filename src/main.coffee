@@ -1,9 +1,11 @@
 #= require_self
 #= require bezier_path
-#= require bm_track
 #= require spline
 #= require renderer
 #= require terrain
+
+#= require edit_track
+#= require bm_track
 
 
 Physijs.scripts.worker = '/assets/physijs_worker.js'
@@ -23,11 +25,12 @@ window.LW =
 
     gui = new dat.GUI()
     trackFolder = gui.addFolder('Track')
-
-    trackFolder.addColor(color: "#ff0000", 'color').onChange (value) -> renderer.track.material.color.setHex(value.replace('#', '0x'))
-    trackFolder.add(renderer.spline.beziers[0].v0, 'x', -100, 0).onChange (value) -> renderer.scene.remove(renderer.track); renderer.drawTrack(renderer.spline)
-    trackFolder.add(renderer.track.material, 'wireframe')
     trackFolder.open()
+
+    if renderer.track.material
+      trackFolder.addColor(color: "#ff0000", 'color').onChange (value) -> renderer.track.material.color.setHex(value.replace('#', '0x'))
+      trackFolder.add(renderer.spline.beziers[0].v0, 'x', -100, 0).onChange (value) -> renderer.scene.remove(renderer.track); renderer.drawTrack(renderer.spline)
+      trackFolder.add(renderer.track.material, 'wireframe')
 
     pos = trackFolder.addFolder('Position')
     pos.add(renderer.track.position, 'x', -100, 100)
