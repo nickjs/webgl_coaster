@@ -88,12 +88,14 @@ class LW.EditTrack extends THREE.Object3D
 
       node = new LW.EditNode(isControl)
       node.position = vector
-      @add(node)
 
       if isControl
+        @add(node)
         node.left = lastNode
+        node.add(lastNode)
         @controlPoints.push(node)
       else if lastNode?.isControl
+        lastNode.add(node)
         lastNode.right = node
         lastNode.addLine()
 
@@ -124,15 +126,16 @@ class LW.EditNode extends THREE.Mesh
 
   addLine: ->
     geo = new THREE.Geometry
+
     geo.vertices.push(@left.position)
-    geo.vertices.push(@position)
+    geo.vertices.push(new THREE.Vector3)
     geo.vertices.push(@right.position)
 
     mat = new THREE.LineBasicMaterial(color: POINT_COLOR, linewidth: 4)
 
     @pointLine = new THREE.Line(geo, mat)
     @pointLine.visible = false
-    @parent.add(@pointLine)
+    @add(@pointLine)
 
   select: (selected) ->
     @material.color.setHex(if selected then SELECTED_COLOR else CONTROL_COLOR)

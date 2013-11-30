@@ -11,8 +11,13 @@ getPoint = (t) ->
     i = Math.floor(t * @count)
 
   index = i * 3
-  bezier = new THREE.CubicBezierCurve3(@vectors[index + 1], @vectors[index + 2], @vectors[index + 3], @vectors[index + 4])
 
+  leftCP = @vectors[index + 1]
+  rightCP = @vectors[index + 4]
+  leftHandle = @vectors[index + 2].clone().add(leftCP)
+  rightHandle = @vectors[index + 3].clone().add(rightCP)
+
+  bezier = new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP)
   return bezier.getPoint(t * @count - i)
 
 LW.BezierPath = THREE.Curve.create(init, getPoint)
@@ -20,9 +25,9 @@ LW.BezierPath = THREE.Curve.create(init, getPoint)
 LW.BezierPath::addControlPoint = (pos) ->
   last = @vectors[@vectors.length - 2]
 
-  @vectors.push(pos.clone().add(new THREE.Vector3(-10, 0, 0)))
+  @vectors.push(new THREE.Vector3(-10, 0, 0))
   @vectors.push(pos.clone())
-  @vectors.push(pos.clone().add(new THREE.Vector3(10, 0, 0)))
+  @vectors.push(new THREE.Vector3(10, 0, 0))
 
   @count++
   @needsUpdate = true
