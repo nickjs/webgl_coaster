@@ -19,6 +19,9 @@ class LW.EditTrack extends THREE.Object3D
       LW.controls?.enabled = @transformControl.axis == undefined
 
       if @selected
+        if @isHandling
+          @selected.pointLine.geometry.verticesNeedUpdate = true
+
         if !@rerenderTimeout
           @rerenderTimeout = setTimeout =>
             @rerenderTimeout = null
@@ -53,14 +56,23 @@ class LW.EditTrack extends THREE.Object3D
     @mouseUp.y = event.clientY / window.innerHeight
 
     if @mouseDown.distanceTo(@mouseUp) == 0
-      intersects = @pick(@mouseUp, @controlPoints)
+      nodes = if @selected
+        @controlPoints.concat([@selected.left, @selected.right])
+      else
+        @controlPoints
+
+      intersects = @pick(@mouseUp, nodes)
       @transformControl.detach()
 
       if intersects.length > 0
         object = intersects[0].object
-        return if object == @selected
 
-        @selectNode(object)
+        if object.isControl
+          @isHandling = false
+          @selectNode(object)
+        else
+          @isHandling = true
+          @transformControl.attach(object)
       else
         @selectNode(null)
 
