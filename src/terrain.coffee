@@ -14,4 +14,30 @@ class LW.Terrain
       @ground.rotation.x = -Math.PI / 2
       renderer.scene.add(@ground)
 
+    # Skybox
+
+    path = "resources/textures/skybox/"
+    format = '.jpg'
+    urls = [
+      path + 'px' + format, path + 'nx' + format
+      path + 'py' + format, path + 'ny' + format
+      path + 'pz' + format, path + 'nz' + format
+    ]
+
+    textureCube = THREE.ImageUtils.loadTextureCube(urls, new THREE.CubeRefractionMapping())
+    material = new THREE.MeshBasicMaterial(color: 0xffffff, envMap: textureCube, refractionRatio: 0.95)
+
+    shader = THREE.ShaderLib["cube"]
+    shader.uniforms["tCube"].value = textureCube
+
+    material = new THREE.ShaderMaterial({
+      fragmentShader: shader.fragmentShader
+      vertexShader: shader.vertexShader
+      uniforms: shader.uniforms
+      side: THREE.BackSide
+    })
+
+    mesh = new THREE.Mesh(new THREE.CubeGeometry(10000, 10000, 10000), material)
+    renderer.scene.add(mesh)
+
   render: ->
