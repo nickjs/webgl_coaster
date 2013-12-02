@@ -11,20 +11,24 @@ class LW.Renderer
     @camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000)
     @camera.shouldRotate = true
 
-    @topCamera = new THREE.OrthographicCamera(window.innerWidth / -16, window.innerWidth / 16, window.innerHeight / 16, window.innerHeight / -16, -5000, 10000)
-    # @topCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 10000)
+    zoom = 16
+    x = window.innerWidth / zoom
+    y = window.innerHeight / zoom
+
+    @topCamera = new THREE.OrthographicCamera(-x, x, y, -y, -5000, 10000)
+    @topCamera.zoom = zoom
     @topCamera.up = new THREE.Vector3(0, 0, -1)
     @topCamera.lookAt(new THREE.Vector3(0, -1, 0))
     @scene.add(@topCamera)
 
-    # @frontCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 10000)
-    @frontCamera = new THREE.OrthographicCamera(window.innerWidth / -16, window.innerWidth / 16, window.innerHeight / 16, window.innerHeight / -16, -5000, 10000)
+    @frontCamera = new THREE.OrthographicCamera(-x, x, y, -y, -5000, 10000)
+    @frontCamera.zoom = zoom
     # @frontCamera.position.y += 1
     @frontCamera.lookAt(new THREE.Vector3(0, 0, -1))
     @scene.add(@frontCamera)
 
-    # @sideCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 10000)
-    @sideCamera = new THREE.OrthographicCamera(window.innerWidth / -12, window.innerWidth / 12, window.innerHeight / 12, window.innerHeight / -12, -5000, 10000)
+    @sideCamera = new THREE.OrthographicCamera(-x, x, y, -y, -5000, 10000)
+    @sideCamera.zoom = zoom
     # @sideCamera.position.y += 1
     @sideCamera.lookAt(new THREE.Vector3(1, 0, 0))
     @scene.add(@sideCamera)
