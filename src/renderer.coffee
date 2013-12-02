@@ -9,23 +9,22 @@ class LW.Renderer
     @scene = new THREE.Scene
 
     @camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000)
+    @camera.shouldRotate = true
 
-    @topCamera = new THREE.OrthographicCamera(window.innerWidth / -4, window.innerWidth / 4, window.innerHeight / 4, window.innerHeight / -4, -5000, 10000)
+    @topCamera = new THREE.OrthographicCamera(window.innerWidth / -16, window.innerWidth / 16, window.innerHeight / 16, window.innerHeight / -16, -5000, 10000)
+    # @topCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 10000)
     @topCamera.up = new THREE.Vector3(0, 0, -1)
     @topCamera.lookAt(new THREE.Vector3(0, -1, 0))
     @scene.add(@topCamera)
 
-    @topCamera = new THREE.OrthographicCamera(window.innerWidth / -4, window.innerWidth / 4, window.innerHeight / 4, window.innerHeight / -4, -5000, 10000)
-    @topCamera.up = new THREE.Vector3(0, 0, -1)
-    @topCamera.lookAt(new THREE.Vector3(0, -1, 0))
-    @scene.add(@topCamera)
-
-    @frontCamera = new THREE.OrthographicCamera(window.innerWidth / -4, window.innerWidth / 4, window.innerHeight / 4, window.innerHeight / -4, -5000, 10000)
+    # @frontCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 10000)
+    @frontCamera = new THREE.OrthographicCamera(window.innerWidth / -16, window.innerWidth / 16, window.innerHeight / 16, window.innerHeight / -16, -5000, 10000)
     # @frontCamera.position.y += 1
     @frontCamera.lookAt(new THREE.Vector3(0, 0, -1))
     @scene.add(@frontCamera)
 
-    @sideCamera = new THREE.OrthographicCamera(window.innerWidth / -4, window.innerWidth / 4, window.innerHeight / 4, window.innerHeight / -4, -5000, 10000)
+    # @sideCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 10000)
+    @sideCamera = new THREE.OrthographicCamera(window.innerWidth / -12, window.innerWidth / 12, window.innerHeight / 12, window.innerHeight / -12, -5000, 10000)
     # @sideCamera.position.y += 1
     @sideCamera.lookAt(new THREE.Vector3(1, 0, 0))
     @scene.add(@sideCamera)
@@ -47,6 +46,8 @@ class LW.Renderer
 
     @renderer.clear()
 
+    LW.track.material.wireframe = true
+
     @renderer.setViewport(1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2)
     @renderer.render(@scene, @topCamera)
 
@@ -55,6 +56,7 @@ class LW.Renderer
 
     @renderer.setViewport( 1, 1,   0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2 )
     @renderer.render(@scene, @frontCamera)
+    LW.track.material.wireframe = false
 
     @renderer.setViewport( 0.5 * SCREEN_WIDTH + 1, 1,   0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2 )
     @renderer.render(@scene, @camera)

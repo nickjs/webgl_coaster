@@ -66,7 +66,7 @@ window.LW =
     @track.renderTrack()
     renderer.scene.add(@track)
 
-    controls = @controls = new THREE.EditorControls(renderer.camera, renderer.domElement)
+    controls = @controls = new THREE.EditorControls([renderer.topCamera, renderer.sideCamera, renderer.frontCamera, renderer.camera], renderer.domElement)
     controls.center.copy(@edit.position)
     controls.addEventListener 'change', =>
       @edit?.transformControl?.update()
