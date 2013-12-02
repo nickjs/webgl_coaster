@@ -45,8 +45,6 @@ class LW.EditTrack extends THREE.Object3D
     return @raycaster.intersectObjects(objects)
 
   onMouseDown: (event) =>
-    event.preventDefault()
-
     @mouseDown.x = event.clientX / window.innerWidth
     @mouseDown.y = event.clientY / window.innerHeight
 
