@@ -36,13 +36,22 @@ class LW.EditTrack extends THREE.Object3D
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
 
   pick: (pos, objects) ->
-    camera = LW.renderer.camera
+    camera = LW.controls.camera
 
-    vector = new THREE.Vector3( ( pos.x ) * 2 - 1, - ( pos.y ) * 2 + 1, 0.5 )
-    @projector.unprojectVector(vector, camera)
-    @raycaster.set(camera.position, vector.sub(camera.position).normalize())
+    {x, y} = pos
+    x -= 0.5 if x > 0.5
+    y -= 0.5 if y > 0.5
 
-    return @raycaster.intersectObjects(objects)
+    vector = new THREE.Vector3( x * 4 - 1, -y * 4 + 1 , 0.5 )
+
+    if camera instanceof THREE.PerspectiveCamera
+      @projector.unprojectVector(vector, camera)
+      @raycaster.set(camera.position, vector.sub(camera.position).normalize())
+      return @raycaster.intersectObjects(objects)
+    else
+      ray = @projector.pickingRay(vector, camera)
+      return ray.intersectObjects(objects)
+
 
   onMouseDown: (event) =>
     @mouseDown.x = event.clientX / window.innerWidth
