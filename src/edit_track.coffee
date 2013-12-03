@@ -25,6 +25,8 @@ class LW.EditTrack extends THREE.Object3D
           oppositeHandle = if @selectedHandle == @selected.left then @selected.right else @selected.left
           oppositeHandle.position.copy(@selectedHandle.position).negate()
 
+          @spline.updateArcLengths()
+
         if !@rerenderTimeout
           @rerenderTimeout = setTimeout =>
             @rerenderTimeout = null
