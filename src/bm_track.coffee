@@ -49,19 +49,21 @@ class LW.BMTrack extends THREE.Object3D
     tieShape.lineTo(offsetX - radius, offsetY)
     tieShape.lineTo(boxSize / 2, boxSize - 3)
     tieShape.lineTo(-boxSize / 2, boxSize - 3)
-    tieShape.lineTo(-offsetX - radius, offsetY)
+    tieShape.lineTo(-offsetX + radius, offsetY)
     tieShape.lineTo(-offsetX, offsetY)
     tieShape.lineTo(-boxSize, boxSize - 3.5 - boxSize / 4)
+    # tieProto = new THREE.ExtrudeGeometry(tieShape, steps: 1, extrudePath: new THREE.LineCurve(new THREE.Vector3, new THREE.Vector3(0.65, 0, 0)))
 
     # Meshes
 
     steps = @spline.getLength()
 
-    boxGeo = new THREE.ExtrudeGeometry(boxShape, steps: Math.floor(steps / 6), extrudePath: @spline)
-    # boxMesh = new THREE.Mesh(boxGeo, @material)
-    boxMesh = THREE.SceneUtils.createMultiMaterialObject(boxGeo, [@material, new THREE.MeshLambertMaterial(color: 0x000000, wireframe: true, opacity: 0.5)])
+    # boxGeo = new THREE.ExtrudeGeometry(boxShape, steps: Math.floor(steps / 6), extrudePath: @spline)
+    boxGeo = new LW.Extruder(@spline, spineShape: boxShape, spineSteps: Math.ceil(steps / 6), tieShape: tieShape, tieDepth: 0.65)
+    boxMesh = new THREE.Mesh(boxGeo, @material)
+    # boxMesh = THREE.SceneUtils.createMultiMaterialObject(boxGeo, [@material, new THREE.MeshLambertMaterial(color: 0x000000, wireframe: true, opacity: 0.5)])
     @add(boxMesh)
-    @renderRails = true
+    # @renderRails = true
 
     if @renderRails
       rail1Geo = new THREE.ExtrudeGeometry(rail1Shape, steps: Math.floor(steps * 6), extrudePath: @spline)
@@ -72,7 +74,7 @@ class LW.BMTrack extends THREE.Object3D
       rail2Mesh = new THREE.Mesh(rail2Geo, @material)
       @add(rail2Mesh)
 
-      tieProto = new THREE.ExtrudeGeometry(tieShape, steps: 1, extrudePath: new THREE.LineCurve(new THREE.Vector3, new THREE.Vector3(0.65, 0, 0)))
+
       tieSteps = Math.floor(steps / 8)
       for i in [0..tieSteps]
         mesh = new THREE.Mesh(tieProto, @material)
