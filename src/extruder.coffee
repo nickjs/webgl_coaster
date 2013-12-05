@@ -108,14 +108,15 @@ class LW.Extruder extends THREE.Geometry
 
     n = frames.normals[s]
     bn = frames.binormals[s]
-    cross.copy(n).cross(bn).normalize().setLength(0.65)
+    cross.copy(n).cross(bn).normalize().setLength(@tieDepth / 2).negate()
 
     for vertex in @tieVertices
       normal.copy(n).multiplyScalar(vertex.x)
       binormal.copy(bn).multiplyScalar(vertex.y)
-      pos2.copy(splinePoints[s]).add(normal).add(binormal)
+      pos2.copy(splinePoints[s]).add(normal).add(binormal).add(cross)
       @vertices.push(pos2.clone())
 
+    cross.negate()
     for vertex in @tieVertices
       normal.copy(n).multiplyScalar(vertex.x)
       binormal.copy(bn).multiplyScalar(vertex.y)
