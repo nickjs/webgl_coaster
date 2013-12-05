@@ -1,5 +1,4 @@
-init = (vectors...) ->
-  @vectors = vectors
+init = (@vectors) ->
   @count = Math.floor(vectors.length / 3) - 1
 
 getPoint = (t) ->
@@ -31,3 +30,15 @@ LW.BezierPath::addControlPoint = (pos) ->
 
   @count++
   @needsUpdate = true
+
+LW.BezierPath.fromJSON = (vectorJSON) ->
+  vectors = for v in vectorJSON
+    new THREE.Vector3().fromArray(v)
+  return new LW.BezierPath(vectors)
+
+LW.BezierPath::toJSON = ->
+  for vector in @vectors
+    vector.toJSON()
+
+THREE.Vector3::toJSON = ->
+  [@x, @y, @z]

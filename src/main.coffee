@@ -26,35 +26,22 @@ window.LW =
 
     terrain = new LW.Terrain(renderer)
 
-    @spline = new LW.BezierPath(
-      new THREE.Vector3(-50, 0, 0)
-      new THREE.Vector3(-40, 0, 0)
-      new THREE.Vector3(-30, 0, 0)
+    if json = localStorage.getItem('track')
+      @spline = LW.BezierPath.fromJSON(JSON.parse(json))
+    else
+      @spline = new LW.BezierPath([
+        new THREE.Vector3(-10, 0, 0)
+        new THREE.Vector3(-40, 0, 0)
+        new THREE.Vector3(10, 0, 0)
 
-      new THREE.Vector3(-10, 0, 0)
-      new THREE.Vector3(0, 0, 0)
-      new THREE.Vector3(12, 0, 0)
+        new THREE.Vector3(-10, -20, 0)
+        new THREE.Vector3(0, 18, 0)
+        new THREE.Vector3(10, 20, 0)
 
-      new THREE.Vector3(10, 0, 0)
-      new THREE.Vector3(20, 10, 0)
-      new THREE.Vector3(30, 20, 0)
-
-      new THREE.Vector3(30, 21, 0)
-      new THREE.Vector3(40, 15, 0)
-      new THREE.Vector3(45, 12, 0)
-
-      new THREE.Vector3(50, 12, 0)
-      new THREE.Vector3(50, 10, 10)
-      new THREE.Vector3(45, 10, 20)
-
-      new THREE.Vector3(45, 12, 20)
-      new THREE.Vector3(40, 10, 20)
-      new THREE.Vector3(20, 10, 20)
-
-      new THREE.Vector3(10, 10, 20)
-      new THREE.Vector3(0, 10, 20)
-      new THREE.Vector3(-10, 10, 20)
-    )
+        new THREE.Vector3(-14, -10, -20)
+        new THREE.Vector3(47, 20, 20)
+        new THREE.Vector3(14, 10, 20)
+      ])
 
     @edit = new LW.EditTrack(@spline)
     @edit.position.set(0, 3, -50)

@@ -25,10 +25,11 @@ class LW.EditTrack extends THREE.Object3D
           oppositeHandle = if @selectedHandle == @selected.left then @selected.right else @selected.left
           oppositeHandle.position.copy(@selectedHandle.position).negate()
 
-          @spline.updateArcLengths()
-
         if !@rerenderTimeout
           @rerenderTimeout = setTimeout =>
+            localStorage.setItem('track', JSON.stringify(@spline))
+            @spline.updateArcLengths()
+
             @rerenderTimeout = null
             @renderCurve()
             LW.track.renderTrack()
