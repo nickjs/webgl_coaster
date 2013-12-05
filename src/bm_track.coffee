@@ -52,7 +52,6 @@ class LW.BMTrack extends THREE.Object3D
     tieShape.lineTo(-offsetX + radius, offsetY)
     tieShape.lineTo(-offsetX, offsetY)
     tieShape.lineTo(-boxSize, boxSize - 3.5 - boxSize / 4)
-    # tieProto = new THREE.ExtrudeGeometry(tieShape, steps: 1, extrudePath: new THREE.LineCurve(new THREE.Vector3, new THREE.Vector3(0.65, 0, 0)))
 
     # Meshes
 
