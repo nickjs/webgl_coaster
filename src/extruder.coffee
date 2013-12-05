@@ -8,6 +8,12 @@ class LW.Extruder extends THREE.Geometry
       @tieShape, @tieDistance, @tieDepth
     } = options
 
+    @drawRail(@railDistance, 0)
+    @drawRail(-@railDistance, 0)
+    @computeCentroids()
+    @computeFaceNormals()
+    @computeVertexNormals()
+
     @drawSpine(@drawTie)
     @computeCentroids()
     @computeFaceNormals()
@@ -29,6 +35,7 @@ class LW.Extruder extends THREE.Geometry
 
     reverse = !THREE.Shape.Utils.isClockWise(vertices)
     vertices = vertices.reverse() if reverse
+    vertexOffset = @vertices.length
 
     faces = THREE.Shape.Utils.triangulateShape(vertices, [])
 
@@ -45,14 +52,14 @@ class LW.Extruder extends THREE.Geometry
     # Lid Faces
     for face in faces
       # Bottom
-      @faces.push(new THREE.Face3(face[2], face[1], face[0], null, null, null))
+      @faces.push(new THREE.Face3(face[2] + vertexOffset, face[1] + vertexOffset, face[0] + vertexOffset, null, null, null))
       uvs = uvgen.generateBottomUV(this, @spineShape, null, face[2], face[1], face[0])
       @faceVertexUvs[0].push(uvs)
 
       # Front
-      a = face[0] + vertices.length * @spineSteps
-      b = face[1] + vertices.length * @spineSteps
-      c = face[2] + vertices.length * @spineSteps
+      a = face[0] + vertexOffset + vertices.length * @spineSteps
+      b = face[1] + vertexOffset + vertices.length * @spineSteps
+      c = face[2] + vertexOffset + vertices.length * @spineSteps
       @faces.push(new THREE.Face3(a, b, c, null, null, null))
 
       uvs = uvgen.generateTopUV(this, @spineShape, null, a, b, c)
@@ -68,10 +75,10 @@ class LW.Extruder extends THREE.Geometry
       for s in [0..@spineSteps - 1]
         slen1 = vertices.length * s
         slen2 = vertices.length * (s + 1)
-        a = j + slen1
-        b = k + slen1
-        c = k + slen2
-        d = j + slen2
+        a = j + slen1 + vertexOffset
+        b = k + slen1 + vertexOffset
+        c = k + slen2 + vertexOffset
+        d = j + slen2 + vertexOffset
 
         @faces.push(new THREE.Face3(a, b, d, null, null, null))
         @faces.push(new THREE.Face3(b, c, d, null, null, null))
@@ -140,3 +147,66 @@ class LW.Extruder extends THREE.Geometry
       @faces.push(new THREE.Face3(b, c, d, null, null, null))
 
     return
+
+  drawRail: (xDistance, yDistance) ->
+    return unless @numberOfRails
+
+    segments = Math.floor(@spline.getLength())
+
+    frames = new THREE.TubeGeometry.FrenetFrames(@spline, segments, false)
+    tangents = frames.tangents
+    normals = frames.normals
+    binormals = frames.binormals
+    pos = pos2 = new THREE.Vector3
+
+    if !grid
+      @radialSegments = 8
+      grid = []
+
+      for i in [0..segments]
+        grid[i] = []
+
+        u = i / segments
+        pos = @spline.getPointAt(u)
+
+        tangent = tangents[i]
+        normal = normals[i]
+        binormal = binormals[i]
+        n = new THREE.Vector3
+        bn = new THREE.Vector3
+
+        for j in [0..@radialSegments]
+          v = j / @radialSegments * 2 * Math.PI
+          cx = -@railRadius * Math.cos(v) + xDistance
+          cy = @railRadius * Math.sin(v) + yDistance
+
+          n.copy(normal).multiplyScalar(cx)
+          bn.copy(binormal).multiplyScalar(cy)
+          pos2.copy(pos).add(n).add(bn)
+
+          grid[i][j] = @vertices.push(pos2.clone()) - 1
+
+    for i in [0..segments - 1]
+      for j in [0..@radialSegments]
+        ip = i + 1
+        jp = (j + 1) % @radialSegments
+
+        a = grid[i][j]
+        b = grid[ip][j]
+        c = grid[ip][jp]
+        d = grid[i][jp]
+
+        uva = new THREE.Vector2(i / segments, j / @radialSegments)
+        uvb = new THREE.Vector2((i + 1) / segments, j / @radialSegments)
+        uvc = new THREE.Vector2((i + 1) / segments, (j + 1) / @radialSegments)
+        uvd = new THREE.Vector2(i / segments, (j + 1) / @radialSegments)
+
+        @faces.push(new THREE.Face3(a, b, d))
+        @faceVertexUvs[0].push([uva, uvb, uvd])
+
+        @faces.push(new THREE.Face3(b, c, d))
+        @faceVertexUvs[0].push([uvb.clone(), uvc, uvd.clone()])
+
+    return
+
+
