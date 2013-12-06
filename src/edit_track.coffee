@@ -138,12 +138,7 @@ class LW.EditTrack extends THREE.Object3D
   renderCurve: ->
     @remove(@line) if @line
 
-    geo = new THREE.Geometry()
-    length = @spline.getLength()
-    for i in [0..100]
-      pos = @spline.getPoint(i / 100)
-      geo.vertices[i] = pos
-
+    geo = @spline.createPointsGeometry(@spline.getLength())
     mat = new THREE.LineBasicMaterial(color: 0xff0000, linewidth: 2)
     @line = new THREE.Line(geo, mat)
     @add(@line)

@@ -11,6 +11,7 @@
 
 # Some THREE objects don't create their prototype constructor chains correctly
 THREE.Mesh::constructor = THREE.Mesh
+THREE.CurvePath::constructor = THREE.CurvePath
 THREE.Object3D::clear = ->
     child = @children[0]
     while child
@@ -58,10 +59,6 @@ window.LW =
         new THREE.Vector3(-33, 0, 0)
         new THREE.Vector3(-80, 0, 0).setBank(-359)
         new THREE.Vector3(33, 0, 0)
-
-        new THREE.Vector3(-10, 0, 0)
-        new THREE.Vector3(-40, 0, 0).setBank(-359)
-        new THREE.Vector3(10, 0, 0)
       ])
 
     @edit = new LW.EditTrack(@spline)
@@ -89,7 +86,8 @@ window.LW =
 
     @trackFolder.addColor(color: "#ff0000", 'color').onChange (value) => @track.material.color.setHex(value.replace('#', '0x'))
     @trackFolder.add(@track, 'forceWireframe')
-    @trackFolder.add(@track, 'renderRails').onChange -> LW.track.renderTrack()
+    @trackFolder.add(@track, 'renderRails').onChange => @track.renderTrack()
+    # @trackFolder.add(@spline, 'isConnected').onChange (value) => @edit.changed()
 
     @trackFolder.add({addPoint: =>
       @spline.addControlPoint(@spline.getPoint(1).clone().add(new THREE.Vector3(40, 0, 0)))
@@ -105,8 +103,6 @@ window.LW =
     @pointFolder.add(@selected, 'y').onChange (value) => @selected.node.position.y = value; @edit.changed()
     @pointFolder.add(@selected, 'z').onChange (value) => @selected.node.position.z = value; @edit.changed()
     @pointFolder.add(@selected, 'bank').onChange (value) => @selected.node.position.bank = value; @edit.changed()
-
-    @edit.selectNode()
 
   selectionChanged: (selected) ->
     if selected
