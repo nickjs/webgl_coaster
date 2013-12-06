@@ -21,6 +21,18 @@ getPoint = (t) ->
 
 LW.BezierPath = THREE.Curve.create(init, getPoint)
 
+LW.BezierPath::getBankAt = (t) ->
+  if t == 1
+    i = @count - 1
+  else if t == 0
+    i = 0
+  else
+    i = Math.floor(t * @count)
+
+  index = i * 3
+
+  return @vectors[index + 4].bank || 0
+
 LW.BezierPath::addControlPoint = (pos) ->
   last = @vectors[@vectors.length - 2]
 
@@ -42,3 +54,6 @@ LW.BezierPath::toJSON = ->
 
 THREE.Vector3::toJSON = ->
   [@x, @y, @z]
+
+THREE.Vector3::setBank = (amount) ->
+  @bank = amount

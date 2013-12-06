@@ -11,7 +11,8 @@ LW.FrenetFrames = (path, segments) ->
 
     tangents[i] = path.getTangentAt(u).normalize()
 
-    binormals[ i ] = up.clone().applyAxisAngle(tangents[i], 0)
+    bank = THREE.Math.degToRad(path.getBankAt(u))
+    binormals[ i ] = up.clone().applyAxisAngle(tangents[i], bank)
 
     normals[ i ] = tangents[i].clone().cross(binormals[i]).normalize()
 

@@ -79,11 +79,12 @@ window.LW =
       @edit.selectNode()
     }, 'addPoint')
 
-    @selected = {x: 0, y: 0, z: 0}
+    @selected = {x: 0, y: 0, z: 0, bank: 0}
     @pointFolder = @gui.addFolder('Point')
     @pointFolder.add(@selected, 'x').onChange (value) => @selected.node.position.x = value; @edit.changed()
     @pointFolder.add(@selected, 'y').onChange (value) => @selected.node.position.y = value; @edit.changed()
     @pointFolder.add(@selected, 'z').onChange (value) => @selected.node.position.z = value; @edit.changed()
+    @pointFolder.add(@selected, 'bank').onChange (value) => @selected.node.position.bank = value; @edit.changed()
 
     @edit.selectNode()
 
@@ -92,6 +93,7 @@ window.LW =
       @selected.x = selected.position.x
       @selected.y = selected.position.y
       @selected.z = selected.position.z
+      @selected.bank = selected.position.bank || 0
       @selected.node = selected
 
       for controller in @pointFolder.__controllers
