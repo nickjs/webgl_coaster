@@ -23,17 +23,25 @@ class LW.EditTrack extends THREE.Object3D
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
 
   changed: (force) ->
-    if @selected || force
+    if @selected
+      return if @transformControl.axis == undefined
       if @selectedHandle
         @selected.pointLine.geometry.verticesNeedUpdate = true
 
         oppositeHandle = if @selectedHandle == @selected.left then @selected.right else @selected.left
         oppositeHandle.position.copy(@selectedHandle.position).negate()
 
+
+      @selected.splineVector.copy(@selected.position)
+      @selected.left.splineVector.copy(@selected.left.position)
+      @selected.right.splineVector.copy(@selected.right.position)
+
+    if @selected || force
+      @spline.rebuild()
+
       if !@rerenderTimeout
         @rerenderTimeout = setTimeout =>
           localStorage.setItem('track', JSON.stringify(@spline))
-          @spline.updateArcLengths()
 
           @rerenderTimeout = null
           @renderCurve()
@@ -119,7 +127,8 @@ class LW.EditTrack extends THREE.Object3D
       isControl = (i - 1) % 3 == 0
 
       node = new LW.EditNode(isControl)
-      node.position = vector
+      node.position.copy(vector)
+      node.splineVector = vector
 
       if isControl
         @add(node)

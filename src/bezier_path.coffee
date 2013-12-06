@@ -15,10 +15,11 @@ class LW.BezierPath extends THREE.CurvePath
     throw "wrong number of vectors" if vectors.length % 3 != 0
 
     super()
-    @_buildCurves()
+    @rebuild()
 
-  _buildCurves: ->
+  rebuild: ->
     @curves.pop() while @curves.length
+    @cacheLengths = []
 
     for i in [0..@vectors.length / 3 - 2]
       index = i * 3
@@ -30,6 +31,7 @@ class LW.BezierPath extends THREE.CurvePath
 
       @add(new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP))
 
+    @connect() if @isConnected
     return
 
   isConnected: false
