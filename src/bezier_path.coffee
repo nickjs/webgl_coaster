@@ -31,7 +31,10 @@ LW.BezierPath::getBankAt = (t) ->
 
   index = i * 3
 
-  return @vectors[index + 4].bank || 0
+  leftCP = @vectors[index + 1].bank || 0
+  rightCP = @vectors[index + 4].bank || 0
+
+  return THREE.Curve.Utils.interpolate(leftCP, leftCP, rightCP, rightCP, t * @count - i)
 
 LW.BezierPath::addControlPoint = (pos) ->
   last = @vectors[@vectors.length - 2]
@@ -45,7 +48,9 @@ LW.BezierPath::addControlPoint = (pos) ->
 
 LW.BezierPath.fromJSON = (vectorJSON) ->
   vectors = for v in vectorJSON
-    new THREE.Vector3().fromArray(v)
+    vec = new THREE.Vector3(v.x, v.y, v.z)
+    vec.setBank(v.bank) if v.bank
+    vec
   return new LW.BezierPath(vectors)
 
 LW.BezierPath::toJSON = ->
@@ -53,7 +58,10 @@ LW.BezierPath::toJSON = ->
     vector.toJSON()
 
 THREE.Vector3::toJSON = ->
-  [@x, @y, @z]
+  obj = {x: @x, y: @y, z: @z}
+  obj.bank = @bank if @bank
+  return obj
 
 THREE.Vector3::setBank = (amount) ->
   @bank = amount
+  return this
