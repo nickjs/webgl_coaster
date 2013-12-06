@@ -52,7 +52,7 @@ class LW.Extruder extends THREE.Geometry
     # Lid Faces
     for face in faces
       # Bottom
-      @faces.push(new THREE.Face3(face[2] + vertexOffset, face[1] + vertexOffset, face[0] + vertexOffset, null, null, null))
+      @faces.push(new THREE.Face3(face[0] + vertexOffset, face[1] + vertexOffset, face[2] + vertexOffset, null, null, null))
       uvs = uvgen.generateBottomUV(this, @spineShape, null, face[2], face[1], face[0])
       @faceVertexUvs[0].push(uvs)
 
