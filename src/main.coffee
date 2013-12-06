@@ -39,9 +39,29 @@ window.LW =
         new THREE.Vector3(0, 18, 0)
         new THREE.Vector3(10, 20, 0)
 
-        new THREE.Vector3(-14, -10, -20)
-        new THREE.Vector3(47, 20, 20)
-        new THREE.Vector3(14, 10, 20)
+        new THREE.Vector3(-14, -10, -40)
+        new THREE.Vector3(47, 20, 40).setBank(60)
+        new THREE.Vector3(14, 10, 40)
+
+        new THREE.Vector3(30, 0, 0)
+        new THREE.Vector3(0, 0, 80).setBank(20)
+        new THREE.Vector3(-30, 0, 0)
+
+        new THREE.Vector3(18, 0, 0)
+        new THREE.Vector3(-80, 0, 80).setBank(-359)
+        new THREE.Vector3(-18, 0, 0)
+
+        new THREE.Vector3(2.5, 0, 23)
+        new THREE.Vector3(-120, 0, 40).setBank(-359)
+        new THREE.Vector3(-2.5, 0, -23)
+
+        new THREE.Vector3(-33, 0, 0)
+        new THREE.Vector3(-80, 0, 0).setBank(-359)
+        new THREE.Vector3(33, 0, 0)
+
+        new THREE.Vector3(-10, 0, 0)
+        new THREE.Vector3(-40, 0, 0).setBank(-359)
+        new THREE.Vector3(10, 0, 0)
       ])
 
     @edit = new LW.EditTrack(@spline)
