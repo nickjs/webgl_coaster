@@ -22,8 +22,8 @@ class LW.EditTrack extends THREE.Object3D
     LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
 
-  changed: ->
-    if @selected
+  changed: (force) ->
+    if @selected || force
       if @selectedHandle
         @selected.pointLine.geometry.verticesNeedUpdate = true
 

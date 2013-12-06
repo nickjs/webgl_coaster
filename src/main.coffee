@@ -87,7 +87,9 @@ window.LW =
     @trackFolder.addColor(color: "#ff0000", 'color').onChange (value) => @track.material.color.setHex(value.replace('#', '0x'))
     @trackFolder.add(@track, 'forceWireframe')
     @trackFolder.add(@track, 'renderRails').onChange => @track.renderTrack()
-    # @trackFolder.add(@spline, 'isConnected').onChange (value) => @edit.changed()
+    @trackFolder.add(@spline, 'isConnected').onChange (value) =>
+      if value then @spline.connect() else @spline.disconnect()
+      @edit.changed(true)
 
     @trackFolder.add({addPoint: =>
       @spline.addControlPoint(@spline.getPoint(1).clone().add(new THREE.Vector3(40, 0, 0)))

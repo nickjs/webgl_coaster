@@ -32,6 +32,21 @@ class LW.BezierPath extends THREE.CurvePath
 
     return
 
+  isConnected: false
+  connect: ->
+    @isConnected = true
+
+    leftCP = @vectors[@vectors.length - 2]
+    rightCP = @vectors[1]
+    leftHandle = @vectors[@vectors.length - 1].clone().add(leftCP)
+    rightHandle = @vectors[0].clone().add(rightCP)
+
+    @curves.push(new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP))
+
+  disconnect: ->
+    @isConnected = false
+    @curves.pop()
+
   getBankAt: (t) ->
     d = t * @getLength()
     curveLengths = @getCurveLengths()
@@ -43,8 +58,8 @@ class LW.BezierPath extends THREE.CurvePath
         curve = @curves[i]
         u = 1 - diff / curve.getLength()
 
-        leftBank = curve.v0.bank || 0
-        rightBank = curve.v3.bank || 0
+        leftBank = curve.v0?.bank || 0
+        rightBank = curve.v3?.bank || 0
 
         return THREE.Curve.Utils.interpolate(leftBank, leftBank, rightBank, rightBank, u)
 
