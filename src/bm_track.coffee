@@ -34,7 +34,8 @@ class LW.BMTrack extends THREE.Object3D
 
     steps = @spline.getLength()
 
-    boxGeo = new LW.Extruder(@spline, spineShape: boxShape, spineSteps: Math.ceil(steps / 8), tieShape: tieShape, tieDepth: 0.65, numberOfRails: 2, railRadius: radius, railDistance: offsetX - radius)
+    numberOfRails = if @renderRails then 2 else 0
+    boxGeo = new LW.Extruder(@spline, spineShape: boxShape, spineSteps: Math.ceil(steps / 8), tieShape: tieShape, tieDepth: 0.65, numberOfRails: numberOfRails, railRadius: radius, railDistance: offsetX - radius)
     boxMesh = new THREE.Mesh(boxGeo, @material)
     # boxMesh = THREE.SceneUtils.createMultiMaterialObject(boxGeo, [@material, new THREE.MeshLambertMaterial(color: 0x000000, wireframe: true, opacity: 0.5)])
     @add(boxMesh)

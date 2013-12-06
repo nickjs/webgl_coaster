@@ -60,7 +60,7 @@ class LW.Renderer
 
     @renderer.setViewport( 1, 1,   0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2 )
     @renderer.render(@scene, @frontCamera)
-    LW.track.material.wireframe = false
+    LW.track.material.wireframe = LW.track.forceWireframe || false
 
     @renderer.setViewport( 0.5 * SCREEN_WIDTH + 1, 1,   0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2 )
     @renderer.render(@scene, @camera)

@@ -51,7 +51,8 @@ window.LW =
 
     @track = new LW.BMTrack(@spline)
     @track.position.set(0, 3, -50)
-    @track.renderRails = false
+    @track.renderRails = true
+    @track.forceWireframe = false
     @track.renderTrack()
     renderer.scene.add(@track)
 
@@ -62,34 +63,43 @@ window.LW =
 
     renderer.render()
 
-    gui = new dat.GUI()
-    trackFolder = gui.addFolder('Track')
-    trackFolder.open()
+    @gui = new dat.GUI()
+    @trackFolder = @gui.addFolder('Track')
+    @trackFolder.open()
 
-    if @track?.material
-      trackFolder.addColor(color: "#ff0000", 'color').onChange (value) => @track.material.color.setHex(value.replace('#', '0x'))
-      # trackFolder.add(renderer.spline.beziers[0].v0, 'x', -100, 0).onChange (value) -> renderer.scene.remove(@track); renderer.drawTrack(renderer.spline)
-      trackFolder.add(@track.material, 'wireframe')
-      trackFolder.add(@track, 'renderRails').onChange -> LW.track.renderTrack()
+    @trackFolder.addColor(color: "#ff0000", 'color').onChange (value) => @track.material.color.setHex(value.replace('#', '0x'))
+    @trackFolder.add(@track, 'forceWireframe')
+    @trackFolder.add(@track, 'renderRails').onChange -> LW.track.renderTrack()
 
-      trackFolder.add({addPoint: =>
-        @spline.addControlPoint(@spline.getPoint(1).clone().add(new THREE.Vector3(40, 0, 0)))
-        @edit.renderTrack()
-        @track.renderTrack()
+    @trackFolder.add({addPoint: =>
+      @spline.addControlPoint(@spline.getPoint(1).clone().add(new THREE.Vector3(40, 0, 0)))
+      @edit.renderTrack()
+      @track.renderTrack()
 
-        @edit.selectNode()
-      }, 'addPoint')
+      @edit.selectNode()
+    }, 'addPoint')
 
-    if @track
-      pos = trackFolder.addFolder('Position')
-      pos.add(@track.position, 'x', -100, 100)
-      pos.add(@track.position, 'y', -100, 100)
-      pos.add(@track.position, 'z', -100, 100)
+    @selected = {x: 0, y: 0, z: 0}
+    @pointFolder = @gui.addFolder('Point')
+    @pointFolder.add(@selected, 'x').onChange (value) => @selected.node.position.x = value; @edit.changed()
+    @pointFolder.add(@selected, 'y').onChange (value) => @selected.node.position.y = value; @edit.changed()
+    @pointFolder.add(@selected, 'z').onChange (value) => @selected.node.position.z = value; @edit.changed()
 
-      rot = trackFolder.addFolder('Rotation')
-      rot.add(@track.rotation, 'x', 0, Math.PI * 2)
-      rot.add(@track.rotation, 'y', 0, Math.PI * 2).step(0.05)
-      rot.add(@track.rotation, 'z', 0, Math.PI * 2)
-      rot.open()
+    @edit.selectNode()
+
+  selectionChanged: (selected) ->
+    if selected
+      @selected.x = selected.position.x
+      @selected.y = selected.position.y
+      @selected.z = selected.position.z
+      @selected.node = selected
+
+      for controller in @pointFolder.__controllers
+        controller.updateDisplay()
+
+      @pointFolder.open()
+
+    else
+      @pointFolder.close()
 
 window.onload = -> LW.init()

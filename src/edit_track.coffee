@@ -17,26 +17,30 @@ class LW.EditTrack extends THREE.Object3D
 
     @transformControl.addEventListener 'change', =>
       LW.controls?.enabled = @transformControl.axis == undefined
-
-      if @selected
-        if @selectedHandle
-          @selected.pointLine.geometry.verticesNeedUpdate = true
-
-          oppositeHandle = if @selectedHandle == @selected.left then @selected.right else @selected.left
-          oppositeHandle.position.copy(@selectedHandle.position).negate()
-
-        if !@rerenderTimeout
-          @rerenderTimeout = setTimeout =>
-            localStorage.setItem('track', JSON.stringify(@spline))
-            @spline.updateArcLengths()
-
-            @rerenderTimeout = null
-            @renderCurve()
-            LW.track.renderTrack()
-          , 10
+      @changed()
 
     LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
+
+  changed: ->
+    if @selected
+      if @selectedHandle
+        @selected.pointLine.geometry.verticesNeedUpdate = true
+
+        oppositeHandle = if @selectedHandle == @selected.left then @selected.right else @selected.left
+        oppositeHandle.position.copy(@selectedHandle.position).negate()
+
+      if !@rerenderTimeout
+        @rerenderTimeout = setTimeout =>
+          localStorage.setItem('track', JSON.stringify(@spline))
+          @spline.updateArcLengths()
+
+          @rerenderTimeout = null
+          @renderCurve()
+          LW.track.renderTrack()
+        , 10
+
+    return
 
   pick: (pos, objects) ->
     camera = LW.controls.camera
@@ -102,6 +106,8 @@ class LW.EditTrack extends THREE.Object3D
     if node
       node.select(true)
       @transformControl.attach(node)
+
+    LW.selectionChanged(node)
 
   renderTrack: ->
     @clear()
