@@ -25,7 +25,7 @@ class LW.Extruder extends THREE.Geometry
 
     uvgen = THREE.ExtrudeGeometry.WorldUVGenerator
 
-    frames = new THREE.TubeGeometry.FrenetFrames(@spline, @spineSteps, false)
+    {tangents, normals, binormals} = LW.FrenetFrames(@spline, @spineSteps, false)
     binormal = new THREE.Vector3
     normal = new THREE.Vector3
     pos2 = new THREE.Vector3
@@ -43,8 +43,8 @@ class LW.Extruder extends THREE.Geometry
     # Including front facing
     for s in [0..@spineSteps]
       for vertex in vertices
-        normal.copy(frames.normals[s]).multiplyScalar(vertex.x)
-        binormal.copy(frames.binormals[s]).multiplyScalar(vertex.y)
+        normal.copy(normals[s]).multiplyScalar(vertex.x)
+        binormal.copy(binormals[s]).multiplyScalar(vertex.y)
         pos2.copy(splinePoints[s]).add(normal).add(binormal)
 
         @vertices.push(pos2.clone())
@@ -60,7 +60,7 @@ class LW.Extruder extends THREE.Geometry
       a = face[0] + vertexOffset + vertices.length * @spineSteps
       b = face[1] + vertexOffset + vertices.length * @spineSteps
       c = face[2] + vertexOffset + vertices.length * @spineSteps
-      @faces.push(new THREE.Face3(a, b, c, null, null, null))
+      @faces.push(new THREE.Face3(c, b, a, null, null, null))
 
       uvs = uvgen.generateTopUV(this, @spineShape, null, a, b, c)
       @faceVertexUvs[0].push(uvs)
@@ -80,8 +80,8 @@ class LW.Extruder extends THREE.Geometry
         c = k + slen2 + vertexOffset
         d = j + slen2 + vertexOffset
 
-        @faces.push(new THREE.Face3(a, b, d, null, null, null))
-        @faces.push(new THREE.Face3(b, c, d, null, null, null))
+        @faces.push(new THREE.Face3(d, b, a, null, null, null))
+        @faces.push(new THREE.Face3(d, c, b, null, null, null))
 
         uvs = uvgen.generateSideWallUV(this, @spineShape, vertices, null, a, b, c, d, s, @spineSteps, j, k)
 
@@ -90,11 +90,11 @@ class LW.Extruder extends THREE.Geometry
 
 
     for s in [1..@spineSteps]
-      stepCallback?(s, frames, splinePoints)
+      stepCallback?(s, tangents, normals, binormals, splinePoints)
 
     return
 
-  drawTie: (s, frames, splinePoints) =>
+  drawTie: (s, tangents, normals, binormals, splinePoints) =>
     return unless @tieShape
 
     pos2 = new THREE.Vector3
@@ -106,8 +106,8 @@ class LW.Extruder extends THREE.Geometry
     @tieVertices ||= @tieShape.extractPoints(1).shape
     @tieFaces ||= THREE.Shape.Utils.triangulateShape(@tieVertices, [])
 
-    n = frames.normals[s]
-    bn = frames.binormals[s]
+    n = normals[s]
+    bn = binormals[s]
     cross.copy(n).cross(bn).normalize().setLength(@tieDepth / 2).negate()
 
     for vertex in @tieVertices
@@ -154,38 +154,33 @@ class LW.Extruder extends THREE.Geometry
 
     segments = Math.floor(@spline.getLength())
 
-    frames = new THREE.TubeGeometry.FrenetFrames(@spline, segments, false)
-    tangents = frames.tangents
-    normals = frames.normals
-    binormals = frames.binormals
+    {tangents, normals, binormals} = LW.FrenetFrames(@spline, segments)
     pos = pos2 = new THREE.Vector3
 
-    if !grid
-      @radialSegments = 8
-      grid = []
+    @radialSegments = 8
+    grid = []
 
-      for i in [0..segments]
-        grid[i] = []
+    for i in [0..segments]
+      grid[i] = []
 
-        u = i / segments
-        pos = @spline.getPointAt(u)
+      u = i / segments
+      pos = @spline.getPointAt(u)
 
-        tangent = tangents[i]
-        normal = normals[i]
-        binormal = binormals[i]
-        n = new THREE.Vector3
-        bn = new THREE.Vector3
+      tangent = tangents[i]
+      normal = normals[i]
+      binormal = binormals[i]
 
-        for j in [0..@radialSegments]
-          v = j / @radialSegments * 2 * Math.PI
-          cx = -@railRadius * Math.cos(v) + xDistance
-          cy = @railRadius * Math.sin(v) + yDistance
+      for j in [0..@radialSegments]
+        v = j / @radialSegments * 2 * Math.PI
+        cx = -@railRadius * Math.cos(v) + xDistance
+        cy = @railRadius * Math.sin(v) + yDistance
 
-          n.copy(normal).multiplyScalar(cx)
-          bn.copy(binormal).multiplyScalar(cy)
-          pos2.copy(pos).add(n).add(bn)
+        pos2.copy( pos );
+        pos2.x += cx * normal.x + cy * binormal.x;
+        pos2.y += cx * normal.y + cy * binormal.y;
+        pos2.z += cx * normal.z + cy * binormal.z;
 
-          grid[i][j] = @vertices.push(pos2.clone()) - 1
+        grid[i][j] = @vertices.push(pos2.clone()) - 1
 
     for i in [0..segments - 1]
       for j in [0..@radialSegments]
@@ -202,12 +197,10 @@ class LW.Extruder extends THREE.Geometry
         uvc = new THREE.Vector2((i + 1) / segments, (j + 1) / @radialSegments)
         uvd = new THREE.Vector2(i / segments, (j + 1) / @radialSegments)
 
-        @faces.push(new THREE.Face3(a, b, d))
+        @faces.push(new THREE.Face3(d, b, a))
         @faceVertexUvs[0].push([uva, uvb, uvd])
 
-        @faces.push(new THREE.Face3(b, c, d))
+        @faces.push(new THREE.Face3(d, c, b))
         @faceVertexUvs[0].push([uvb.clone(), uvc, uvd.clone()])
 
     return
-
-

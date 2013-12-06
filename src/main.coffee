@@ -1,6 +1,7 @@
 #= require_self
 #= require bezier_path
 #= require extruder
+#= require frenet
 #= require spline
 #= require renderer
 #= require terrain
