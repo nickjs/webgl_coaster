@@ -23,14 +23,12 @@ class LW.EditTrack extends THREE.Object3D
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
 
   changed: (force) ->
-    if @selected
-      return if @transformControl.axis == undefined
+    if @selected and @transformControl.axis != undefined
       if @selectedHandle
         @selected.pointLine.geometry.verticesNeedUpdate = true
 
         oppositeHandle = if @selectedHandle == @selected.left then @selected.right else @selected.left
         oppositeHandle.position.copy(@selectedHandle.position).negate()
-
 
       @selected.splineVector.copy(@selected.position)
       @selected.left.splineVector.copy(@selected.left.position)
