@@ -73,6 +73,7 @@ window.LW = {
         return _this.edit.selectNode();
       }
     }, 'addPoint');
+    this.onRideCamera = false;
     this.trainFolder = this.gui.addFolder('Train');
     this.trainFolder.open();
     this.trainFolder.addColor({
@@ -83,6 +84,15 @@ window.LW = {
     this.trainFolder.add(this.train, 'movementSpeed', 0.01, 0.1);
     this.trainFolder.add(this.train, 'numberOfCars', 0, 8).step(1).onChange(function(value) {
       return _this.train.rebuild();
+    });
+    this.trainFolder.add(this, 'onRideCamera').onChange(function(value) {
+      if (value) {
+        _this.oldCamPos = _this.renderer.camera.position.clone();
+        return _this.oldCamRot = _this.renderer.camera.rotation.clone();
+      } else {
+        _this.renderer.camera.position.copy(_this.oldCamPos);
+        return _this.renderer.camera.rotation.copy(_this.oldCamRot);
+      }
     });
     this.selected = {
       x: 0,
@@ -680,6 +690,10 @@ LW.Train = (function(_super) {
         mat = new THREE.Matrix4(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1);
         car.position.copy(pos).add(new THREE.Vector3(0, 5, 0).applyMatrix4(mat));
         car.rotation.setFromRotationMatrix(mat);
+        if (LW.onRideCamera) {
+          LW.renderer.camera.position.copy(pos).add(new THREE.Vector3(0, 3, 0).applyMatrix4(mat));
+          LW.renderer.camera.rotation.setFromRotationMatrix(mat);
+        }
       }
     }
   };
