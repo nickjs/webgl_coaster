@@ -5,6 +5,7 @@
 #= require spline
 #= require renderer
 #= require terrain
+#= require train
 
 #= require edit_track
 #= require bm_track
@@ -60,12 +61,10 @@ window.LW =
       ])
 
     @edit = new LW.EditTrack(@spline)
-    @edit.position.set(0, 3, -50)
     @edit.renderTrack()
     renderer.scene.add(@edit)
 
     @track = new LW.BMTrack(@spline)
-    @track.position.set(0, 3, -50)
     @track.renderRails = true
     @track.forceWireframe = false
     @track.renderTrack()
@@ -77,6 +76,12 @@ window.LW =
       @edit?.transformControl?.update()
 
     renderer.render()
+
+    setTimeout =>
+      @train = new LW.Train(numberOfCars: 1)
+      @train.attachToTrack(@track)
+      renderer.scene.add(@train)
+    , 0
 
     @gui = new dat.GUI()
     @trackFolder = @gui.addFolder('Track')

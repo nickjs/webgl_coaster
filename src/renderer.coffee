@@ -7,9 +7,11 @@ class LW.Renderer
     @domElement = @renderer.domElement
 
     @scene = new THREE.Scene
+    @clock = new THREE.Clock()
 
     @camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000)
     @camera.shouldRotate = true
+    @camera.position.z += 60
 
     zoom = 16
     x = window.innerWidth / zoom
@@ -37,14 +39,9 @@ class LW.Renderer
     @light.position.set(20, 40, 0)
     @scene.add(@light)
 
-    # cube = new THREE.CubeGeometry(16,8,8)
-    # carmat = new THREE.MeshLambertMaterial(color: 0xeeeeee, wireframe: true)
-    # @car = new Physijs.BoxMesh(cube, carmat)
-    # @carv = new Physijs.Vehicle(@car, new Physijs.VehicleTuning(10.88, 1.83, 0.28, 500, 10.5, 6000))
-    # @car.position.set(-30, 9, -50)
-    # @scene.add(@carv)
-
   render: =>
+    LW.train?.simulate(@clock.getDelta())
+
     SCREEN_WIDTH = window.innerWidth * @renderer.devicePixelRatio
     SCREEN_HEIGHT = window.innerHeight * @renderer.devicePixelRatio
 
