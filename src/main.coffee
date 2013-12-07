@@ -99,6 +99,7 @@ window.LW =
 
     @selected = {x: 0, y: 0, z: 0, bank: 0}
     updateVector = (index, value) =>
+      return if not @selected.node
       @selected.node.position[index] = value
       @selected.node.splineVector[index] = value
       @edit.changed(true)
@@ -111,10 +112,10 @@ window.LW =
 
   selectionChanged: (selected) ->
     if selected
-      @selected.x = selected.position.x
-      @selected.y = selected.position.y
-      @selected.z = selected.position.z
-      @selected.bank = selected.position.bank || 0
+      @selected.x = selected.splineVector.x
+      @selected.y = selected.splineVector.y
+      @selected.z = selected.splineVector.z
+      @selected.bank = selected.splineVector.bank || 0
       @selected.node = selected
 
       for controller in @pointFolder.__controllers
