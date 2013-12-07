@@ -7,19 +7,25 @@ class LW.Train extends THREE.Object3D
     } = options
 
     @cars = []
+    @rebuild()
 
+    @movementSpeed ||= 0.08
+
+  rebuild: ->
     @carGeometry ||= new THREE.CubeGeometry(8,8,16)
     @carMaterial ||= new THREE.MeshLambertMaterial(color: 0xeeeeee)
     @carSpacing ||= 2
     @carLength ||= 16
 
-    @currentTime = 0.0
-    @movementSpeed ||= 0.08
+    @remove(@cars.pop()) while @cars.length
 
-    for i in [0..@numberOfCars - 1]
-      car = new THREE.Mesh(@carGeometry, @carMaterial)
-      @cars.push(car)
-      @add(car)
+    if @numberOfCars
+      for i in [0..@numberOfCars - 1]
+        car = new THREE.Mesh(@carGeometry, @carMaterial)
+        @cars.push(car)
+        @add(car)
+
+    @currentTime = 0.0
 
   attachToTrack: (@track) ->
     @spline = @track.spline
@@ -27,6 +33,8 @@ class LW.Train extends THREE.Object3D
   up = new THREE.Vector3(0,1,0)
 
   simulate: (delta) ->
+    return if !@numberOfCars
+
     @currentTime += @movementSpeed * delta
     @currentTime = 0 if @currentTime > 1
 

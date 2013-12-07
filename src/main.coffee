@@ -70,18 +70,16 @@ window.LW =
     @track.renderTrack()
     renderer.scene.add(@track)
 
+    @train = new LW.Train(numberOfCars: 2)
+    @train.attachToTrack(@track)
+    renderer.scene.add(@train)
+
     controls = @controls = new THREE.EditorControls([renderer.topCamera, renderer.sideCamera, renderer.frontCamera, renderer.camera], renderer.domElement)
     controls.center.copy(@edit.position)
     controls.addEventListener 'change', =>
       @edit?.transformControl?.update()
 
     renderer.render()
-
-    setTimeout =>
-      @train = new LW.Train(numberOfCars: 2)
-      @train.attachToTrack(@track)
-      renderer.scene.add(@train)
-    , 0
 
     @gui = new dat.GUI()
     @trackFolder = @gui.addFolder('Track')
@@ -101,6 +99,13 @@ window.LW =
 
       @edit.selectNode()
     }, 'addPoint')
+
+    @trainFolder = @gui.addFolder('Train')
+    @trainFolder.open()
+
+    @trainFolder.addColor(color: '#ffffff', 'color').onChange (value) => @train.carMaterial.color.setHex(value.replace('#', '0x'))
+    @trainFolder.add(@train, 'movementSpeed', 0.01, 0.1)
+    @trainFolder.add(@train, 'numberOfCars', 0, 8).step(1).onChange (value) => @train.rebuild()
 
     @selected = {x: 0, y: 0, z: 0, bank: 0}
     updateVector = (index, value) =>
