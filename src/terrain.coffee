@@ -9,7 +9,7 @@ class LW.Terrain
       groundTexture.repeat.set(25, 25)
       groundTexture.anisotropy = 16;
 
-      @ground = new Physijs.HeightfieldMesh(geo, groundMaterial)
+      @ground = new THREE.Mesh(geo, groundMaterial)
       @ground.position.y -= 5
       @ground.rotation.x = -Math.PI / 2
       renderer.scene.add(@ground)
