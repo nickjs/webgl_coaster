@@ -78,7 +78,7 @@ window.LW =
     renderer.render()
 
     setTimeout =>
-      @train = new LW.Train(numberOfCars: 1)
+      @train = new LW.Train(numberOfCars: 2)
       @train.attachToTrack(@track)
       renderer.scene.add(@train)
     , 0

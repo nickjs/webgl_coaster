@@ -3,7 +3,7 @@ class LW.Train extends THREE.Object3D
     super()
 
     {
-      @numberOfCars, @carGeometry, @carMaterial, @carSpacing
+      @numberOfCars, @carGeometry, @carMaterial, @carSpacing, @carLength, @movementSpeed
     } = options
 
     @cars = []
@@ -11,9 +11,10 @@ class LW.Train extends THREE.Object3D
     @carGeometry ||= new THREE.CubeGeometry(8,8,16)
     @carMaterial ||= new THREE.MeshLambertMaterial(color: 0xeeeeee)
     @carSpacing ||= 2
+    @carLength ||= 16
 
     @currentTime = 0.0
-    @movementSpeed = 0.08
+    @movementSpeed ||= 0.08
 
     for i in [0..@numberOfCars - 1]
       car = new THREE.Mesh(@carGeometry, @carMaterial)
@@ -29,16 +30,32 @@ class LW.Train extends THREE.Object3D
     @currentTime += @movementSpeed * delta
     @currentTime = 0 if @currentTime > 1
 
-    tangent = @spline.getTangentAt(@currentTime).normalize()
+    lastPos = @spline.getPointAt(@currentTime)
+    for car, i in @cars
+      pos = null
+      desiredDistance = i * 18
 
-    bank = THREE.Math.degToRad(@spline.getBankAt(@currentTime))
-    binormal = up.clone().applyAxisAngle(tangent, bank)
+      deltaPoint = @currentTime
+      if desiredDistance > 0
+        while deltaPoint > 0
+          pos = @spline.getPointAt(deltaPoint)
+          break if pos.distanceTo(lastPos) >= desiredDistance
+          deltaPoint += 0.01
+          deltaPoint = 0 if deltaPoint > 1
+      else
+        pos = lastPos
 
-    normal = tangent.clone().cross(binormal).normalize()
-    binormal = normal.clone().cross(tangent).normalize()
-    mat = new THREE.Matrix4(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1)
+      if pos
+        tangent = @spline.getTangentAt(deltaPoint).normalize()
 
-    pos = @spline.getPoint(@currentTime)
+        bank = THREE.Math.degToRad(@spline.getBankAt(deltaPoint))
+        binormal = up.clone().applyAxisAngle(tangent, bank)
 
-    @cars[0].position.copy(pos).add(new THREE.Vector3(0,5,0).applyMatrix4(mat))
-    @cars[0].rotation.setFromRotationMatrix(mat)
+        normal = tangent.clone().cross(binormal).normalize()
+        binormal = normal.clone().cross(tangent).normalize()
+        mat = new THREE.Matrix4(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1)
+
+        car.position.copy(pos).add(new THREE.Vector3(0, 5, 0).applyMatrix4(mat))
+        car.rotation.setFromRotationMatrix(mat)
+
+    return
