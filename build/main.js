@@ -13,10 +13,6 @@ THREE.Object3D.prototype.clear = function() {
   return _results;
 };
 
-Physijs.scripts.worker = '/assets/physijs_worker.js';
-
-Physijs.scripts.ammo = '/assets/ammo.js';
-
 window.LW = {
   init: function() {
     var controls, json, renderer, terrain,
@@ -547,7 +543,7 @@ LW.Terrain = (function() {
       groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
       groundTexture.repeat.set(25, 25);
       groundTexture.anisotropy = 16;
-      this.ground = new Physijs.HeightfieldMesh(geo, groundMaterial);
+      this.ground = new THREE.Mesh(geo, groundMaterial);
       this.ground.position.y -= 5;
       this.ground.rotation.x = -Math.PI / 2;
       return renderer.scene.add(this.ground);
