@@ -12,14 +12,12 @@
 # Some THREE objects don't create their prototype constructor chains correctly
 THREE.Mesh::constructor = THREE.Mesh
 THREE.CurvePath::constructor = THREE.CurvePath
+
 THREE.Object3D::clear = ->
     child = @children[0]
     while child
       @remove(child)
       child = @children[0]
-
-Physijs.scripts.worker = '/assets/physijs_worker.js'
-Physijs.scripts.ammo = '/assets/ammo.js'
 
 window.LW =
   init: ->
