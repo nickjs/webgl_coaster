@@ -15,7 +15,7 @@ THREE.Object3D.prototype.clear = function() {
 
 window.LW = {
   init: function() {
-    var controls, json, renderer, terrain,
+    var controls, json, renderer, terrain, updateVector,
       _this = this;
     renderer = this.renderer = new LW.Renderer;
     document.body.appendChild(renderer.domElement);
@@ -76,22 +76,23 @@ window.LW = {
       z: 0,
       bank: 0
     };
+    updateVector = function(index, value) {
+      _this.selected.node.position[index] = value;
+      _this.selected.node.splineVector[index] = value;
+      return _this.edit.changed(true);
+    };
     this.pointFolder = this.gui.addFolder('Point');
     this.pointFolder.add(this.selected, 'x').onChange(function(value) {
-      _this.selected.node.position.x = value;
-      return _this.edit.changed();
+      return updateVector('x', value);
     });
     this.pointFolder.add(this.selected, 'y').onChange(function(value) {
-      _this.selected.node.position.y = value;
-      return _this.edit.changed();
+      return updateVector('y', value);
     });
     this.pointFolder.add(this.selected, 'z').onChange(function(value) {
-      _this.selected.node.position.z = value;
-      return _this.edit.changed();
+      return updateVector('z', value);
     });
     return this.pointFolder.add(this.selected, 'bank').onChange(function(value) {
-      _this.selected.node.position.bank = value;
-      return _this.edit.changed();
+      return updateVector('bank', value);
     });
   },
   selectionChanged: function(selected) {
@@ -614,10 +615,7 @@ LW.EditTrack = (function(_super) {
   EditTrack.prototype.changed = function(force) {
     var oppositeHandle,
       _this = this;
-    if (this.selected) {
-      if (this.transformControl.axis === void 0) {
-        return;
-      }
+    if (this.selected && this.transformControl.axis !== void 0) {
       if (this.selectedHandle) {
         this.selected.pointLine.geometry.verticesNeedUpdate = true;
         oppositeHandle = this.selectedHandle === this.selected.left ? this.selected.right : this.selected.left;
