@@ -26,15 +26,18 @@ window.LW = {
       this.spline = new LW.BezierPath([new THREE.Vector3(-10, 0, 0), new THREE.Vector3(-40, 0, 0), new THREE.Vector3(10, 0, 0), new THREE.Vector3(-10, -20, 0), new THREE.Vector3(0, 18, 0), new THREE.Vector3(10, 20, 0), new THREE.Vector3(-14, -10, -40), new THREE.Vector3(47, 20, 40).setBank(60), new THREE.Vector3(14, 10, 40), new THREE.Vector3(30, 0, 0), new THREE.Vector3(0, 0, 80).setBank(20), new THREE.Vector3(-30, 0, 0), new THREE.Vector3(18, 0, 0), new THREE.Vector3(-80, 0, 80).setBank(-359), new THREE.Vector3(-18, 0, 0), new THREE.Vector3(2.5, 0, 23), new THREE.Vector3(-120, 0, 40).setBank(-359), new THREE.Vector3(-2.5, 0, -23), new THREE.Vector3(-33, 0, 0), new THREE.Vector3(-80, 0, 0).setBank(-359), new THREE.Vector3(33, 0, 0)]);
     }
     this.edit = new LW.EditTrack(this.spline);
-    this.edit.position.set(0, 3, -50);
     this.edit.renderTrack();
     renderer.scene.add(this.edit);
     this.track = new LW.BMTrack(this.spline);
-    this.track.position.set(0, 3, -50);
     this.track.renderRails = true;
     this.track.forceWireframe = false;
     this.track.renderTrack();
     renderer.scene.add(this.track);
+    this.train = new LW.Train({
+      numberOfCars: 2
+    });
+    this.train.attachToTrack(this.track);
+    renderer.scene.add(this.train);
     controls = this.controls = new THREE.EditorControls([renderer.topCamera, renderer.sideCamera, renderer.frontCamera, renderer.camera], renderer.domElement);
     controls.center.copy(this.edit.position);
     controls.addEventListener('change', function() {
@@ -70,6 +73,17 @@ window.LW = {
         return _this.edit.selectNode();
       }
     }, 'addPoint');
+    this.trainFolder = this.gui.addFolder('Train');
+    this.trainFolder.open();
+    this.trainFolder.addColor({
+      color: '#ffffff'
+    }, 'color').onChange(function(value) {
+      return _this.train.carMaterial.color.setHex(value.replace('#', '0x'));
+    });
+    this.trainFolder.add(this.train, 'movementSpeed', 0.01, 0.1);
+    this.trainFolder.add(this.train, 'numberOfCars', 0, 8).step(1).onChange(function(value) {
+      return _this.train.rebuild();
+    });
     this.selected = {
       x: 0,
       y: 0,
@@ -77,6 +91,9 @@ window.LW = {
       bank: 0
     };
     updateVector = function(index, value) {
+      if (!_this.selected.node) {
+        return;
+      }
       _this.selected.node.position[index] = value;
       _this.selected.node.splineVector[index] = value;
       return _this.edit.changed(true);
@@ -98,10 +115,10 @@ window.LW = {
   selectionChanged: function(selected) {
     var controller, _i, _len, _ref;
     if (selected) {
-      this.selected.x = selected.position.x;
-      this.selected.y = selected.position.y;
-      this.selected.z = selected.position.z;
-      this.selected.bank = selected.position.bank || 0;
+      this.selected.x = selected.splineVector.x;
+      this.selected.y = selected.splineVector.y;
+      this.selected.z = selected.splineVector.z;
+      this.selected.bank = selected.splineVector.bank || 0;
       this.selected.node = selected;
       _ref = this.pointFolder.__controllers;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -487,8 +504,10 @@ LW.Renderer = (function() {
     this.renderer.autoClear = false;
     this.domElement = this.renderer.domElement;
     this.scene = new THREE.Scene;
+    this.clock = new THREE.Clock();
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000);
     this.camera.shouldRotate = true;
+    this.camera.position.z += 60;
     zoom = 16;
     x = window.innerWidth / zoom;
     y = window.innerHeight / zoom;
@@ -511,7 +530,10 @@ LW.Renderer = (function() {
   }
 
   Renderer.prototype.render = function() {
-    var SCREEN_HEIGHT, SCREEN_WIDTH;
+    var SCREEN_HEIGHT, SCREEN_WIDTH, _ref;
+    if ((_ref = LW.train) != null) {
+      _ref.simulate(this.clock.getDelta());
+    }
     SCREEN_WIDTH = window.innerWidth * this.renderer.devicePixelRatio;
     SCREEN_HEIGHT = window.innerHeight * this.renderer.devicePixelRatio;
     this.renderer.clear();
@@ -575,6 +597,96 @@ LW.Terrain = (function() {
   return Terrain;
 
 })();
+var __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+LW.Train = (function(_super) {
+  var up;
+
+  __extends(Train, _super);
+
+  function Train(options) {
+    Train.__super__.constructor.call(this);
+    this.numberOfCars = options.numberOfCars, this.carGeometry = options.carGeometry, this.carMaterial = options.carMaterial, this.carSpacing = options.carSpacing, this.carLength = options.carLength, this.movementSpeed = options.movementSpeed;
+    this.cars = [];
+    this.rebuild();
+    this.movementSpeed || (this.movementSpeed = 0.08);
+  }
+
+  Train.prototype.rebuild = function() {
+    var car, i, _i, _ref;
+    this.carGeometry || (this.carGeometry = new THREE.CubeGeometry(8, 8, 16));
+    this.carMaterial || (this.carMaterial = new THREE.MeshLambertMaterial({
+      color: 0xeeeeee
+    }));
+    this.carSpacing || (this.carSpacing = 2);
+    this.carLength || (this.carLength = 16);
+    while (this.cars.length) {
+      this.remove(this.cars.pop());
+    }
+    if (this.numberOfCars) {
+      for (i = _i = 0, _ref = this.numberOfCars - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+        car = new THREE.Mesh(this.carGeometry, this.carMaterial);
+        this.cars.push(car);
+        this.add(car);
+      }
+    }
+    return this.currentTime = 0.0;
+  };
+
+  Train.prototype.attachToTrack = function(track) {
+    this.track = track;
+    return this.spline = this.track.spline;
+  };
+
+  up = new THREE.Vector3(0, 1, 0);
+
+  Train.prototype.simulate = function(delta) {
+    var bank, binormal, car, deltaPoint, desiredDistance, i, lastPos, mat, normal, pos, tangent, _i, _len, _ref;
+    if (!this.numberOfCars) {
+      return;
+    }
+    this.currentTime += this.movementSpeed * delta;
+    if (this.currentTime > 1) {
+      this.currentTime = 0;
+    }
+    lastPos = this.spline.getPointAt(this.currentTime);
+    _ref = this.cars;
+    for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+      car = _ref[i];
+      pos = null;
+      desiredDistance = i * 18;
+      deltaPoint = this.currentTime;
+      if (desiredDistance > 0) {
+        while (deltaPoint > 0) {
+          pos = this.spline.getPointAt(deltaPoint);
+          if (pos.distanceTo(lastPos) >= desiredDistance) {
+            break;
+          }
+          deltaPoint += 0.01;
+          if (deltaPoint > 1) {
+            deltaPoint = 0;
+          }
+        }
+      } else {
+        pos = lastPos;
+      }
+      if (pos) {
+        tangent = this.spline.getTangentAt(deltaPoint).normalize();
+        bank = THREE.Math.degToRad(this.spline.getBankAt(deltaPoint));
+        binormal = up.clone().applyAxisAngle(tangent, bank);
+        normal = tangent.clone().cross(binormal).normalize();
+        binormal = normal.clone().cross(tangent).normalize();
+        mat = new THREE.Matrix4(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1);
+        car.position.copy(pos).add(new THREE.Vector3(0, 5, 0).applyMatrix4(mat));
+        car.rotation.setFromRotationMatrix(mat);
+      }
+    }
+  };
+
+  return Train;
+
+})(THREE.Object3D);
 var CONTROL_COLOR, POINT_COLOR, SELECTED_COLOR,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
