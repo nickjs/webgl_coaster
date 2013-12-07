@@ -98,11 +98,16 @@ window.LW =
     }, 'addPoint')
 
     @selected = {x: 0, y: 0, z: 0, bank: 0}
+    updateVector = (index, value) =>
+      @selected.node.position[index] = value
+      @selected.node.splineVector[index] = value
+      @edit.changed(true)
+
     @pointFolder = @gui.addFolder('Point')
-    @pointFolder.add(@selected, 'x').onChange (value) => @selected.node.position.x = value; @edit.changed()
-    @pointFolder.add(@selected, 'y').onChange (value) => @selected.node.position.y = value; @edit.changed()
-    @pointFolder.add(@selected, 'z').onChange (value) => @selected.node.position.z = value; @edit.changed()
-    @pointFolder.add(@selected, 'bank').onChange (value) => @selected.node.position.bank = value; @edit.changed()
+    @pointFolder.add(@selected, 'x').onChange (value) -> updateVector('x', value)
+    @pointFolder.add(@selected, 'y').onChange (value) -> updateVector('y', value)
+    @pointFolder.add(@selected, 'z').onChange (value) -> updateVector('z', value)
+    @pointFolder.add(@selected, 'bank').onChange (value) -> updateVector('bank', value)
 
   selectionChanged: (selected) ->
     if selected
