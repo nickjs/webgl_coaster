@@ -66,7 +66,8 @@ class LW.Train extends THREE.Object3D
         car.position.copy(pos).add(new THREE.Vector3(0, 5, 0).applyMatrix4(mat))
         car.rotation.setFromRotationMatrix(mat)
 
-        LW.renderer.camera.position.copy(pos).add(new THREE.Vector3(0, 3, 0).applyMatrix4(mat))
-        LW.renderer.camera.rotation.setFromRotationMatrix(mat)
+        if LW.onRideCamera
+          LW.renderer.camera.position.copy(pos).add(new THREE.Vector3(0, 3, 0).applyMatrix4(mat))
+          LW.renderer.camera.rotation.setFromRotationMatrix(mat)
 
     return

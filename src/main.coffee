@@ -100,12 +100,20 @@ window.LW =
       @edit.selectNode()
     }, 'addPoint')
 
+    @onRideCamera = false
     @trainFolder = @gui.addFolder('Train')
     @trainFolder.open()
 
     @trainFolder.addColor(color: '#ffffff', 'color').onChange (value) => @train.carMaterial.color.setHex(value.replace('#', '0x'))
     @trainFolder.add(@train, 'movementSpeed', 0.01, 0.1)
     @trainFolder.add(@train, 'numberOfCars', 0, 8).step(1).onChange (value) => @train.rebuild()
+    @trainFolder.add(this, 'onRideCamera').onChange (value) =>
+      if value
+        @oldCamPos = @renderer.camera.position.clone()
+        @oldCamRot = @renderer.camera.rotation.clone()
+      else
+        @renderer.camera.position.copy(@oldCamPos)
+        @renderer.camera.rotation.copy(@oldCamRot)
 
     @selected = {x: 0, y: 0, z: 0, bank: 0}
     updateVector = (index, value) =>
