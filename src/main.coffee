@@ -5,6 +5,7 @@
 #= require spline
 #= require renderer
 #= require terrain
+#= require train
 
 #= require edit_track
 #= require bm_track
@@ -60,16 +61,18 @@ window.LW =
       ])
 
     @edit = new LW.EditTrack(@spline)
-    @edit.position.set(0, 3, -50)
     @edit.renderTrack()
     renderer.scene.add(@edit)
 
     @track = new LW.BMTrack(@spline)
-    @track.position.set(0, 3, -50)
     @track.renderRails = true
     @track.forceWireframe = false
     @track.renderTrack()
     renderer.scene.add(@track)
+
+    @train = new LW.Train(numberOfCars: 2)
+    @train.attachToTrack(@track)
+    renderer.scene.add(@train)
 
     controls = @controls = new THREE.EditorControls([renderer.topCamera, renderer.sideCamera, renderer.frontCamera, renderer.camera], renderer.domElement)
     controls.center.copy(@edit.position)
@@ -97,8 +100,16 @@ window.LW =
       @edit.selectNode()
     }, 'addPoint')
 
+    @trainFolder = @gui.addFolder('Train')
+    @trainFolder.open()
+
+    @trainFolder.addColor(color: '#ffffff', 'color').onChange (value) => @train.carMaterial.color.setHex(value.replace('#', '0x'))
+    @trainFolder.add(@train, 'movementSpeed', 0.01, 0.1)
+    @trainFolder.add(@train, 'numberOfCars', 0, 8).step(1).onChange (value) => @train.rebuild()
+
     @selected = {x: 0, y: 0, z: 0, bank: 0}
     updateVector = (index, value) =>
+      return if not @selected.node
       @selected.node.position[index] = value
       @selected.node.splineVector[index] = value
       @edit.changed(true)
@@ -111,10 +122,10 @@ window.LW =
 
   selectionChanged: (selected) ->
     if selected
-      @selected.x = selected.position.x
-      @selected.y = selected.position.y
-      @selected.z = selected.position.z
-      @selected.bank = selected.position.bank || 0
+      @selected.x = selected.splineVector.x
+      @selected.y = selected.splineVector.y
+      @selected.z = selected.splineVector.z
+      @selected.bank = selected.splineVector.bank || 0
       @selected.node = selected
 
       for controller in @pointFolder.__controllers
