@@ -87,6 +87,7 @@ window.LW =
 
     @trackFolder.addColor(color: "#ff0000", 'color').onChange (value) => @track.material.color.setHex(value.replace('#', '0x'))
     @trackFolder.add(@track, 'forceWireframe')
+    @trackFolder.add(@edit, 'debugNormals').onChange => @edit.renderCurve()
     @trackFolder.add(@track, 'renderRails').onChange => @track.renderTrack()
     @trackFolder.add(@spline, 'isConnected').onChange (value) =>
       if value then @spline.connect() else @spline.disconnect()
@@ -111,9 +112,11 @@ window.LW =
       if value
         @oldCamPos = @renderer.camera.position.clone()
         @oldCamRot = @renderer.camera.rotation.clone()
+        LW.renderer.scene.remove(@edit)
       else
         @renderer.camera.position.copy(@oldCamPos)
         @renderer.camera.rotation.copy(@oldCamRot)
+        LW.renderer.scene.add(@edit)
 
     @selected = {x: 0, y: 0, z: 0, bank: 0}
     updateVector = (index, value) =>
