@@ -22,6 +22,7 @@ class LW.Train extends THREE.Object3D
     if @numberOfCars
       for i in [0..@numberOfCars - 1]
         car = new THREE.Mesh(@carGeometry, @carMaterial)
+        car.castShadow = true
         @cars.push(car)
         @add(car)
 

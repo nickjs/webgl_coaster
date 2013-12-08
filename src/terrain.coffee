@@ -10,8 +10,9 @@ class LW.Terrain
       groundTexture.anisotropy = 16;
 
       @ground = new THREE.Mesh(geo, groundMaterial)
-      @ground.position.y -= 5
+      @ground.position.y -= 10
       @ground.rotation.x = -Math.PI / 2
+      @ground.receiveShadow = true
       renderer.scene.add(@ground)
 
     # Skybox

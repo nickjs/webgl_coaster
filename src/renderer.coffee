@@ -6,6 +6,7 @@ class LW.Renderer
     @renderer.setSize(window.innerWidth, window.innerHeight)
     @renderer.setClearColor(0xf0f0f0)
     @renderer.autoClear = false
+    @renderer.shadowMapEnabled = true
     @domElement = @renderer.domElement
 
     @scene = new THREE.Scene
@@ -37,6 +38,9 @@ class LW.Renderer
 
     @light = new THREE.DirectionalLight(0xffffff, 0.8)
     @light.position.set(0, 1000, 0)
+    @light.castShadow = true
+    @light.shadowMapWidth = 4096
+    @light.shadowMapHeight = 4096
     @scene.add(@light)
 
     @bottomLight = new THREE.DirectionalLight(0xffffff, 0.3)
