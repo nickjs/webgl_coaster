@@ -38,5 +38,4 @@ class LW.BMTrack extends THREE.Object3D
     boxGeo = new LW.Extruder(@spline, spineShape: boxShape, spineSteps: Math.ceil(steps / 8), tieShape: tieShape, tieDepth: 0.65, numberOfRails: numberOfRails, railRadius: radius, railDistance: offsetX - radius)
     boxMesh = new THREE.Mesh(boxGeo, @material)
     boxMesh.castShadow = true
-    boxMesh.receiveShadow = true
     @add(boxMesh)

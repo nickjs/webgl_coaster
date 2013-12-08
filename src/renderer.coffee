@@ -6,8 +6,14 @@ class LW.Renderer
     @renderer.setSize(window.innerWidth, window.innerHeight)
     @renderer.setClearColor(0xf0f0f0)
     @renderer.autoClear = false
+
+    @renderer.gammaInput = true
+    @renderer.gammaOutput = true
+    @renderer.physicallyBasedShading = true
+
     @renderer.shadowMapEnabled = true
     @renderer.shadowMapType = THREE.PCFSoftShadowMap
+
     @domElement = @renderer.domElement
 
     @scene = new THREE.Scene
