@@ -1,4 +1,6 @@
 class LW.Renderer
+  useQuadView: true
+
   constructor: ->
     @renderer = new THREE.WebGLRenderer(antialias: true)
     @renderer.setSize(window.innerWidth, window.innerHeight)
@@ -47,19 +49,23 @@ class LW.Renderer
 
     @renderer.clear()
 
-    LW.track.material.wireframe = true
+    if @useQuadView
+      LW.track.material.wireframe = true
 
-    @renderer.setViewport(1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2)
-    @renderer.render(@scene, @topCamera)
+      @renderer.setViewport(1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2)
+      @renderer.render(@scene, @topCamera)
 
-    @renderer.setViewport(0.5 * SCREEN_WIDTH + 1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2)
-    @renderer.render(@scene, @sideCamera)
+      @renderer.setViewport(0.5 * SCREEN_WIDTH + 1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2)
+      @renderer.render(@scene, @sideCamera)
 
-    @renderer.setViewport( 1, 1,   0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2 )
-    @renderer.render(@scene, @frontCamera)
+      @renderer.setViewport(1, 1,   0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2)
+      @renderer.render(@scene, @frontCamera)
+
+      @renderer.setViewport(0.5 * SCREEN_WIDTH + 1, 1,   0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2)
+    else
+      @renderer.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
+
     LW.track.material.wireframe = LW.track.forceWireframe || false
-
-    @renderer.setViewport( 0.5 * SCREEN_WIDTH + 1, 1,   0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2 )
     @renderer.render(@scene, @camera)
 
     requestAnimationFrame(@render)
