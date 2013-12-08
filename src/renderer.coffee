@@ -27,19 +27,21 @@ class LW.Renderer
 
     @frontCamera = new THREE.OrthographicCamera(-x, x, y, -y, -5000, 10000)
     @frontCamera.zoom = zoom
-    # @frontCamera.position.y += 1
     @frontCamera.lookAt(new THREE.Vector3(0, 0, -1))
     @scene.add(@frontCamera)
 
     @sideCamera = new THREE.OrthographicCamera(-x, x, y, -y, -5000, 10000)
     @sideCamera.zoom = zoom
-    # @sideCamera.position.y += 1
     @sideCamera.lookAt(new THREE.Vector3(1, 0, 0))
     @scene.add(@sideCamera)
 
-    @light = new THREE.PointLight(0xffffff)
-    @light.position.set(20, 40, 0)
+    @light = new THREE.DirectionalLight(0xffffff, 0.8)
+    @light.position.set(0, 1000, 0)
     @scene.add(@light)
+
+    @bottomLight = new THREE.DirectionalLight(0xffffff, 0.3)
+    @bottomLight.position.set(0, -1, 0)
+    @scene.add(@bottomLight)
 
   render: =>
     LW.train?.simulate(@clock.getDelta())

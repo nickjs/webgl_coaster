@@ -1,7 +1,7 @@
 class LW.BMTrack extends THREE.Object3D
   constructor: (@spline) ->
     super()
-    @material = new THREE.MeshLambertMaterial(color: 0xff0000, wireframe: true)
+    @material = new THREE.MeshPhongMaterial(color: 0xff0000, ambient: 0x090909, specular: 0x333333, shininess: 30)
 
   renderTrack: ->
     @clear()
