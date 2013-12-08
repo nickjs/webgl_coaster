@@ -7,6 +7,7 @@ class LW.Renderer
     @renderer.setClearColor(0xf0f0f0)
     @renderer.autoClear = false
     @renderer.shadowMapEnabled = true
+    @renderer.shadowMapType = THREE.PCFSoftShadowMap
     @domElement = @renderer.domElement
 
     @scene = new THREE.Scene
