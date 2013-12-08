@@ -54,6 +54,9 @@ window.LW = {
       return _this.track.material.color.setHex(value.replace('#', '0x'));
     });
     this.trackFolder.add(this.track, 'forceWireframe');
+    this.trackFolder.add(this.edit, 'debugNormals').onChange(function() {
+      return _this.edit.renderCurve();
+    });
     this.trackFolder.add(this.track, 'renderRails').onChange(function() {
       return _this.track.renderTrack();
     });
@@ -88,10 +91,12 @@ window.LW = {
     this.trainFolder.add(this, 'onRideCamera').onChange(function(value) {
       if (value) {
         _this.oldCamPos = _this.renderer.camera.position.clone();
-        return _this.oldCamRot = _this.renderer.camera.rotation.clone();
+        _this.oldCamRot = _this.renderer.camera.rotation.clone();
+        return LW.renderer.scene.remove(_this.edit);
       } else {
         _this.renderer.camera.position.copy(_this.oldCamPos);
-        return _this.renderer.camera.rotation.copy(_this.oldCamRot);
+        _this.renderer.camera.rotation.copy(_this.oldCamRot);
+        return LW.renderer.scene.add(_this.edit);
       }
     });
     this.selected = {
@@ -715,12 +720,15 @@ SELECTED_COLOR = 0xffffff;
 LW.EditTrack = (function(_super) {
   __extends(EditTrack, _super);
 
+  EditTrack.prototype.debugNormals = false;
+
   function EditTrack(spline) {
     var _this = this;
     this.spline = spline;
     this.onMouseUp = __bind(this.onMouseUp, this);
     this.onMouseDown = __bind(this.onMouseDown, this);
     EditTrack.__super__.constructor.call(this);
+    this.arrows = [];
     this.mouseDown = new THREE.Vector2;
     this.mouseUp = new THREE.Vector2;
     this.projector = new THREE.Projector;
@@ -840,6 +848,9 @@ LW.EditTrack = (function(_super) {
     this.clear();
     this.controlPoints = [];
     lastNode = null;
+    if (LW.onRideCamera) {
+      return;
+    }
     _ref = this.spline.vectors;
     for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
       vector = _ref[i];
@@ -863,9 +874,17 @@ LW.EditTrack = (function(_super) {
   };
 
   EditTrack.prototype.renderCurve = function() {
-    var geo, mat;
+    var arrow, ba, binormals, geo, i, mat, na, normal, normals, pos, steps, _i, _j, _len, _len1, _ref, _ref1;
     if (this.line) {
       this.remove(this.line);
+    }
+    _ref = this.arrows;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      arrow = _ref[_i];
+      this.remove(arrow);
+    }
+    if (LW.onRideCamera) {
+      return;
     }
     geo = this.spline.createPointsGeometry(this.spline.getLength());
     mat = new THREE.LineBasicMaterial({
@@ -873,7 +892,20 @@ LW.EditTrack = (function(_super) {
       linewidth: 2
     });
     this.line = new THREE.Line(geo, mat);
-    return this.add(this.line);
+    this.add(this.line);
+    if (this.debugNormals) {
+      steps = this.spline.getLength() / 2;
+      _ref1 = LW.FrenetFrames(this.spline, steps), normals = _ref1.normals, binormals = _ref1.binormals;
+      for (i = _j = 0, _len1 = normals.length; _j < _len1; i = ++_j) {
+        normal = normals[i];
+        pos = this.spline.getPointAt(i / steps);
+        na = new THREE.ArrowHelper(normal, pos, 5, 0x00ff00);
+        ba = new THREE.ArrowHelper(binormals[i], pos, 5, 0x0000ff);
+        this.add(na);
+        this.add(ba);
+        this.arrows.push(na, ba);
+      }
+    }
   };
 
   return EditTrack;
