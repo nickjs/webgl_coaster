@@ -46,6 +46,7 @@ window.LW = {
     });
     renderer.render();
     this.gui = new dat.GUI();
+    this.gui.add(this.renderer, 'useQuadView');
     this.trackFolder = this.gui.addFolder('Track');
     this.trackFolder.open();
     this.trackFolder.addColor({
@@ -508,6 +509,8 @@ LW.Spline = (function() {
 var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
 LW.Renderer = (function() {
+  Renderer.prototype.useQuadView = false;
+
   function Renderer() {
     this.render = __bind(this.render, this);
     var x, y, zoom;
@@ -517,6 +520,11 @@ LW.Renderer = (function() {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setClearColor(0xf0f0f0);
     this.renderer.autoClear = false;
+    this.renderer.gammaInput = true;
+    this.renderer.gammaOutput = true;
+    this.renderer.physicallyBasedShading = true;
+    this.renderer.shadowMapEnabled = true;
+    this.renderer.shadowMapType = THREE.PCFSoftShadowMap;
     this.domElement = this.renderer.domElement;
     this.scene = new THREE.Scene;
     this.clock = new THREE.Clock();
@@ -539,9 +547,15 @@ LW.Renderer = (function() {
     this.sideCamera.zoom = zoom;
     this.sideCamera.lookAt(new THREE.Vector3(1, 0, 0));
     this.scene.add(this.sideCamera);
-    this.light = new THREE.PointLight(0xffffff);
-    this.light.position.set(20, 40, 0);
+    this.light = new THREE.DirectionalLight(0xffffff, 0.8);
+    this.light.position.set(0, 1000, 0);
+    this.light.castShadow = true;
+    this.light.shadowMapWidth = 4096;
+    this.light.shadowMapHeight = 4096;
     this.scene.add(this.light);
+    this.bottomLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    this.bottomLight.position.set(0, -1, 0);
+    this.scene.add(this.bottomLight);
   }
 
   Renderer.prototype.render = function() {
@@ -552,15 +566,19 @@ LW.Renderer = (function() {
     SCREEN_WIDTH = window.innerWidth * this.renderer.devicePixelRatio;
     SCREEN_HEIGHT = window.innerHeight * this.renderer.devicePixelRatio;
     this.renderer.clear();
-    LW.track.material.wireframe = true;
-    this.renderer.setViewport(1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2);
-    this.renderer.render(this.scene, this.topCamera);
-    this.renderer.setViewport(0.5 * SCREEN_WIDTH + 1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2);
-    this.renderer.render(this.scene, this.sideCamera);
-    this.renderer.setViewport(1, 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2);
-    this.renderer.render(this.scene, this.frontCamera);
+    if (this.useQuadView) {
+      LW.track.material.wireframe = true;
+      this.renderer.setViewport(1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2);
+      this.renderer.render(this.scene, this.topCamera);
+      this.renderer.setViewport(0.5 * SCREEN_WIDTH + 1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2);
+      this.renderer.render(this.scene, this.sideCamera);
+      this.renderer.setViewport(1, 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2);
+      this.renderer.render(this.scene, this.frontCamera);
+      this.renderer.setViewport(0.5 * SCREEN_WIDTH + 1, 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2);
+    } else {
+      this.renderer.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
     LW.track.material.wireframe = LW.track.forceWireframe || false;
-    this.renderer.setViewport(0.5 * SCREEN_WIDTH + 1, 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2);
     this.renderer.render(this.scene, this.camera);
     return requestAnimationFrame(this.render);
   };
@@ -582,8 +600,9 @@ LW.Terrain = (function() {
       groundTexture.repeat.set(25, 25);
       groundTexture.anisotropy = 16;
       this.ground = new THREE.Mesh(geo, groundMaterial);
-      this.ground.position.y -= 5;
+      this.ground.position.y -= 10;
       this.ground.rotation.x = -Math.PI / 2;
+      this.ground.receiveShadow = true;
       return renderer.scene.add(this.ground);
     });
     path = "resources/textures/skybox/";
@@ -642,6 +661,7 @@ LW.Train = (function(_super) {
     if (this.numberOfCars) {
       for (i = _i = 0, _ref = this.numberOfCars - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
         car = new THREE.Mesh(this.carGeometry, this.carMaterial);
+        car.castShadow = true;
         this.cars.push(car);
         this.add(car);
       }
@@ -776,13 +796,17 @@ LW.EditTrack = (function(_super) {
     var camera, ray, vector, x, y;
     camera = LW.controls.camera;
     x = pos.x, y = pos.y;
-    if (x > 0.5) {
-      x -= 0.5;
+    if (LW.renderer.useQuadView) {
+      if (x > 0.5) {
+        x -= 0.5;
+      }
+      if (y > 0.5) {
+        y -= 0.5;
+      }
+      vector = new THREE.Vector3(x * 4 - 1, -y * 4 + 1, 0.5);
+    } else {
+      vector = new THREE.Vector3(x * 2 - 1, -y * 2 + 1, 0.5);
     }
-    if (y > 0.5) {
-      y -= 0.5;
-    }
-    vector = new THREE.Vector3(x * 4 - 1, -y * 4 + 1, 0.5);
     if (camera instanceof THREE.PerspectiveCamera) {
       this.projector.unprojectVector(vector, camera);
       this.raycaster.set(camera.position, vector.sub(camera.position).normalize());
@@ -965,9 +989,11 @@ LW.BMTrack = (function(_super) {
   function BMTrack(spline) {
     this.spline = spline;
     BMTrack.__super__.constructor.call(this);
-    this.material = new THREE.MeshLambertMaterial({
+    this.material = new THREE.MeshPhongMaterial({
       color: 0xff0000,
-      wireframe: true
+      ambient: 0x090909,
+      specular: 0x333333,
+      shininess: 30
     });
   }
 
@@ -1006,6 +1032,7 @@ LW.BMTrack = (function(_super) {
       railDistance: offsetX - radius
     });
     boxMesh = new THREE.Mesh(boxGeo, this.material);
+    boxMesh.castShadow = true;
     return this.add(boxMesh);
   };
 
