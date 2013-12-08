@@ -1,5 +1,5 @@
 class LW.Renderer
-  useQuadView: true
+  useQuadView: false
 
   constructor: ->
     @renderer = new THREE.WebGLRenderer(antialias: true)
