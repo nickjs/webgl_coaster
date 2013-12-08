@@ -121,6 +121,8 @@ class LW.EditTrack extends THREE.Object3D
     @controlPoints = []
     lastNode = null
 
+    return if LW.onRideCamera
+
     for vector, i in @spline.vectors
       isControl = (i - 1) % 3 == 0
 
@@ -144,6 +146,7 @@ class LW.EditTrack extends THREE.Object3D
 
   renderCurve: ->
     @remove(@line) if @line
+    return if LW.onRideCamera
 
     geo = @spline.createPointsGeometry(@spline.getLength())
     mat = new THREE.LineBasicMaterial(color: 0xff0000, linewidth: 2)

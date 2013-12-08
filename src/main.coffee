@@ -111,9 +111,11 @@ window.LW =
       if value
         @oldCamPos = @renderer.camera.position.clone()
         @oldCamRot = @renderer.camera.rotation.clone()
+        LW.renderer.scene.remove(@edit)
       else
         @renderer.camera.position.copy(@oldCamPos)
         @renderer.camera.rotation.copy(@oldCamRot)
+        LW.renderer.scene.add(@edit)
 
     @selected = {x: 0, y: 0, z: 0, bank: 0}
     updateVector = (index, value) =>
