@@ -82,6 +82,7 @@ window.LW =
     renderer.render()
 
     @gui = new dat.GUI()
+    @gui.add(@renderer, 'useQuadView')
     @trackFolder = @gui.addFolder('Track')
     @trackFolder.open()
 

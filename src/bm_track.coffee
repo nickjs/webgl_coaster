@@ -1,7 +1,7 @@
 class LW.BMTrack extends THREE.Object3D
   constructor: (@spline) ->
     super()
-    @material = new THREE.MeshLambertMaterial(color: 0xff0000, wireframe: true)
+    @material = new THREE.MeshPhongMaterial(color: 0xff0000, ambient: 0x090909, specular: 0x333333, shininess: 30)
 
   renderTrack: ->
     @clear()
@@ -37,5 +37,5 @@ class LW.BMTrack extends THREE.Object3D
     numberOfRails = if @renderRails then 2 else 0
     boxGeo = new LW.Extruder(@spline, spineShape: boxShape, spineSteps: Math.ceil(steps / 8), tieShape: tieShape, tieDepth: 0.65, numberOfRails: numberOfRails, railRadius: radius, railDistance: offsetX - radius)
     boxMesh = new THREE.Mesh(boxGeo, @material)
-    # boxMesh = THREE.SceneUtils.createMultiMaterialObject(boxGeo, [@material, new THREE.MeshLambertMaterial(color: 0x000000, wireframe: true, opacity: 0.5)])
+    boxMesh.castShadow = true
     @add(boxMesh)

@@ -54,12 +54,15 @@ class LW.EditTrack extends THREE.Object3D
 
   pick: (pos, objects) ->
     camera = LW.controls.camera
-
     {x, y} = pos
-    x -= 0.5 if x > 0.5
-    y -= 0.5 if y > 0.5
 
-    vector = new THREE.Vector3( x * 4 - 1, -y * 4 + 1 , 0.5 )
+    if LW.renderer.useQuadView
+      x -= 0.5 if x > 0.5
+      y -= 0.5 if y > 0.5
+
+      vector = new THREE.Vector3(x * 4 - 1, -y * 4 + 1 , 0.5)
+    else
+      vector = new THREE.Vector3(x * 2 - 1, -y * 2 + 1, 0.5)
 
     if camera instanceof THREE.PerspectiveCamera
       @projector.unprojectVector(vector, camera)
