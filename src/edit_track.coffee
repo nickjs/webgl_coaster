@@ -3,8 +3,12 @@ POINT_COLOR = 0xdddddd
 SELECTED_COLOR = 0xffffff
 
 class LW.EditTrack extends THREE.Object3D
+  debugNormals: false
+
   constructor: (@spline) ->
     super()
+
+    @arrows = []
 
     @mouseDown = new THREE.Vector2
     @mouseUp = new THREE.Vector2
@@ -146,12 +150,28 @@ class LW.EditTrack extends THREE.Object3D
 
   renderCurve: ->
     @remove(@line) if @line
+    @remove(arrow) for arrow in @arrows
     return if LW.onRideCamera
 
     geo = @spline.createPointsGeometry(@spline.getLength())
     mat = new THREE.LineBasicMaterial(color: 0xff0000, linewidth: 2)
     @line = new THREE.Line(geo, mat)
     @add(@line)
+
+    if @debugNormals
+      steps = @spline.getLength() / 2
+      {normals, binormals} = LW.FrenetFrames(@spline, steps)
+      for normal, i in normals
+        pos = @spline.getPointAt(i / steps)
+        na = new THREE.ArrowHelper(normal, pos, 5, 0x00ff00)
+        ba = new THREE.ArrowHelper(binormals[i], pos, 5, 0x0000ff)
+
+        @add(na)
+        @add(ba)
+
+        @arrows.push(na, ba)
+
+    return
 
 class LW.EditNode extends THREE.Mesh
   constructor: (@isControl) ->
