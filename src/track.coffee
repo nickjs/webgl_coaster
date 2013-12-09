@@ -118,7 +118,7 @@ class LW.Track extends THREE.Object3D
     @railGeometry.computeFaceNormals()
     @railGeometry.computeVertexNormals()
 
-    @railMesh = new THREE.Mesh(@railGeometry, @material)
+    @railMesh = new THREE.Mesh(@railGeometry, @railMaterial)
     @railMesh.castShadow = true
     @add(@railMesh)
 
@@ -147,7 +147,7 @@ class LW.Track extends THREE.Object3D
     @spineGeometry.computeCentroids()
     @spineGeometry.computeFaceNormals()
 
-    @spineMesh = new THREE.Mesh(@spineGeometry, @material)
+    @spineMesh = new THREE.Mesh(@spineGeometry, @spineMaterial)
     @spineMesh.castShadow = true
     @add(@spineMesh)
 
@@ -186,7 +186,7 @@ class LW.Track extends THREE.Object3D
     @tieGeometry.computeCentroids()
     @tieGeometry.computeFaceNormals()
 
-    @tieMesh = new THREE.Mesh(@tieGeometry, @material)
+    @tieMesh = new THREE.Mesh(@tieGeometry, @tieMaterial)
     @tieMesh.castShadow = true
     @add(@tieMesh)
 

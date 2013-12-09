@@ -85,7 +85,9 @@ window.LW =
     @trackFolder = @gui.addFolder('Track')
     @trackFolder.open()
 
-    @trackFolder.addColor(color: "#ff0000", 'color').onChange (value) => @track.material.color.setHex(value.replace('#', '0x'))
+    @trackFolder.addColor(spineColor: "#ff0000", 'spineColor').onChange (value) => @track.spineMaterial.color.setHex(value.replace('#', '0x'))
+    @trackFolder.addColor(tieColor: "#ff0000", 'tieColor').onChange (value) => @track.tieMaterial.color.setHex(value.replace('#', '0x'))
+    @trackFolder.addColor(railColor: "#ff0000", 'railColor').onChange (value) => @track.railMaterial.color.setHex(value.replace('#', '0x'))
     @trackFolder.add(@track, 'forceWireframe')
     @trackFolder.add(@edit, 'debugNormals').onChange => @edit.renderCurve()
     @trackFolder.add(@track, 'renderRails').onChange => @track.renderTrack()
