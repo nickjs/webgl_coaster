@@ -36,8 +36,8 @@ class LW.BMTrack extends LW.Track
     super
 
     @spineMaterial = new THREE.MeshPhongMaterial(color: 0xff0000, ambient: 0x090909, specular: 0x333333, shininess: 30)
-    @tieMaterial = new THREE.MeshPhongMaterial(color: 0xff0000, ambient: 0x090909, specular: 0x333333, shininess: 30)
-    @railMaterial = new THREE.MeshPhongMaterial(color: 0xff0000, ambient: 0x090909, specular: 0x333333, shininess: 30)
+    @tieMaterial = @spineMaterial.clone()
+    @railMaterial = @spineMaterial.clone()
 
     @materials = [@spineMaterial, @tieMaterial, @railMaterial]
 
