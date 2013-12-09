@@ -1,10 +1,9 @@
 #= require_self
 #= require bezier_path
-#= require extruder
-#= require frenet
 #= require spline
 #= require renderer
 #= require terrain
+#= require track
 #= require train
 
 #= require edit_track
@@ -67,7 +66,7 @@ window.LW =
     @track = new LW.BMTrack(@spline)
     @track.renderRails = true
     @track.forceWireframe = false
-    @track.renderTrack()
+    @track.rebuild()
     renderer.scene.add(@track)
 
     @train = new LW.Train(numberOfCars: 2)
