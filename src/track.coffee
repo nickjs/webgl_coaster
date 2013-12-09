@@ -148,7 +148,7 @@ class LW.Track extends THREE.Object3D
     @_extrudeVertices(@_spineVertices, @spineGeometry.vertices, pos, normal, binormal)
 
   finalizeSpine: (spineSteps) ->
-    @_joinFaces(@_spineVertices, @_spineFaces, @spineGeometry, spineSteps, 0, 0)
+    @_joinFaces(@_spineVertices, @_spineFaces, @spineGeometry, spineSteps, 0, @spineGeometry.vertices.length - @_spineVertices.length)
 
     @spineGeometry.computeCentroids()
     @spineGeometry.computeFaceNormals()
