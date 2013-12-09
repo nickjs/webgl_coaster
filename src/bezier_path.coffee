@@ -76,7 +76,7 @@ class LW.BezierPath extends THREE.CurvePath
     @vectors.push(pos.clone())
     @vectors.push(new THREE.Vector3(10, 0, 0))
 
-    @_buildCurves()
+    @rebuild()
 
 THREE.Vector3::toJSON = ->
   obj = {x: @x, y: @y, z: @z}

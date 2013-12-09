@@ -47,7 +47,7 @@ class LW.EditTrack extends THREE.Object3D
 
           @rerenderTimeout = null
           @renderCurve()
-          LW.track.renderTrack()
+          LW.track.rebuild()
         , 10
 
     return
@@ -160,19 +160,6 @@ class LW.EditTrack extends THREE.Object3D
     mat = new THREE.LineBasicMaterial(color: 0xff0000, linewidth: 2)
     @line = new THREE.Line(geo, mat)
     @add(@line)
-
-    if @debugNormals
-      steps = @spline.getLength() / 2
-      {normals, binormals} = LW.FrenetFrames(@spline, steps)
-      for normal, i in normals
-        pos = @spline.getPointAt(i / steps)
-        na = new THREE.ArrowHelper(normal, pos, 5, 0x00ff00)
-        ba = new THREE.ArrowHelper(binormals[i], pos, 5, 0x0000ff)
-
-        @add(na)
-        @add(ba)
-
-        @arrows.push(na, ba)
 
     return
 

@@ -50,9 +50,17 @@ class LW.Renderer
     @light.shadowMapHeight = 4096
     @scene.add(@light)
 
-    @bottomLight = new THREE.DirectionalLight(0xffffff, 0.3)
+    @bottomLight = new THREE.DirectionalLight(0xffffff, 0.5)
     @bottomLight.position.set(0, -1, 0)
     @scene.add(@bottomLight)
+
+    sideLight = new THREE.DirectionalLight(0xffffff, 0.3)
+    sideLight.position.set(0, 0, -1)
+    @scene.add(sideLight)
+
+    sideLight = new THREE.DirectionalLight(0xffffff, 0.3)
+    sideLight.position.set(0, 0, 1)
+    @scene.add(sideLight)
 
   render: =>
     LW.train?.simulate(@clock.getDelta())
@@ -63,7 +71,7 @@ class LW.Renderer
     @renderer.clear()
 
     if @useQuadView
-      LW.track.material.wireframe = true
+      mat.wireframe = true for mat in LW.track.materials
 
       @renderer.setViewport(1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2)
       @renderer.render(@scene, @topCamera)
@@ -78,7 +86,7 @@ class LW.Renderer
     else
       @renderer.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
 
-    LW.track.material.wireframe = LW.track.forceWireframe || false
+    mat.wireframe = LW.track.forceWireframe || false for mat in LW.track.materials
     @renderer.render(@scene, @camera)
 
     requestAnimationFrame(@render)

@@ -1,10 +1,9 @@
 #= require_self
 #= require bezier_path
-#= require extruder
-#= require frenet
 #= require spline
 #= require renderer
 #= require terrain
+#= require track
 #= require train
 
 #= require edit_track
@@ -65,9 +64,8 @@ window.LW =
     renderer.scene.add(@edit)
 
     @track = new LW.BMTrack(@spline)
-    @track.renderRails = true
     @track.forceWireframe = false
-    @track.renderTrack()
+    @track.rebuild()
     renderer.scene.add(@track)
 
     @train = new LW.Train(numberOfCars: 2)
@@ -86,10 +84,11 @@ window.LW =
     @trackFolder = @gui.addFolder('Track')
     @trackFolder.open()
 
-    @trackFolder.addColor(color: "#ff0000", 'color').onChange (value) => @track.material.color.setHex(value.replace('#', '0x'))
+    @trackFolder.addColor(spineColor: "#ff0000", 'spineColor').onChange (value) => @track.spineMaterial.color.setHex(value.replace('#', '0x'))
+    @trackFolder.addColor(tieColor: "#ff0000", 'tieColor').onChange (value) => @track.tieMaterial.color.setHex(value.replace('#', '0x'))
+    @trackFolder.addColor(railColor: "#ff0000", 'railColor').onChange (value) => @track.railMaterial.color.setHex(value.replace('#', '0x'))
     @trackFolder.add(@track, 'forceWireframe')
-    @trackFolder.add(@edit, 'debugNormals').onChange => @edit.renderCurve()
-    @trackFolder.add(@track, 'renderRails').onChange => @track.renderTrack()
+    @trackFolder.add(@track, 'debugNormals').onChange => @track.rebuild()
     @trackFolder.add(@spline, 'isConnected').onChange (value) =>
       if value then @spline.connect() else @spline.disconnect()
       @edit.changed(true)
@@ -97,7 +96,7 @@ window.LW =
     @trackFolder.add({addPoint: =>
       @spline.addControlPoint(@spline.getPoint(1).clone().add(new THREE.Vector3(40, 0, 0)))
       @edit.renderTrack()
-      @track.renderTrack()
+      @track.rebuild()
 
       @edit.selectNode()
     }, 'addPoint')
