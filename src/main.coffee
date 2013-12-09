@@ -64,7 +64,6 @@ window.LW =
     renderer.scene.add(@edit)
 
     @track = new LW.BMTrack(@spline)
-    @track.renderRails = true
     @track.forceWireframe = false
     @track.rebuild()
     renderer.scene.add(@track)
@@ -89,8 +88,7 @@ window.LW =
     @trackFolder.addColor(tieColor: "#ff0000", 'tieColor').onChange (value) => @track.tieMaterial.color.setHex(value.replace('#', '0x'))
     @trackFolder.addColor(railColor: "#ff0000", 'railColor').onChange (value) => @track.railMaterial.color.setHex(value.replace('#', '0x'))
     @trackFolder.add(@track, 'forceWireframe')
-    @trackFolder.add(@edit, 'debugNormals').onChange => @edit.renderCurve()
-    @trackFolder.add(@track, 'renderRails').onChange => @track.renderTrack()
+    @trackFolder.add(@track, 'debugNormals').onChange => @track.rebuild()
     @trackFolder.add(@spline, 'isConnected').onChange (value) =>
       if value then @spline.connect() else @spline.disconnect()
       @edit.changed(true)
@@ -98,7 +96,7 @@ window.LW =
     @trackFolder.add({addPoint: =>
       @spline.addControlPoint(@spline.getPoint(1).clone().add(new THREE.Vector3(40, 0, 0)))
       @edit.renderTrack()
-      @track.renderTrack()
+      @track.rebuild()
 
       @edit.selectNode()
     }, 'addPoint')

@@ -71,7 +71,7 @@ class LW.Renderer
     @renderer.clear()
 
     if @useQuadView
-      LW.track.spineMaterial.wireframe = true
+      mat.wireframe = true for mat in LW.track.materials
 
       @renderer.setViewport(1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2)
       @renderer.render(@scene, @topCamera)
@@ -86,7 +86,7 @@ class LW.Renderer
     else
       @renderer.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
 
-    LW.track.spineMaterial.wireframe = LW.track.forceWireframe || false
+    mat.wireframe = LW.track.forceWireframe || false for mat in LW.track.materials
     @renderer.render(@scene, @camera)
 
     requestAnimationFrame(@render)

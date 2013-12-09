@@ -12,6 +12,8 @@ class LW.Track extends THREE.Object3D
   tieDepth: 1
   tieShapeNeedsUpdate: true
 
+  debugNormals: false
+
   constructor: (@spline, options) ->
     super()
 
@@ -54,6 +56,10 @@ class LW.Track extends THREE.Object3D
         lastSpinePos = pos
 
       @railStep(pos, normal, binormal)
+
+      if @debugNormals
+        @add(new THREE.ArrowHelper(normal, pos, 5, 0x00ff00))
+        @add(new THREE.ArrowHelper(binormal, pos, 5, 0x0000ff))
 
     @finalizeRails(totalLength)
     @finalizeTies(spineSteps)
