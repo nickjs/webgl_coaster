@@ -29,9 +29,8 @@ window.LW = {
     this.edit.renderTrack();
     renderer.scene.add(this.edit);
     this.track = new LW.BMTrack(this.spline);
-    this.track.renderRails = true;
     this.track.forceWireframe = false;
-    this.track.renderTrack();
+    this.track.rebuild();
     renderer.scene.add(this.track);
     this.train = new LW.Train({
       numberOfCars: 2
@@ -50,16 +49,23 @@ window.LW = {
     this.trackFolder = this.gui.addFolder('Track');
     this.trackFolder.open();
     this.trackFolder.addColor({
-      color: "#ff0000"
-    }, 'color').onChange(function(value) {
-      return _this.track.material.color.setHex(value.replace('#', '0x'));
+      spineColor: "#ff0000"
+    }, 'spineColor').onChange(function(value) {
+      return _this.track.spineMaterial.color.setHex(value.replace('#', '0x'));
+    });
+    this.trackFolder.addColor({
+      tieColor: "#ff0000"
+    }, 'tieColor').onChange(function(value) {
+      return _this.track.tieMaterial.color.setHex(value.replace('#', '0x'));
+    });
+    this.trackFolder.addColor({
+      railColor: "#ff0000"
+    }, 'railColor').onChange(function(value) {
+      return _this.track.railMaterial.color.setHex(value.replace('#', '0x'));
     });
     this.trackFolder.add(this.track, 'forceWireframe');
-    this.trackFolder.add(this.edit, 'debugNormals').onChange(function() {
-      return _this.edit.renderCurve();
-    });
-    this.trackFolder.add(this.track, 'renderRails').onChange(function() {
-      return _this.track.renderTrack();
+    this.trackFolder.add(this.track, 'debugNormals').onChange(function() {
+      return _this.track.rebuild();
     });
     this.trackFolder.add(this.spline, 'isConnected').onChange(function(value) {
       if (value) {
@@ -73,7 +79,7 @@ window.LW = {
       addPoint: function() {
         _this.spline.addControlPoint(_this.spline.getPoint(1).clone().add(new THREE.Vector3(40, 0, 0)));
         _this.edit.renderTrack();
-        _this.track.renderTrack();
+        _this.track.rebuild();
         return _this.edit.selectNode();
       }
     }, 'addPoint');
@@ -256,7 +262,7 @@ LW.BezierPath = (function(_super) {
     this.vectors.push(new THREE.Vector3(-10, 0, 0));
     this.vectors.push(pos.clone());
     this.vectors.push(new THREE.Vector3(10, 0, 0));
-    return this._buildCurves();
+    return this.rebuild();
   };
 
   return BezierPath;
@@ -280,226 +286,6 @@ THREE.Vector3.prototype.setBank = function(amount) {
   this.bank = amount;
   return this;
 };
-var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
-  __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-LW.Extruder = (function(_super) {
-  __extends(Extruder, _super);
-
-  function Extruder(spline, options) {
-    this.spline = spline;
-    this.drawTie = __bind(this.drawTie, this);
-    Extruder.__super__.constructor.call(this);
-    this.railRadius = options.railRadius, this.railDistance = options.railDistance, this.numberOfRails = options.numberOfRails, this.spineShape = options.spineShape, this.spineSteps = options.spineSteps, this.tieShape = options.tieShape, this.tieDistance = options.tieDistance, this.tieDepth = options.tieDepth;
-    this.drawRail(this.railDistance, 0);
-    this.drawRail(-this.railDistance, 0);
-    this.computeCentroids();
-    this.computeFaceNormals();
-    this.computeVertexNormals();
-    this.drawSpine(this.drawTie);
-    this.computeCentroids();
-    this.computeFaceNormals();
-  }
-
-  Extruder.prototype.drawSpine = function(stepCallback) {
-    var a, b, binormal, binormals, c, d, face, faces, i, j, k, normal, normals, pos2, reverse, s, shapePoints, slen1, slen2, splinePoints, tangents, uvgen, uvs, vertex, vertexOffset, vertices, _i, _j, _k, _l, _len, _len1, _m, _ref, _ref1, _ref2, _ref3;
-    if (!this.spineShape) {
-      return;
-    }
-    splinePoints = this.spline.getSpacedPoints(this.spineSteps);
-    uvgen = THREE.ExtrudeGeometry.WorldUVGenerator;
-    _ref = LW.FrenetFrames(this.spline, this.spineSteps, false), tangents = _ref.tangents, normals = _ref.normals, binormals = _ref.binormals;
-    binormal = new THREE.Vector3;
-    normal = new THREE.Vector3;
-    pos2 = new THREE.Vector3;
-    shapePoints = this.spineShape.extractPoints(1);
-    vertices = shapePoints.shape;
-    reverse = !THREE.Shape.Utils.isClockWise(vertices);
-    if (reverse) {
-      vertices = vertices.reverse();
-    }
-    vertexOffset = this.vertices.length;
-    faces = THREE.Shape.Utils.triangulateShape(vertices, []);
-    for (s = _i = 0, _ref1 = this.spineSteps; 0 <= _ref1 ? _i <= _ref1 : _i >= _ref1; s = 0 <= _ref1 ? ++_i : --_i) {
-      for (_j = 0, _len = vertices.length; _j < _len; _j++) {
-        vertex = vertices[_j];
-        normal.copy(normals[s]).multiplyScalar(vertex.x);
-        binormal.copy(binormals[s]).multiplyScalar(vertex.y);
-        pos2.copy(splinePoints[s]).add(normal).add(binormal);
-        this.vertices.push(pos2.clone());
-      }
-    }
-    for (_k = 0, _len1 = faces.length; _k < _len1; _k++) {
-      face = faces[_k];
-      this.faces.push(new THREE.Face3(face[0] + vertexOffset, face[1] + vertexOffset, face[2] + vertexOffset, null, null, null));
-      uvs = uvgen.generateBottomUV(this, this.spineShape, null, face[2], face[1], face[0]);
-      this.faceVertexUvs[0].push(uvs);
-      a = face[0] + vertexOffset + vertices.length * this.spineSteps;
-      b = face[1] + vertexOffset + vertices.length * this.spineSteps;
-      c = face[2] + vertexOffset + vertices.length * this.spineSteps;
-      this.faces.push(new THREE.Face3(c, b, a, null, null, null));
-      uvs = uvgen.generateTopUV(this, this.spineShape, null, a, b, c);
-      this.faceVertexUvs[0].push(uvs);
-    }
-    i = vertices.length;
-    while (--i >= 0) {
-      j = i;
-      k = i - 1;
-      if (k < 0) {
-        k = vertices.length - 1;
-      }
-      for (s = _l = 0, _ref2 = this.spineSteps - 1; 0 <= _ref2 ? _l <= _ref2 : _l >= _ref2; s = 0 <= _ref2 ? ++_l : --_l) {
-        slen1 = vertices.length * s;
-        slen2 = vertices.length * (s + 1);
-        a = j + slen1 + vertexOffset;
-        b = k + slen1 + vertexOffset;
-        c = k + slen2 + vertexOffset;
-        d = j + slen2 + vertexOffset;
-        this.faces.push(new THREE.Face3(d, b, a, null, null, null));
-        this.faces.push(new THREE.Face3(d, c, b, null, null, null));
-        uvs = uvgen.generateSideWallUV(this, this.spineShape, vertices, null, a, b, c, d, s, this.spineSteps, j, k);
-        this.faceVertexUvs[0].push([uvs[0], uvs[1], uvs[3]]);
-        this.faceVertexUvs[0].push([uvs[1], uvs[2], uvs[3]]);
-      }
-    }
-    for (s = _m = 1, _ref3 = this.spineSteps; 1 <= _ref3 ? _m <= _ref3 : _m >= _ref3; s = 1 <= _ref3 ? ++_m : --_m) {
-      if (typeof stepCallback === "function") {
-        stepCallback(s, tangents, normals, binormals, splinePoints);
-      }
-    }
-  };
-
-  Extruder.prototype.drawTie = function(s, tangents, normals, binormals, splinePoints) {
-    var a, b, binormal, bn, c, cross, d, face, i, j, k, n, normal, pos2, slen1, slen2, vertex, vertexOffset, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
-    if (!this.tieShape) {
-      return;
-    }
-    pos2 = new THREE.Vector3;
-    normal = new THREE.Vector3;
-    binormal = new THREE.Vector3;
-    cross = new THREE.Vector3;
-    vertexOffset = this.vertices.length;
-    this.tieVertices || (this.tieVertices = this.tieShape.extractPoints(1).shape);
-    this.tieFaces || (this.tieFaces = THREE.Shape.Utils.triangulateShape(this.tieVertices, []));
-    n = normals[s];
-    bn = binormals[s];
-    cross.copy(n).cross(bn).normalize().setLength(this.tieDepth / 2).negate();
-    _ref = this.tieVertices;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      vertex = _ref[_i];
-      normal.copy(n).multiplyScalar(vertex.x);
-      binormal.copy(bn).multiplyScalar(vertex.y);
-      pos2.copy(splinePoints[s]).add(normal).add(binormal).add(cross);
-      this.vertices.push(pos2.clone());
-    }
-    cross.negate();
-    _ref1 = this.tieVertices;
-    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-      vertex = _ref1[_j];
-      normal.copy(n).multiplyScalar(vertex.x);
-      binormal.copy(bn).multiplyScalar(vertex.y);
-      pos2.copy(splinePoints[s]).add(normal).add(binormal).add(cross);
-      this.vertices.push(pos2.clone());
-    }
-    _ref2 = this.tieFaces;
-    for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-      face = _ref2[_k];
-      this.faces.push(new THREE.Face3(face[2] + vertexOffset, face[1] + vertexOffset, face[0] + vertexOffset, null, null, null));
-      a = face[0] + vertexOffset + this.tieVertices.length;
-      b = face[1] + vertexOffset + this.tieVertices.length;
-      c = face[2] + vertexOffset + this.tieVertices.length;
-      this.faces.push(new THREE.Face3(a, b, c, null, null, null));
-    }
-    i = this.tieVertices.length;
-    while (--i >= 0) {
-      j = i;
-      k = i - 1;
-      if (k < 0) {
-        k = this.tieVertices.length - 1;
-      }
-      slen1 = this.tieVertices.length;
-      slen2 = 0;
-      a = j + slen1 + vertexOffset;
-      b = k + slen1 + vertexOffset;
-      c = k + slen2 + vertexOffset;
-      d = j + slen2 + vertexOffset;
-      this.faces.push(new THREE.Face3(a, b, d, null, null, null));
-      this.faces.push(new THREE.Face3(b, c, d, null, null, null));
-    }
-  };
-
-  Extruder.prototype.drawRail = function(xDistance, yDistance) {
-    var a, b, binormal, binormals, c, cx, cy, d, grid, i, ip, j, jp, normal, normals, pos, pos2, segments, tangent, tangents, u, uva, uvb, uvc, uvd, v, _i, _j, _k, _l, _ref, _ref1, _ref2, _ref3;
-    if (!this.numberOfRails) {
-      return;
-    }
-    segments = Math.floor(this.spline.getLength());
-    _ref = LW.FrenetFrames(this.spline, segments), tangents = _ref.tangents, normals = _ref.normals, binormals = _ref.binormals;
-    pos = pos2 = new THREE.Vector3;
-    this.radialSegments = 8;
-    grid = [];
-    for (i = _i = 0; 0 <= segments ? _i <= segments : _i >= segments; i = 0 <= segments ? ++_i : --_i) {
-      grid[i] = [];
-      u = i / segments;
-      pos = this.spline.getPointAt(u);
-      tangent = tangents[i];
-      normal = normals[i];
-      binormal = binormals[i];
-      for (j = _j = 0, _ref1 = this.radialSegments; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; j = 0 <= _ref1 ? ++_j : --_j) {
-        v = j / this.radialSegments * 2 * Math.PI;
-        cx = -this.railRadius * Math.cos(v) + xDistance;
-        cy = this.railRadius * Math.sin(v) + yDistance;
-        pos2.copy(pos);
-        pos2.x += cx * normal.x + cy * binormal.x;
-        pos2.y += cx * normal.y + cy * binormal.y;
-        pos2.z += cx * normal.z + cy * binormal.z;
-        grid[i][j] = this.vertices.push(pos2.clone()) - 1;
-      }
-    }
-    for (i = _k = 0, _ref2 = segments - 1; 0 <= _ref2 ? _k <= _ref2 : _k >= _ref2; i = 0 <= _ref2 ? ++_k : --_k) {
-      for (j = _l = 0, _ref3 = this.radialSegments; 0 <= _ref3 ? _l <= _ref3 : _l >= _ref3; j = 0 <= _ref3 ? ++_l : --_l) {
-        ip = i + 1;
-        jp = (j + 1) % this.radialSegments;
-        a = grid[i][j];
-        b = grid[ip][j];
-        c = grid[ip][jp];
-        d = grid[i][jp];
-        uva = new THREE.Vector2(i / segments, j / this.radialSegments);
-        uvb = new THREE.Vector2((i + 1) / segments, j / this.radialSegments);
-        uvc = new THREE.Vector2((i + 1) / segments, (j + 1) / this.radialSegments);
-        uvd = new THREE.Vector2(i / segments, (j + 1) / this.radialSegments);
-        this.faces.push(new THREE.Face3(d, b, a));
-        this.faceVertexUvs[0].push([uva, uvb, uvd]);
-        this.faces.push(new THREE.Face3(d, c, b));
-        this.faceVertexUvs[0].push([uvb.clone(), uvc, uvd.clone()]);
-      }
-    }
-  };
-
-  return Extruder;
-
-})(THREE.Geometry);
-LW.FrenetFrames = function(path, segments) {
-  var bank, binormals, i, normals, tangents, u, up, _i;
-  tangents = [];
-  normals = [];
-  binormals = [];
-  up = new THREE.Vector3(0, 1, 0);
-  for (i = _i = 0; 0 <= segments ? _i <= segments : _i >= segments; i = 0 <= segments ? ++_i : --_i) {
-    u = i / segments;
-    tangents[i] = path.getTangentAt(u).normalize();
-    bank = THREE.Math.degToRad(path.getBankAt(u));
-    binormals[i] = up.clone().applyAxisAngle(tangents[i], bank);
-    normals[i] = tangents[i].clone().cross(binormals[i]).normalize();
-    binormals[i] = normals[i].clone().cross(tangents[i]).normalize();
-  }
-  return {
-    tangents: tangents,
-    normals: normals,
-    binormals: binormals
-  };
-};
 LW.Spline = (function() {
   function Spline() {}
 
@@ -513,7 +299,7 @@ LW.Renderer = (function() {
 
   function Renderer() {
     this.render = __bind(this.render, this);
-    var x, y, zoom;
+    var sideLight, x, y, zoom;
     this.renderer = new THREE.WebGLRenderer({
       antialias: true
     });
@@ -553,13 +339,19 @@ LW.Renderer = (function() {
     this.light.shadowMapWidth = 4096;
     this.light.shadowMapHeight = 4096;
     this.scene.add(this.light);
-    this.bottomLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    this.bottomLight = new THREE.DirectionalLight(0xffffff, 0.5);
     this.bottomLight.position.set(0, -1, 0);
     this.scene.add(this.bottomLight);
+    sideLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    sideLight.position.set(0, 0, -1);
+    this.scene.add(sideLight);
+    sideLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    sideLight.position.set(0, 0, 1);
+    this.scene.add(sideLight);
   }
 
   Renderer.prototype.render = function() {
-    var SCREEN_HEIGHT, SCREEN_WIDTH, _ref;
+    var SCREEN_HEIGHT, SCREEN_WIDTH, mat, _i, _j, _len, _len1, _ref, _ref1, _ref2;
     if ((_ref = LW.train) != null) {
       _ref.simulate(this.clock.getDelta());
     }
@@ -567,7 +359,11 @@ LW.Renderer = (function() {
     SCREEN_HEIGHT = window.innerHeight * this.renderer.devicePixelRatio;
     this.renderer.clear();
     if (this.useQuadView) {
-      LW.track.material.wireframe = true;
+      _ref1 = LW.track.materials;
+      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+        mat = _ref1[_i];
+        mat.wireframe = true;
+      }
       this.renderer.setViewport(1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2);
       this.renderer.render(this.scene, this.topCamera);
       this.renderer.setViewport(0.5 * SCREEN_WIDTH + 1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2);
@@ -578,7 +374,11 @@ LW.Renderer = (function() {
     } else {
       this.renderer.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
-    LW.track.material.wireframe = LW.track.forceWireframe || false;
+    _ref2 = LW.track.materials;
+    for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
+      mat = _ref2[_j];
+      mat.wireframe = LW.track.forceWireframe || false;
+    }
     this.renderer.render(this.scene, this.camera);
     return requestAnimationFrame(this.render);
   };
@@ -631,6 +431,293 @@ LW.Terrain = (function() {
   return Terrain;
 
 })();
+var __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+LW.Track = (function(_super) {
+  var UP, uvgen, _binormal, _cross, _normal, _pos;
+
+  __extends(Track, _super);
+
+  Track.prototype.railRadius = 1;
+
+  Track.prototype.railDistance = 2;
+
+  Track.prototype.railRadialSegments = 8;
+
+  Track.prototype.numberOfRails = 2;
+
+  Track.prototype.spineShape = null;
+
+  Track.prototype.spineDivisionLength = 5;
+
+  Track.prototype.spineShapeNeedsUpdate = true;
+
+  Track.prototype.tieShape = null;
+
+  Track.prototype.tieDepth = 1;
+
+  Track.prototype.tieShapeNeedsUpdate = true;
+
+  Track.prototype.debugNormals = false;
+
+  function Track(spline, options) {
+    var key, value;
+    this.spline = spline;
+    Track.__super__.constructor.call(this);
+    for (key in options) {
+      value = options[key];
+      this[key] = value;
+    }
+  }
+
+  UP = new THREE.Vector3(0, 1, 0);
+
+  uvgen = THREE.ExtrudeGeometry.WorldUVGenerator;
+
+  Track.prototype.rebuild = function() {
+    var bank, binormal, i, lastSpinePos, normal, pos, spineSteps, tangent, totalLength, u, _i;
+    this.clear();
+    this.prepareRails();
+    this.prepareTies();
+    this.prepareSpine();
+    totalLength = this.spline.getLength();
+    spineSteps = 0;
+    binormal = new THREE.Vector3;
+    normal = new THREE.Vector3;
+    for (i = _i = 0; 0 <= totalLength ? _i <= totalLength : _i >= totalLength; i = 0 <= totalLength ? ++_i : --_i) {
+      u = i / totalLength;
+      pos = this.spline.getPointAt(u);
+      tangent = this.spline.getTangentAt(u).normalize();
+      bank = THREE.Math.degToRad(this.spline.getBankAt(u));
+      binormal.copy(UP).applyAxisAngle(tangent, bank);
+      normal.crossVectors(tangent, binormal).normalize();
+      binormal.crossVectors(normal, tangent).normalize();
+      if (!lastSpinePos || lastSpinePos.distanceTo(pos) >= this.spineDivisionLength) {
+        this.tieStep(pos, normal, binormal);
+        this.spineStep(pos, normal, binormal);
+        spineSteps++;
+        lastSpinePos = pos;
+      }
+      this.railStep(pos, normal, binormal);
+      if (this.debugNormals) {
+        this.add(new THREE.ArrowHelper(normal, pos, 5, 0x00ff00));
+        this.add(new THREE.ArrowHelper(binormal, pos, 5, 0x0000ff));
+      }
+    }
+    this.finalizeRails(totalLength);
+    this.finalizeTies(spineSteps);
+    return this.finalizeSpine(spineSteps);
+  };
+
+  /*
+  # Rail Drawing
+  */
+
+
+  Track.prototype.prepareRails = function() {
+    var i, _i, _ref, _results;
+    this.railGeometry = new THREE.Geometry;
+    this._railGrids = [];
+    _results = [];
+    for (i = _i = 0, _ref = this.numberOfRails - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+      _results.push(this._railGrids.push([]));
+    }
+    return _results;
+  };
+
+  Track.prototype.railStep = function(pos, normal, binormal) {
+    var cx, cy, grid, i, j, v, xDistance, yDistance, _i, _j, _ref, _ref1, _results;
+    if (!this.numberOfRails) {
+      return;
+    }
+    _results = [];
+    for (i = _i = 0, _ref = this.numberOfRails - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+      grid = [];
+      xDistance = i % 2 === 0 ? this.railDistance : -this.railDistance;
+      yDistance = i > 1 ? -this.railDistance : 0;
+      for (j = _j = 0, _ref1 = this.railRadialSegments; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; j = 0 <= _ref1 ? ++_j : --_j) {
+        v = j / this.railRadialSegments * 2 * Math.PI;
+        cx = -this.railRadius * Math.cos(v) + xDistance;
+        cy = this.railRadius * Math.sin(v) + yDistance;
+        _pos.copy(pos);
+        _pos.x += cx * normal.x + cy * binormal.x;
+        _pos.y += cx * normal.y + cy * binormal.y;
+        _pos.z += cx * normal.z + cy * binormal.z;
+        grid.push(this.railGeometry.vertices.push(_pos.clone()) - 1);
+      }
+      _results.push(this._railGrids[i].push(grid));
+    }
+    return _results;
+  };
+
+  Track.prototype.finalizeRails = function(steps) {
+    var a, b, c, d, i, ip, j, jp, n, uva, uvb, uvc, uvd, _i, _j, _k, _ref, _ref1, _ref2;
+    for (n = _i = 0, _ref = this.numberOfRails - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; n = 0 <= _ref ? ++_i : --_i) {
+      for (i = _j = 0, _ref1 = steps - 1; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
+        for (j = _k = 0, _ref2 = this.railRadialSegments; 0 <= _ref2 ? _k <= _ref2 : _k >= _ref2; j = 0 <= _ref2 ? ++_k : --_k) {
+          ip = i + 1;
+          jp = (j + 1) % this.railRadialSegments;
+          a = this._railGrids[n][i][j];
+          b = this._railGrids[n][ip][j];
+          c = this._railGrids[n][ip][jp];
+          d = this._railGrids[n][i][jp];
+          uva = new THREE.Vector2(i / steps, j / this.railRadialSegments);
+          uvb = new THREE.Vector2((i + 1) / steps, j / this.railRadialSegments);
+          uvc = new THREE.Vector2((i + 1) / steps, (j + 1) / this.railRadialSegments);
+          uvd = new THREE.Vector2(i / steps, (j + 1) / this.railRadialSegments);
+          this.railGeometry.faces.push(new THREE.Face3(d, b, a));
+          this.railGeometry.faceVertexUvs[0].push([uva, uvb, uvd]);
+          this.railGeometry.faces.push(new THREE.Face3(d, c, b));
+          this.railGeometry.faceVertexUvs[0].push([uvb.clone(), uvc, uvd.clone()]);
+        }
+      }
+    }
+    this.railGeometry.computeCentroids();
+    this.railGeometry.computeFaceNormals();
+    this.railGeometry.computeVertexNormals();
+    this.railMesh = new THREE.Mesh(this.railGeometry, this.railMaterial);
+    this.railMesh.castShadow = true;
+    return this.add(this.railMesh);
+  };
+
+  /*
+  # Spine Drawing
+  */
+
+
+  Track.prototype.prepareSpine = function() {
+    this.spineGeometry = new THREE.Geometry;
+    if (this.spineShapeNeedsUpdate && this.spineShape) {
+      this.spineShapeNeedsUpdate = false;
+      this._spineVertices = this.spineShape.extractPoints(1).shape;
+      this._spineFaces = THREE.Shape.Utils.triangulateShape(this._spineVertices, []);
+    }
+  };
+
+  Track.prototype.spineStep = function(pos, normal, binormal) {
+    if (!this.spineShape) {
+      return;
+    }
+    return this._extrudeVertices(this._spineVertices, this.spineGeometry.vertices, pos, normal, binormal);
+  };
+
+  Track.prototype.finalizeSpine = function(spineSteps) {
+    this._joinFaces(this._spineVertices, this._spineFaces, this.spineGeometry, spineSteps, 0, 0);
+    this.spineGeometry.computeCentroids();
+    this.spineGeometry.computeFaceNormals();
+    this.spineMesh = new THREE.Mesh(this.spineGeometry, this.spineMaterial);
+    this.spineMesh.castShadow = true;
+    return this.add(this.spineMesh);
+  };
+
+  /*
+  # Tie Drawing
+  */
+
+
+  Track.prototype.prepareTies = function() {
+    this.tieGeometry = new THREE.Geometry;
+    if (this.tieShapeNeedsUpdate && this.tieShape) {
+      this.tieShapeNeedsUpdate = false;
+      this._tieVertices = this.tieShape.extractPoints(1).shape;
+      this._tieFaces = THREE.Shape.Utils.triangulateShape(this._tieVertices, []);
+    }
+  };
+
+  _cross = new THREE.Vector3;
+
+  Track.prototype.tieStep = function(pos, normal, binormal) {
+    var offset;
+    if (!this.tieShape) {
+      return;
+    }
+    offset = this.tieGeometry.vertices.length;
+    _cross.crossVectors(normal, binormal).normalize();
+    _cross.setLength(this.tieDepth / 2).negate();
+    this._extrudeVertices(this._tieVertices, this.tieGeometry.vertices, pos, normal, binormal, _cross);
+    _cross.negate();
+    this._extrudeVertices(this._tieVertices, this.tieGeometry.vertices, pos, normal, binormal, _cross);
+    return this._joinFaces(this._tieVertices, this._tieFaces, this.tieGeometry, 1, offset, this._tieVertices.length, true);
+  };
+
+  Track.prototype.finalizeTies = function(tieSteps) {
+    this.tieGeometry.computeCentroids();
+    this.tieGeometry.computeFaceNormals();
+    this.tieMesh = new THREE.Mesh(this.tieGeometry, this.tieMaterial);
+    this.tieMesh.castShadow = true;
+    return this.add(this.tieMesh);
+  };
+
+  /*
+  # Helpers
+  */
+
+
+  _normal = new THREE.Vector3;
+
+  _binormal = new THREE.Vector3;
+
+  _pos = new THREE.Vector3;
+
+  Track.prototype._extrudeVertices = function(template, target, pos, normal, binormal, extra) {
+    var vertex, _i, _len;
+    for (_i = 0, _len = template.length; _i < _len; _i++) {
+      vertex = template[_i];
+      _normal.copy(normal).multiplyScalar(vertex.x);
+      _binormal.copy(binormal).multiplyScalar(vertex.y);
+      _pos.copy(pos).add(_normal).add(_binormal);
+      if (extra) {
+        _pos.add(extra);
+      }
+      target.push(_pos.clone());
+    }
+  };
+
+  Track.prototype._joinFaces = function(vertices, template, target, totalSteps, startOffset, endOffset, flipOutside) {
+    var a, b, c, d, face, i, j, k, s, slen1, slen2, uvs, _i, _j, _len, _ref;
+    if (totalSteps > 1) {
+      totalSteps -= 1;
+    }
+    for (_i = 0, _len = template.length; _i < _len; _i++) {
+      face = template[_i];
+      a = face[flipOutside ? 2 : 0] + startOffset;
+      b = face[1] + startOffset;
+      c = face[flipOutside ? 0 : 2] + startOffset;
+      target.faces.push(new THREE.Face3(a, b, c, null, null, null));
+      target.faceVertexUvs[0].push(uvgen.generateBottomUV(target, null, null, a, b, c));
+      a = face[flipOutside ? 0 : 2] + startOffset + endOffset;
+      b = face[1] + startOffset + endOffset;
+      c = face[flipOutside ? 2 : 0] + startOffset + endOffset;
+      target.faces.push(new THREE.Face3(a, b, c, null, null, null));
+      target.faceVertexUvs[0].push(uvgen.generateTopUV(target, null, null, a, b, c));
+    }
+    i = vertices.length;
+    while (--i >= 0) {
+      j = i;
+      k = i - 1;
+      if (k < 0) {
+        k = vertices.length - 1;
+      }
+      for (s = _j = 0, _ref = totalSteps - 1; 0 <= _ref ? _j <= _ref : _j >= _ref; s = 0 <= _ref ? ++_j : --_j) {
+        slen1 = vertices.length * s;
+        slen2 = vertices.length * (s + 1);
+        a = j + slen1 + startOffset;
+        b = k + slen1 + startOffset;
+        c = k + slen2 + startOffset;
+        d = j + slen2 + startOffset;
+        target.faces.push(new THREE.Face3(d, b, a, null, null, null));
+        target.faces.push(new THREE.Face3(d, c, b, null, null, null));
+        uvs = uvgen.generateSideWallUV(target, null, null, null, a, b, c, d, s, totalSteps, j, k);
+        target.faceVertexUvs[0].push([uvs[0], uvs[1], uvs[3]]);
+        target.faceVertexUvs[0].push([uvs[1], uvs[2], uvs[3]]);
+      }
+    }
+  };
+
+  return Track;
+
+})(THREE.Object3D);
 var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -786,7 +873,7 @@ LW.EditTrack = (function(_super) {
           localStorage.setItem('track', JSON.stringify(_this.spline));
           _this.rerenderTimeout = null;
           _this.renderCurve();
-          return LW.track.renderTrack();
+          return LW.track.rebuild();
         }, 10);
       }
     }
@@ -898,7 +985,7 @@ LW.EditTrack = (function(_super) {
   };
 
   EditTrack.prototype.renderCurve = function() {
-    var arrow, ba, binormals, geo, i, mat, na, normal, normals, pos, steps, _i, _j, _len, _len1, _ref, _ref1;
+    var arrow, geo, mat, _i, _len, _ref;
     if (this.line) {
       this.remove(this.line);
     }
@@ -917,19 +1004,6 @@ LW.EditTrack = (function(_super) {
     });
     this.line = new THREE.Line(geo, mat);
     this.add(this.line);
-    if (this.debugNormals) {
-      steps = this.spline.getLength() / 2;
-      _ref1 = LW.FrenetFrames(this.spline, steps), normals = _ref1.normals, binormals = _ref1.binormals;
-      for (i = _j = 0, _len1 = normals.length; _j < _len1; i = ++_j) {
-        normal = normals[i];
-        pos = this.spline.getPointAt(i / steps);
-        na = new THREE.ArrowHelper(normal, pos, 5, 0x00ff00);
-        ba = new THREE.ArrowHelper(binormals[i], pos, 5, 0x0000ff);
-        this.add(na);
-        this.add(ba);
-        this.arrows.push(na, ba);
-      }
-    }
   };
 
   return EditTrack;
@@ -984,58 +1058,85 @@ var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 LW.BMTrack = (function(_super) {
+  var boxShape, boxSize, offsetX, offsetY, radius, tieShape;
+
   __extends(BMTrack, _super);
 
-  function BMTrack(spline) {
-    this.spline = spline;
-    BMTrack.__super__.constructor.call(this);
-    this.material = new THREE.MeshPhongMaterial({
+  boxSize = 2;
+
+  offsetY = -3.5;
+
+  boxShape = new THREE.Shape;
+
+  boxShape.moveTo(-boxSize, -boxSize + offsetY);
+
+  boxShape.lineTo(-boxSize, boxSize + offsetY);
+
+  boxShape.lineTo(boxSize, boxSize + offsetY);
+
+  boxShape.lineTo(boxSize, -boxSize + offsetY);
+
+  boxShape.lineTo(-boxSize, -boxSize + offsetY);
+
+  BMTrack.prototype.spineShape = boxShape;
+
+  BMTrack.prototype.spineDivisionLength = 7;
+
+  radius = 0.5;
+
+  offsetX = boxSize + 1.5;
+
+  offsetY = 0;
+
+  tieShape = new THREE.Shape;
+
+  tieShape.moveTo(boxSize, boxSize - 3.5 - boxSize / 4);
+
+  tieShape.lineTo(offsetX, offsetY);
+
+  tieShape.lineTo(offsetX - radius, offsetY);
+
+  tieShape.lineTo(boxSize / 2, boxSize - 3);
+
+  tieShape.lineTo(-boxSize / 2, boxSize - 3);
+
+  tieShape.lineTo(-offsetX + radius, offsetY);
+
+  tieShape.lineTo(-offsetX, offsetY);
+
+  tieShape.lineTo(-boxSize, boxSize - 3.5 - boxSize / 4);
+
+  BMTrack.prototype.tieShape = tieShape;
+
+  BMTrack.prototype.tieDepth = 0.4;
+
+  BMTrack.prototype.railRadius = radius;
+
+  BMTrack.prototype.railDistance = offsetX - radius;
+
+  function BMTrack() {
+    BMTrack.__super__.constructor.apply(this, arguments);
+    this.spineMaterial = new THREE.MeshPhongMaterial({
       color: 0xff0000,
       ambient: 0x090909,
       specular: 0x333333,
       shininess: 30
     });
-  }
-
-  BMTrack.prototype.renderTrack = function() {
-    var boxGeo, boxMesh, boxShape, boxSize, numberOfRails, offsetX, offsetY, radius, steps, tieShape;
-    this.clear();
-    boxSize = 2;
-    offsetY = -3.5;
-    boxShape = new THREE.Shape;
-    boxShape.moveTo(-boxSize, -boxSize + offsetY);
-    boxShape.lineTo(-boxSize, boxSize + offsetY);
-    boxShape.lineTo(boxSize, boxSize + offsetY);
-    boxShape.lineTo(boxSize, -boxSize + offsetY);
-    boxShape.lineTo(-boxSize, -boxSize + offsetY);
-    radius = 0.5;
-    offsetX = boxSize + 1.5;
-    offsetY = 0;
-    tieShape = new THREE.Shape;
-    tieShape.moveTo(boxSize, boxSize - 3.5 - boxSize / 4);
-    tieShape.lineTo(offsetX, offsetY);
-    tieShape.lineTo(offsetX - radius, offsetY);
-    tieShape.lineTo(boxSize / 2, boxSize - 3);
-    tieShape.lineTo(-boxSize / 2, boxSize - 3);
-    tieShape.lineTo(-offsetX + radius, offsetY);
-    tieShape.lineTo(-offsetX, offsetY);
-    tieShape.lineTo(-boxSize, boxSize - 3.5 - boxSize / 4);
-    steps = this.spline.getLength();
-    numberOfRails = this.renderRails ? 2 : 0;
-    boxGeo = new LW.Extruder(this.spline, {
-      spineShape: boxShape,
-      spineSteps: Math.ceil(steps / 8),
-      tieShape: tieShape,
-      tieDepth: 0.65,
-      numberOfRails: numberOfRails,
-      railRadius: radius,
-      railDistance: offsetX - radius
+    this.tieMaterial = new THREE.MeshPhongMaterial({
+      color: 0xff0000,
+      ambient: 0x090909,
+      specular: 0x333333,
+      shininess: 30
     });
-    boxMesh = new THREE.Mesh(boxGeo, this.material);
-    boxMesh.castShadow = true;
-    return this.add(boxMesh);
-  };
+    this.railMaterial = new THREE.MeshPhongMaterial({
+      color: 0xff0000,
+      ambient: 0x090909,
+      specular: 0x333333,
+      shininess: 30
+    });
+    this.materials = [this.spineMaterial, this.tieMaterial, this.railMaterial];
+  }
 
   return BMTrack;
 
-})(THREE.Object3D);
+})(LW.Track);
