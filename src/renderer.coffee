@@ -50,9 +50,17 @@ class LW.Renderer
     @light.shadowMapHeight = 4096
     @scene.add(@light)
 
-    @bottomLight = new THREE.DirectionalLight(0xffffff, 0.3)
+    @bottomLight = new THREE.DirectionalLight(0xffffff, 0.5)
     @bottomLight.position.set(0, -1, 0)
     @scene.add(@bottomLight)
+
+    sideLight = new THREE.DirectionalLight(0xffffff, 0.3)
+    sideLight.position.set(0, 0, -1)
+    @scene.add(sideLight)
+
+    sideLight = new THREE.DirectionalLight(0xffffff, 0.3)
+    sideLight.position.set(0, 0, 1)
+    @scene.add(sideLight)
 
   render: =>
     LW.train?.simulate(@clock.getDelta())
