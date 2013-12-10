@@ -49,7 +49,7 @@ class LW.Track extends THREE.Object3D
       binormal.crossVectors(normal, tangent).normalize()
 
       if !lastSpinePos or lastSpinePos.distanceTo(pos) >= @spineDivisionLength
-        @tieStep(pos, normal, binormal)
+        @tieStep(pos, normal, binormal, spineSteps % 5 == 0)
         @spineStep(pos, normal, binormal)
 
         spineSteps++
@@ -172,23 +172,29 @@ class LW.Track extends THREE.Object3D
       @_tieVertices = @tieShape.extractPoints(1).shape
       @_tieFaces = THREE.Shape.Utils.triangulateShape(@_tieVertices, [])
 
+      if @extendedTieShape
+        @_extendedTieVertices = @extendedTieShape.extractPoints(1).shape
+        @_extendedTieFaces = THREE.Shape.Utils.triangulateShape(@_extendedTieVertices, [])
+
     return
 
   _cross = new THREE.Vector3
 
-  tieStep: (pos, normal, binormal) ->
+  tieStep: (pos, normal, binormal, useExtended) ->
     return if !@tieShape
 
     offset = @tieGeometry.vertices.length
+    vertices = if useExtended then @_extendedTieVertices else @_tieVertices
+    faces = if useExtended then @_extendedTieFaces else @_tieFaces
 
     _cross.crossVectors(normal, binormal).normalize()
     _cross.setLength(@tieDepth / 2).negate()
-    @_extrudeVertices(@_tieVertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
+    @_extrudeVertices(vertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
 
     _cross.negate()
-    @_extrudeVertices(@_tieVertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
+    @_extrudeVertices(vertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
 
-    @_joinFaces(@_tieVertices, @_tieFaces, @tieGeometry, 1, offset, @_tieVertices.length, true)
+    @_joinFaces(vertices, faces, @tieGeometry, 1, offset, vertices.length, true)
 
   finalizeTies: (tieSteps) ->
     @tieGeometry.computeCentroids()

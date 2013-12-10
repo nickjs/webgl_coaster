@@ -1,6 +1,6 @@
 class LW.BMTrack extends LW.Track
   boxSize = 2
-  offsetY = -3.5
+  offsetY = -3.2
 
   boxShape = new THREE.Shape
   boxShape.moveTo(-boxSize, -boxSize + offsetY)
@@ -18,15 +18,30 @@ class LW.BMTrack extends LW.Track
 
   tieShape = new THREE.Shape
   tieShape.moveTo(boxSize, boxSize - 3.5 - boxSize / 4)
-  tieShape.lineTo(offsetX, offsetY)
+  tieShape.lineTo(offsetX - radius, offsetY - radius)
   tieShape.lineTo(offsetX - radius, offsetY)
-  tieShape.lineTo(boxSize / 2, boxSize - 3)
-  tieShape.lineTo(-boxSize / 2, boxSize - 3)
+  tieShape.lineTo(boxSize / 3, boxSize - 2.5)
+  tieShape.lineTo(-boxSize / 3, boxSize - 2.5)
   tieShape.lineTo(-offsetX + radius, offsetY)
-  tieShape.lineTo(-offsetX, offsetY)
+  tieShape.lineTo(-offsetX + radius, offsetY - radius)
   tieShape.lineTo(-boxSize, boxSize - 3.5 - boxSize / 4)
 
   tieShape: tieShape
+
+  tieShape = new THREE.Shape
+  padding = boxSize / 4
+  tieShape.moveTo(boxSize + padding, boxSize - 3.5 - padding)
+  tieShape.lineTo(offsetX - radius, offsetY - radius)
+  tieShape.lineTo(offsetX - radius, offsetY)
+  tieShape.lineTo(boxSize / 3, boxSize - 2.5)
+  tieShape.lineTo(-boxSize / 3, boxSize - 2.5)
+  tieShape.lineTo(-offsetX + radius, offsetY)
+  tieShape.lineTo(-offsetX + radius, offsetY - radius)
+  tieShape.lineTo(-boxSize - padding, boxSize - 3.5 - padding)
+  tieShape.lineTo(-boxSize - padding, -boxSize - 3.5 - padding)
+  tieShape.lineTo(boxSize + padding, -boxSize - 3.5 - padding)
+
+  extendedTieShape: tieShape
   tieDepth: 0.4
 
   railRadius: radius
