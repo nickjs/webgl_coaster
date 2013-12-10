@@ -37,6 +37,19 @@ class LW.BezierPath extends THREE.CurvePath
 
   isConnected: false
 
+  getCurveAt: (t) ->
+    d = t * @getLength()
+    curveLengths = @getCurveLengths()
+    i = 0
+
+    while i < curveLengths.length
+      if curveLengths[i] >= d
+        return @curves[i]
+
+      i++
+
+    return null
+
   getBankAt: (t) ->
     d = t * @getLength()
     curveLengths = @getCurveLengths()

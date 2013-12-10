@@ -15,21 +15,21 @@ class LW.BMTrack extends LW.Track
   radius = 0.5
   offsetX = boxSize + 1.5
   offsetY = 0
+  padding = boxSize / 4
 
   tieShape = new THREE.Shape
-  tieShape.moveTo(boxSize, boxSize - 3.5 - boxSize / 4)
+  tieShape.moveTo(boxSize, boxSize - 3.5 - padding)
   tieShape.lineTo(offsetX - radius, offsetY - radius)
   tieShape.lineTo(offsetX - radius, offsetY)
   tieShape.lineTo(boxSize / 3, boxSize - 2.5)
   tieShape.lineTo(-boxSize / 3, boxSize - 2.5)
   tieShape.lineTo(-offsetX + radius, offsetY)
   tieShape.lineTo(-offsetX + radius, offsetY - radius)
-  tieShape.lineTo(-boxSize, boxSize - 3.5 - boxSize / 4)
+  tieShape.lineTo(-boxSize, boxSize - 3.5 - padding)
 
   tieShape: tieShape
 
   tieShape = new THREE.Shape
-  padding = boxSize / 4
   tieShape.moveTo(boxSize + padding, boxSize - 3.5 - padding)
   tieShape.lineTo(offsetX - radius, offsetY - radius)
   tieShape.lineTo(offsetX - radius, offsetY)
