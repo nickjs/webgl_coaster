@@ -17,31 +17,25 @@ class LW.BezierPath extends THREE.CurvePath
     @cacheLengths = []
 
     for p1, i in @points
-      p2 = @points[i + 1]
-      return if !p2
+      if i == @points.length - 1
+        return if !@isConnected
+        p2 = @points[0]
+      else
+        p2 = @points[i + 1]
 
-      curve = new THREE.CubicBezierCurve3(p1.position, p1.right.clone().add(p1.position), p2.left.clone().add(p2.position), p2.position)
+      leftCP = p1.position
+      rightCP = p2.position
+      leftHandle = p1.right.clone().add(leftCP)
+      rightHandle = p2.left.clone().add(rightCP)
+
+      curve = new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP)
       curve.p1 = p1
       curve.p2 = p2
       @add(curve)
 
-    @connect() if @isConnected
     return
 
   isConnected: false
-  connect: ->
-    @isConnected = true
-
-    leftCP = @vectors[@vectors.length - 2]
-    rightCP = @vectors[1]
-    leftHandle = @vectors[@vectors.length - 1].clone().add(leftCP)
-    rightHandle = @vectors[0].clone().add(rightCP)
-
-    @curves.push(new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP))
-
-  disconnect: ->
-    @isConnected = false
-    @curves.pop()
 
   getBankAt: (t) ->
     d = t * @getLength()

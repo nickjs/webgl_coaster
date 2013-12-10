@@ -70,7 +70,7 @@ window.LW =
     @trackFolder.add(@track, 'forceWireframe')
     @trackFolder.add(@track, 'debugNormals').onChange => @track.rebuild()
     @trackFolder.add(@spline, 'isConnected').onChange (value) =>
-      if value then @spline.connect() else @spline.disconnect()
+      @spline.isConnected = value
       @edit.changed(true)
 
     @trackFolder.add({addPoint: =>
