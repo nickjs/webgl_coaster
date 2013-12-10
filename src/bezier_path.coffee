@@ -58,12 +58,7 @@ class LW.BezierPath extends THREE.CurvePath
     return 0
 
   addControlPoint: (pos) ->
-    last = @vectors[@vectors.length - 2]
-
-    @vectors.push(new THREE.Vector3(-10, 0, 0))
-    @vectors.push(pos.clone())
-    @vectors.push(new THREE.Vector3(10, 0, 0))
-
+    @points.push(new LW.Point(pos.x, pos.y, pos.z, -10, 0, 0, 10,0,0))
     @rebuild()
 
 class LW.Point
