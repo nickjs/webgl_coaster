@@ -30,7 +30,7 @@ class LW.Track extends THREE.Object3D
     @prepareTies()
     @prepareSpine()
 
-    totalLength = @spline.getLength()
+    totalLength = Math.ceil(@spline.getLength())
     spineSteps = 0
 
     binormal = new THREE.Vector3
@@ -60,6 +60,8 @@ class LW.Track extends THREE.Object3D
       if @debugNormals
         @add(new THREE.ArrowHelper(normal, pos, 5, 0x00ff00))
         @add(new THREE.ArrowHelper(binormal, pos, 5, 0x0000ff))
+
+    @spineStep(pos, normal, binormal)
 
     @finalizeRails(totalLength)
     @finalizeTies(spineSteps)
@@ -217,8 +219,6 @@ class LW.Track extends THREE.Object3D
     return
 
   _joinFaces: (vertices, template, target, totalSteps, startOffset, endOffset, flipOutside) ->
-    totalSteps -= 1 if totalSteps > 1
-
     for face in template
       # Bottom
       a = face[if flipOutside then 2 else 0] + startOffset
