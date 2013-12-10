@@ -47,6 +47,15 @@ class LW.BMTrack extends LW.Track
   railRadius: radius
   railDistance: offsetX - radius
 
+  liftShape = new THREE.Shape
+  liftShape.moveTo(boxSize / 2, 0)
+  liftShape.lineTo(boxSize / 2, 0.5)
+  # liftShape.lineTo(boxSize / 4, 0.5)
+  # liftShape.moveTo(-boxSize / 4, 0.5)
+  liftShape.lineTo(-boxSize / 2, 0.5)
+  liftShape.lineTo(-boxSize / 2, 0)
+  liftShape: liftShape
+
   constructor: ->
     super
 

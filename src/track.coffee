@@ -29,6 +29,7 @@ class LW.Track extends THREE.Object3D
     @prepareRails()
     @prepareTies()
     @prepareSpine()
+    @prepareExtras()
 
     totalLength = Math.ceil(@spline.getLength())
     spineSteps = 0
@@ -58,6 +59,7 @@ class LW.Track extends THREE.Object3D
         lastSpineCurve = curve
 
       @railStep(pos, normal, binormal)
+      @extrasStep(pos, normal, binormal, curve.segmentType) if curve.segmentType
 
       if @debugNormals
         @add(new THREE.ArrowHelper(normal, pos, 5, 0x00ff00))
@@ -68,6 +70,7 @@ class LW.Track extends THREE.Object3D
     @finalizeRails(totalLength)
     @finalizeTies(spineSteps)
     @finalizeSpine(spineSteps)
+    @finalizeExtras(totalLength, spineSteps)
 
   ###
   # Rail Drawing
@@ -205,6 +208,48 @@ class LW.Track extends THREE.Object3D
     @tieMesh = new THREE.Mesh(@tieGeometry, @tieMaterial)
     @tieMesh.castShadow = true
     @add(@tieMesh)
+
+  ###
+  # Extras
+  ###
+
+  prepareExtras: ->
+    @extraGeometry = new THREE.Geometry
+    return
+    if @liftShape
+      @_liftVertices = @liftShape.extractPoints(1).shape
+      @_liftFaces = THREE.Shape.Utils.triangulateShape(@_liftVertices, [])
+
+  liftSteps = 0
+  extrasStep: (pos, normal, binormal, segmentType) ->
+    if segmentType == 1
+      vertices = [new THREE.Vector2(-1, 0), new THREE.Vector2(1,0)]
+      @_extrudeVertices(vertices, @extraGeometry.vertices, pos, normal, binormal)
+      liftSteps++
+
+  finalizeExtras: (totalLength) ->
+    texture1 = THREE.ImageUtils.loadTexture( "resources/textures/chain.png" );
+    material1 = new THREE.MeshPhongMaterial( { color: 0xffffff, map: texture1 } )
+    texture1.wrapS = texture1.wrapT = THREE.RepeatWrapping;
+    texture1.repeat.set( 1,1 );
+
+    for i in [0..liftSteps-2]
+      console.log i*2, i*2+1, i*2+2
+      @extraGeometry.faces.push(new THREE.Face3(i*2, i*2+1, i*2+2, null, null, null))
+      @extraGeometry.faces.push(new THREE.Face3(i*2+2, i*2+1, i*2+3, null, null, null))
+
+
+    # @extraGeometry = new THREE.TubeGeometry(@spline, totalLength, 2, 2)
+    # @extraGeometry = new THREE.CubeGeometry(10,10,10)
+    # @_joinFaces(@_liftVertices, @_liftFaces, @extraGeometry, totalLength - 2, 0, @_liftVertices.length)
+
+    @extraGeometry.computeCentroids()
+    @extraGeometry.computeFaceNormals()
+    # @extraGeometry.computeVertexNormals()
+
+    @extraMesh = new THREE.Mesh(@extraGeometry, material1)
+    # @extrudeGeometry.castShadow = true
+    @add(@extraMesh)
 
   ###
   # Helpers

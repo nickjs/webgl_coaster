@@ -31,6 +31,7 @@ class LW.BezierPath extends THREE.CurvePath
       curve = new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP)
       curve.p1 = p1
       curve.p2 = p2
+      curve.segmentType = p2.segmentType if p2.segmentType
       @add(curve)
 
     return
