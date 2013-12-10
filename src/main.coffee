@@ -30,33 +30,13 @@ window.LW =
       @spline = LW.BezierPath.fromJSON(JSON.parse(json))
     else
       @spline = new LW.BezierPath([
-        new THREE.Vector3(-10, 0, 0)
-        new THREE.Vector3(-40, 0, 0)
-        new THREE.Vector3(10, 0, 0)
-
-        new THREE.Vector3(-10, -20, 0)
-        new THREE.Vector3(0, 18, 0)
-        new THREE.Vector3(10, 20, 0)
-
-        new THREE.Vector3(-14, -10, -40)
-        new THREE.Vector3(47, 20, 40).setBank(60)
-        new THREE.Vector3(14, 10, 40)
-
-        new THREE.Vector3(30, 0, 0)
-        new THREE.Vector3(0, 0, 80).setBank(20)
-        new THREE.Vector3(-30, 0, 0)
-
-        new THREE.Vector3(18, 0, 0)
-        new THREE.Vector3(-80, 0, 80).setBank(-359)
-        new THREE.Vector3(-18, 0, 0)
-
-        new THREE.Vector3(2.5, 0, 23)
-        new THREE.Vector3(-120, 0, 40).setBank(-359)
-        new THREE.Vector3(-2.5, 0, -23)
-
-        new THREE.Vector3(-33, 0, 0)
-        new THREE.Vector3(-80, 0, 0).setBank(-359)
-        new THREE.Vector3(33, 0, 0)
+        new LW.Point(-40,0,0, -10,0,0, 10,0,0)
+        new LW.Point(0,18,0, -10,-20,0, 10,20,0).setSegmentType(1)
+        new LW.Point(47,20,40, -14,-10,-40, 14,10,40).setBank(60)
+        new LW.Point(0,0,80, 30,0,0, -30,0,0).setBank(20)
+        new LW.Point(-80,0,80, 18,0,0, -18,0,0).setBank(-359)
+        new LW.Point(-120,0,40, 2.5,0,23, -2.5,0,-23).setBank(-359)
+        new LW.Point(-80,0,0, -33,0,0, 33,0,0).setBank(-359)
       ])
 
     @edit = new LW.EditTrack(@spline)
@@ -90,7 +70,7 @@ window.LW =
     @trackFolder.add(@track, 'forceWireframe')
     @trackFolder.add(@track, 'debugNormals').onChange => @track.rebuild()
     @trackFolder.add(@spline, 'isConnected').onChange (value) =>
-      if value then @spline.connect() else @spline.disconnect()
+      @spline.isConnected = value
       @edit.changed(true)
 
     @trackFolder.add({addPoint: =>
@@ -121,8 +101,11 @@ window.LW =
     @selected = {x: 0, y: 0, z: 0, bank: 0}
     updateVector = (index, value) =>
       return if not @selected.node
-      @selected.node.position[index] = value
-      @selected.node.splineVector[index] = value
+      if index in ['x', 'y', 'z']
+        @selected.node.position[index] = value
+      else
+        @selected.node.point[index] = value
+
       @edit.changed(true)
 
     @pointFolder = @gui.addFolder('Point')
@@ -133,10 +116,10 @@ window.LW =
 
   selectionChanged: (selected) ->
     if selected
-      @selected.x = selected.splineVector.x
-      @selected.y = selected.splineVector.y
-      @selected.z = selected.splineVector.z
-      @selected.bank = selected.splineVector.bank || 0
+      @selected.x = selected.position.x
+      @selected.y = selected.position.y
+      @selected.z = selected.position.z
+      @selected.bank = selected.point.bank || 0
       @selected.node = selected
 
       for controller in @pointFolder.__controllers

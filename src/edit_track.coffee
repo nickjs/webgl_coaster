@@ -8,8 +8,6 @@ class LW.EditTrack extends THREE.Object3D
   constructor: (@spline) ->
     super()
 
-    @arrows = []
-
     @mouseDown = new THREE.Vector2
     @mouseUp = new THREE.Vector2
 
@@ -29,14 +27,10 @@ class LW.EditTrack extends THREE.Object3D
   changed: (force) ->
     if @selected and @transformControl.axis != undefined
       if @selectedHandle
-        @selected.pointLine.geometry.verticesNeedUpdate = true
+        @selected.line.geometry.verticesNeedUpdate = true
 
         oppositeHandle = if @selectedHandle == @selected.left then @selected.right else @selected.left
         oppositeHandle.position.copy(@selectedHandle.position).negate()
-
-      @selected.splineVector.copy(@selected.position)
-      @selected.left.splineVector.copy(@selected.left.position)
-      @selected.right.splineVector.copy(@selected.right.position)
 
     if @selected || force
       @spline.rebuild()
@@ -130,30 +124,15 @@ class LW.EditTrack extends THREE.Object3D
 
     return if LW.onRideCamera
 
-    for vector, i in @spline.vectors
-      isControl = (i - 1) % 3 == 0
-
-      node = new LW.EditNode(isControl)
-      node.position.copy(vector)
-      node.splineVector = vector
-
-      if isControl
-        @add(node)
-        node.left = lastNode
-        node.add(lastNode)
-        @controlPoints.push(node)
-      else if lastNode?.isControl
-        lastNode.add(node)
-        lastNode.right = node
-        lastNode.addLine()
-
-      lastNode = node
+    for point, i in @spline.points
+      node = new LW.PointEditor(point)
+      @add(node)
+      @controlPoints.push(node)
 
     @renderCurve()
 
   renderCurve: ->
     @remove(@line) if @line
-    @remove(arrow) for arrow in @arrows
     return if LW.onRideCamera
 
     geo = @spline.createPointsGeometry(@spline.getLength())
@@ -163,30 +142,39 @@ class LW.EditTrack extends THREE.Object3D
 
     return
 
-class LW.EditNode extends THREE.Mesh
-  constructor: (@isControl) ->
+class LW.PointEditor extends THREE.Mesh
+  constructor: (@point) ->
     geo = new THREE.SphereGeometry(1)
-    mat = new THREE.MeshLambertMaterial(color: if isControl then CONTROL_COLOR else POINT_COLOR)
+    controlMaterial = new THREE.MeshLambertMaterial(color: CONTROL_COLOR)
+    pointMaterial = new THREE.MeshLambertMaterial(color: POINT_COLOR)
 
-    super(geo, mat)
-    @visible = isControl
+    super(geo, controlMaterial)
 
-  addLine: ->
-    geo = new THREE.Geometry
+    @position = point.position
+    @isControl = true
 
-    geo.vertices.push(@left.position)
-    geo.vertices.push(new THREE.Vector3)
-    geo.vertices.push(@right.position)
+    @left = new THREE.Mesh(geo, pointMaterial)
+    @left.position = point.left
+    @left.visible = false
+    @add(@left)
 
-    mat = new THREE.LineBasicMaterial(color: POINT_COLOR, linewidth: 4)
+    @right = new THREE.Mesh(geo, pointMaterial)
+    @right.position = point.right
+    @right.visible = false
+    @add(@right)
 
-    @pointLine = new THREE.Line(geo, mat)
-    @pointLine.visible = false
-    @add(@pointLine)
+    lineGeo = new THREE.Geometry
+    lineGeo.vertices.push(point.left)
+    lineGeo.vertices.push(new THREE.Vector3)
+    lineGeo.vertices.push(point.right)
+
+    @line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial(color: POINT_COLOR, linewidth: 4))
+    @line.visible = false
+    @add(@line)
 
   select: (selected) ->
     @material.color.setHex(if selected then SELECTED_COLOR else CONTROL_COLOR)
 
     @left?.visible = selected
     @right?.visible = selected
-    @pointLine?.visible = selected
+    @line?.visible = selected

@@ -1,19 +1,14 @@
 class LW.BezierPath extends THREE.CurvePath
-  @fromJSON: (vectorJSON) ->
-    vectors = for v in vectorJSON
-      vec = new THREE.Vector3(v.x, v.y, v.z)
-      vec.setBank(v.bank) if v.bank
-      vec
-
-    return new LW.BezierPath(vectors)
+  @fromJSON: (json) ->
+    points = for p in json
+      new LW.Point.fromJSON(p)
+    return new LW.BezierPath(points)
 
   toJSON: ->
-    for vector in @vectors
-      vector.toJSON()
+    for p in @points
+      p.toJSON()
 
-  constructor: (@vectors) ->
-    throw "wrong number of vectors" if vectors.length % 3 != 0
-
+  constructor: (@points) ->
     super()
     @rebuild()
 
@@ -21,33 +16,39 @@ class LW.BezierPath extends THREE.CurvePath
     @curves.pop() while @curves.length
     @cacheLengths = []
 
-    for i in [0..@vectors.length / 3 - 2]
-      index = i * 3
+    for p1, i in @points
+      if i == @points.length - 1
+        return if !@isConnected
+        p2 = @points[0]
+      else
+        p2 = @points[i + 1]
 
-      leftCP = @vectors[index + 1]
-      rightCP = @vectors[index + 4]
-      leftHandle = @vectors[index + 2].clone().add(leftCP)
-      rightHandle = @vectors[index + 3].clone().add(rightCP)
+      leftCP = p1.position
+      rightCP = p2.position
+      leftHandle = p1.right.clone().add(leftCP)
+      rightHandle = p2.left.clone().add(rightCP)
 
-      @add(new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP))
+      curve = new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP)
+      curve.p1 = p1
+      curve.p2 = p2
+      @add(curve)
 
-    @connect() if @isConnected
     return
 
   isConnected: false
-  connect: ->
-    @isConnected = true
 
-    leftCP = @vectors[@vectors.length - 2]
-    rightCP = @vectors[1]
-    leftHandle = @vectors[@vectors.length - 1].clone().add(leftCP)
-    rightHandle = @vectors[0].clone().add(rightCP)
+  getCurveAt: (t) ->
+    d = t * @getLength()
+    curveLengths = @getCurveLengths()
+    i = 0
 
-    @curves.push(new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP))
+    while i < curveLengths.length
+      if curveLengths[i] >= d
+        return @curves[i]
 
-  disconnect: ->
-    @isConnected = false
-    @curves.pop()
+      i++
+
+    return null
 
   getBankAt: (t) ->
     d = t * @getLength()
@@ -60,8 +61,8 @@ class LW.BezierPath extends THREE.CurvePath
         curve = @curves[i]
         u = 1 - diff / curve.getLength()
 
-        leftBank = curve.v0?.bank || 0
-        rightBank = curve.v3?.bank || 0
+        leftBank = curve.p1?.bank || 0
+        rightBank = curve.p2?.bank || 0
 
         return THREE.Curve.Utils.interpolate(leftBank, leftBank, rightBank, rightBank, u)
 
@@ -70,19 +71,38 @@ class LW.BezierPath extends THREE.CurvePath
     return 0
 
   addControlPoint: (pos) ->
-    last = @vectors[@vectors.length - 2]
-
-    @vectors.push(new THREE.Vector3(-10, 0, 0))
-    @vectors.push(pos.clone())
-    @vectors.push(new THREE.Vector3(10, 0, 0))
-
+    @points.push(new LW.Point(pos.x, pos.y, pos.z, -10, 0, 0, 10,0,0))
     @rebuild()
 
-THREE.Vector3::toJSON = ->
-  obj = {x: @x, y: @y, z: @z}
-  obj.bank = @bank if @bank
-  return obj
+class LW.Point
+  position: null
+  bank: 0
+  segmentType: 0
 
-THREE.Vector3::setBank = (amount) ->
-  @bank = amount
-  return this
+  constructor: (x, y, z, lx, ly, lz, rx, ry, rz) ->
+    @position = new THREE.Vector3(x, y, z)
+    @left = new THREE.Vector3(lx, ly, lz)
+    @right = new THREE.Vector3(rx, ry, rz)
+
+  setBank: (amount) ->
+    @bank = amount
+    return this
+
+  setSegmentType: (type) ->
+    @segmentType = type
+    return this
+
+  toJSON: ->
+    obj = {position: @position, left: @left, right: @right}
+    obj.bank = @bank if @bank
+    obj.segmentType = @segmentType if @segmentType
+    return obj
+
+  @fromJSON: (json) ->
+    p = new LW.Point
+    p.position.copy(json.position)
+    p.left.copy(json.left)
+    p.right.copy(json.right)
+    p.bank = json.bank if json.bank
+    p.segmentType = json.segmentType if json.segmentType
+    return p
