@@ -23,7 +23,7 @@ window.LW = {
     if (json = localStorage.getItem('track')) {
       this.spline = LW.BezierPath.fromJSON(JSON.parse(json));
     } else {
-      this.spline = new LW.BezierPath([new THREE.Vector3(-10, 0, 0), new THREE.Vector3(-40, 0, 0), new THREE.Vector3(10, 0, 0), new THREE.Vector3(-10, -20, 0), new THREE.Vector3(0, 18, 0), new THREE.Vector3(10, 20, 0), new THREE.Vector3(-14, -10, -40), new THREE.Vector3(47, 20, 40).setBank(60), new THREE.Vector3(14, 10, 40), new THREE.Vector3(30, 0, 0), new THREE.Vector3(0, 0, 80).setBank(20), new THREE.Vector3(-30, 0, 0), new THREE.Vector3(18, 0, 0), new THREE.Vector3(-80, 0, 80).setBank(-359), new THREE.Vector3(-18, 0, 0), new THREE.Vector3(2.5, 0, 23), new THREE.Vector3(-120, 0, 40).setBank(-359), new THREE.Vector3(-2.5, 0, -23), new THREE.Vector3(-33, 0, 0), new THREE.Vector3(-80, 0, 0).setBank(-359), new THREE.Vector3(33, 0, 0)]);
+      this.spline = new LW.BezierPath([new LW.Point(-40, 0, 0, -10, 0, 0, 10, 0, 0), new LW.Point(0, 18, 0, -10, -20, 0, 10, 20, 0).setSegmentType(1), new LW.Point(47, 20, 40, -14, -10, -40, 14, 10, 40).setBank(60), new LW.Point(0, 0, 80, 30, 0, 0, -30, 0, 0).setBank(20), new LW.Point(-80, 0, 80, 18, 0, 0, -18, 0, 0).setBank(-359), new LW.Point(-120, 0, 40, 2.5, 0, 23, -2.5, 0, -23).setBank(-359), new LW.Point(-80, 0, 0, -33, 0, 0, 33, 0, 0).setBank(-359)]);
     }
     this.edit = new LW.EditTrack(this.spline);
     this.edit.renderTrack();
@@ -68,11 +68,7 @@ window.LW = {
       return _this.track.rebuild();
     });
     this.trackFolder.add(this.spline, 'isConnected').onChange(function(value) {
-      if (value) {
-        _this.spline.connect();
-      } else {
-        _this.spline.disconnect();
-      }
+      _this.spline.isConnected = value;
       return _this.edit.changed(true);
     });
     this.trackFolder.add({
@@ -116,8 +112,11 @@ window.LW = {
       if (!_this.selected.node) {
         return;
       }
-      _this.selected.node.position[index] = value;
-      _this.selected.node.splineVector[index] = value;
+      if (index === 'x' || index === 'y' || index === 'z') {
+        _this.selected.node.position[index] = value;
+      } else {
+        _this.selected.node.point[index] = value;
+      }
       return _this.edit.changed(true);
     };
     this.pointFolder = this.gui.addFolder('Point');
@@ -137,10 +136,10 @@ window.LW = {
   selectionChanged: function(selected) {
     var controller, _i, _len, _ref;
     if (selected) {
-      this.selected.x = selected.splineVector.x;
-      this.selected.y = selected.splineVector.y;
-      this.selected.z = selected.splineVector.z;
-      this.selected.bank = selected.splineVector.bank || 0;
+      this.selected.x = selected.position.x;
+      this.selected.y = selected.position.y;
+      this.selected.z = selected.position.z;
+      this.selected.bank = selected.point.bank || 0;
       this.selected.node = selected;
       _ref = this.pointFolder.__controllers;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -163,78 +162,79 @@ var __hasProp = {}.hasOwnProperty,
 LW.BezierPath = (function(_super) {
   __extends(BezierPath, _super);
 
-  BezierPath.fromJSON = function(vectorJSON) {
-    var v, vec, vectors;
-    vectors = (function() {
+  BezierPath.fromJSON = function(json) {
+    var p, points;
+    points = (function() {
       var _i, _len, _results;
       _results = [];
-      for (_i = 0, _len = vectorJSON.length; _i < _len; _i++) {
-        v = vectorJSON[_i];
-        vec = new THREE.Vector3(v.x, v.y, v.z);
-        if (v.bank) {
-          vec.setBank(v.bank);
-        }
-        _results.push(vec);
+      for (_i = 0, _len = json.length; _i < _len; _i++) {
+        p = json[_i];
+        _results.push(new LW.Point.fromJSON(p));
       }
       return _results;
     })();
-    return new LW.BezierPath(vectors);
+    return new LW.BezierPath(points);
   };
 
   BezierPath.prototype.toJSON = function() {
-    var vector, _i, _len, _ref, _results;
-    _ref = this.vectors;
+    var p, _i, _len, _ref, _results;
+    _ref = this.points;
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      vector = _ref[_i];
-      _results.push(vector.toJSON());
+      p = _ref[_i];
+      _results.push(p.toJSON());
     }
     return _results;
   };
 
-  function BezierPath(vectors) {
-    this.vectors = vectors;
-    if (vectors.length % 3 !== 0) {
-      throw "wrong number of vectors";
-    }
+  function BezierPath(points) {
+    this.points = points;
     BezierPath.__super__.constructor.call(this);
     this.rebuild();
   }
 
   BezierPath.prototype.rebuild = function() {
-    var i, index, leftCP, leftHandle, rightCP, rightHandle, _i, _ref;
+    var curve, i, leftCP, leftHandle, p1, p2, rightCP, rightHandle, _i, _len, _ref;
     while (this.curves.length) {
       this.curves.pop();
     }
     this.cacheLengths = [];
-    for (i = _i = 0, _ref = this.vectors.length / 3 - 2; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-      index = i * 3;
-      leftCP = this.vectors[index + 1];
-      rightCP = this.vectors[index + 4];
-      leftHandle = this.vectors[index + 2].clone().add(leftCP);
-      rightHandle = this.vectors[index + 3].clone().add(rightCP);
-      this.add(new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP));
-    }
-    if (this.isConnected) {
-      this.connect();
+    _ref = this.points;
+    for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+      p1 = _ref[i];
+      if (i === this.points.length - 1) {
+        if (!this.isConnected) {
+          return;
+        }
+        p2 = this.points[0];
+      } else {
+        p2 = this.points[i + 1];
+      }
+      leftCP = p1.position;
+      rightCP = p2.position;
+      leftHandle = p1.right.clone().add(leftCP);
+      rightHandle = p2.left.clone().add(rightCP);
+      curve = new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP);
+      curve.p1 = p1;
+      curve.p2 = p2;
+      this.add(curve);
     }
   };
 
   BezierPath.prototype.isConnected = false;
 
-  BezierPath.prototype.connect = function() {
-    var leftCP, leftHandle, rightCP, rightHandle;
-    this.isConnected = true;
-    leftCP = this.vectors[this.vectors.length - 2];
-    rightCP = this.vectors[1];
-    leftHandle = this.vectors[this.vectors.length - 1].clone().add(leftCP);
-    rightHandle = this.vectors[0].clone().add(rightCP);
-    return this.curves.push(new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP));
-  };
-
-  BezierPath.prototype.disconnect = function() {
-    this.isConnected = false;
-    return this.curves.pop();
+  BezierPath.prototype.getCurveAt = function(t) {
+    var curveLengths, d, i;
+    d = t * this.getLength();
+    curveLengths = this.getCurveLengths();
+    i = 0;
+    while (i < curveLengths.length) {
+      if (curveLengths[i] >= d) {
+        return this.curves[i];
+      }
+      i++;
+    }
+    return null;
   };
 
   BezierPath.prototype.getBankAt = function(t) {
@@ -247,8 +247,8 @@ LW.BezierPath = (function(_super) {
         diff = curveLengths[i] - d;
         curve = this.curves[i];
         u = 1 - diff / curve.getLength();
-        leftBank = ((_ref = curve.v0) != null ? _ref.bank : void 0) || 0;
-        rightBank = ((_ref1 = curve.v3) != null ? _ref1.bank : void 0) || 0;
+        leftBank = ((_ref = curve.p1) != null ? _ref.bank : void 0) || 0;
+        rightBank = ((_ref1 = curve.p2) != null ? _ref1.bank : void 0) || 0;
         return THREE.Curve.Utils.interpolate(leftBank, leftBank, rightBank, rightBank, u);
       }
       i++;
@@ -257,11 +257,7 @@ LW.BezierPath = (function(_super) {
   };
 
   BezierPath.prototype.addControlPoint = function(pos) {
-    var last;
-    last = this.vectors[this.vectors.length - 2];
-    this.vectors.push(new THREE.Vector3(-10, 0, 0));
-    this.vectors.push(pos.clone());
-    this.vectors.push(new THREE.Vector3(10, 0, 0));
+    this.points.push(new LW.Point(pos.x, pos.y, pos.z, -10, 0, 0, 10, 0, 0));
     return this.rebuild();
   };
 
@@ -269,23 +265,63 @@ LW.BezierPath = (function(_super) {
 
 })(THREE.CurvePath);
 
-THREE.Vector3.prototype.toJSON = function() {
-  var obj;
-  obj = {
-    x: this.x,
-    y: this.y,
-    z: this.z
-  };
-  if (this.bank) {
-    obj.bank = this.bank;
-  }
-  return obj;
-};
+LW.Point = (function() {
+  Point.prototype.position = null;
 
-THREE.Vector3.prototype.setBank = function(amount) {
-  this.bank = amount;
-  return this;
-};
+  Point.prototype.bank = 0;
+
+  Point.prototype.segmentType = 0;
+
+  function Point(x, y, z, lx, ly, lz, rx, ry, rz) {
+    this.position = new THREE.Vector3(x, y, z);
+    this.left = new THREE.Vector3(lx, ly, lz);
+    this.right = new THREE.Vector3(rx, ry, rz);
+  }
+
+  Point.prototype.setBank = function(amount) {
+    this.bank = amount;
+    return this;
+  };
+
+  Point.prototype.setSegmentType = function(type) {
+    this.segmentType = type;
+    return this;
+  };
+
+  Point.prototype.toJSON = function() {
+    var obj;
+    obj = {
+      position: this.position,
+      left: this.left,
+      right: this.right
+    };
+    if (this.bank) {
+      obj.bank = this.bank;
+    }
+    if (this.segmentType) {
+      obj.segmentType = this.segmentType;
+    }
+    return obj;
+  };
+
+  Point.fromJSON = function(json) {
+    var p;
+    p = new LW.Point;
+    p.position.copy(json.position);
+    p.left.copy(json.left);
+    p.right.copy(json.right);
+    if (json.bank) {
+      p.bank = json.bank;
+    }
+    if (json.segmentType) {
+      p.segmentType = json.segmentType;
+    }
+    return p;
+  };
+
+  return Point;
+
+})();
 LW.Spline = (function() {
   function Spline() {}
 
@@ -476,17 +512,18 @@ LW.Track = (function(_super) {
   uvgen = THREE.ExtrudeGeometry.WorldUVGenerator;
 
   Track.prototype.rebuild = function() {
-    var bank, binormal, i, lastSpinePos, normal, pos, spineSteps, tangent, totalLength, u, _i;
+    var bank, binormal, curve, i, lastSpineCurve, lastSpinePos, normal, pos, spineSteps, tangent, totalLength, u, _i;
     this.clear();
     this.prepareRails();
     this.prepareTies();
     this.prepareSpine();
-    totalLength = this.spline.getLength();
+    totalLength = Math.ceil(this.spline.getLength());
     spineSteps = 0;
     binormal = new THREE.Vector3;
     normal = new THREE.Vector3;
     for (i = _i = 0; 0 <= totalLength ? _i <= totalLength : _i >= totalLength; i = 0 <= totalLength ? ++_i : --_i) {
       u = i / totalLength;
+      curve = this.spline.getCurveAt(u);
       pos = this.spline.getPointAt(u);
       tangent = this.spline.getTangentAt(u).normalize();
       bank = THREE.Math.degToRad(this.spline.getBankAt(u));
@@ -494,10 +531,11 @@ LW.Track = (function(_super) {
       normal.crossVectors(tangent, binormal).normalize();
       binormal.crossVectors(normal, tangent).normalize();
       if (!lastSpinePos || lastSpinePos.distanceTo(pos) >= this.spineDivisionLength) {
-        this.tieStep(pos, normal, binormal);
+        this.tieStep(pos, normal, binormal, curve !== lastSpineCurve);
         this.spineStep(pos, normal, binormal);
         spineSteps++;
         lastSpinePos = pos;
+        lastSpineCurve = curve;
       }
       this.railStep(pos, normal, binormal);
       if (this.debugNormals) {
@@ -505,6 +543,7 @@ LW.Track = (function(_super) {
         this.add(new THREE.ArrowHelper(binormal, pos, 5, 0x0000ff));
       }
     }
+    this.spineStep(pos, normal, binormal);
     this.finalizeRails(totalLength);
     this.finalizeTies(spineSteps);
     return this.finalizeSpine(spineSteps);
@@ -603,7 +642,7 @@ LW.Track = (function(_super) {
   };
 
   Track.prototype.finalizeSpine = function(spineSteps) {
-    this._joinFaces(this._spineVertices, this._spineFaces, this.spineGeometry, spineSteps, 0, 0);
+    this._joinFaces(this._spineVertices, this._spineFaces, this.spineGeometry, spineSteps, 0, this.spineGeometry.vertices.length - this._spineVertices.length);
     this.spineGeometry.computeCentroids();
     this.spineGeometry.computeFaceNormals();
     this.spineMesh = new THREE.Mesh(this.spineGeometry, this.spineMaterial);
@@ -622,23 +661,29 @@ LW.Track = (function(_super) {
       this.tieShapeNeedsUpdate = false;
       this._tieVertices = this.tieShape.extractPoints(1).shape;
       this._tieFaces = THREE.Shape.Utils.triangulateShape(this._tieVertices, []);
+      if (this.extendedTieShape) {
+        this._extendedTieVertices = this.extendedTieShape.extractPoints(1).shape;
+        this._extendedTieFaces = THREE.Shape.Utils.triangulateShape(this._extendedTieVertices, []);
+      }
     }
   };
 
   _cross = new THREE.Vector3;
 
-  Track.prototype.tieStep = function(pos, normal, binormal) {
-    var offset;
+  Track.prototype.tieStep = function(pos, normal, binormal, useExtended) {
+    var faces, offset, vertices;
     if (!this.tieShape) {
       return;
     }
     offset = this.tieGeometry.vertices.length;
+    vertices = useExtended ? this._extendedTieVertices : this._tieVertices;
+    faces = useExtended ? this._extendedTieFaces : this._tieFaces;
     _cross.crossVectors(normal, binormal).normalize();
     _cross.setLength(this.tieDepth / 2).negate();
-    this._extrudeVertices(this._tieVertices, this.tieGeometry.vertices, pos, normal, binormal, _cross);
+    this._extrudeVertices(vertices, this.tieGeometry.vertices, pos, normal, binormal, _cross);
     _cross.negate();
-    this._extrudeVertices(this._tieVertices, this.tieGeometry.vertices, pos, normal, binormal, _cross);
-    return this._joinFaces(this._tieVertices, this._tieFaces, this.tieGeometry, 1, offset, this._tieVertices.length, true);
+    this._extrudeVertices(vertices, this.tieGeometry.vertices, pos, normal, binormal, _cross);
+    return this._joinFaces(vertices, faces, this.tieGeometry, 1, offset, vertices.length, true);
   };
 
   Track.prototype.finalizeTies = function(tieSteps) {
@@ -676,9 +721,6 @@ LW.Track = (function(_super) {
 
   Track.prototype._joinFaces = function(vertices, template, target, totalSteps, startOffset, endOffset, flipOutside) {
     var a, b, c, d, face, i, j, k, s, slen1, slen2, uvs, _i, _j, _len, _ref;
-    if (totalSteps > 1) {
-      totalSteps -= 1;
-    }
     for (_i = 0, _len = template.length; _i < _len; _i++) {
       face = template[_i];
       a = face[flipOutside ? 2 : 0] + startOffset;
@@ -835,7 +877,6 @@ LW.EditTrack = (function(_super) {
     this.onMouseUp = __bind(this.onMouseUp, this);
     this.onMouseDown = __bind(this.onMouseDown, this);
     EditTrack.__super__.constructor.call(this);
-    this.arrows = [];
     this.mouseDown = new THREE.Vector2;
     this.mouseUp = new THREE.Vector2;
     this.projector = new THREE.Projector;
@@ -858,13 +899,10 @@ LW.EditTrack = (function(_super) {
       _this = this;
     if (this.selected && this.transformControl.axis !== void 0) {
       if (this.selectedHandle) {
-        this.selected.pointLine.geometry.verticesNeedUpdate = true;
+        this.selected.line.geometry.verticesNeedUpdate = true;
         oppositeHandle = this.selectedHandle === this.selected.left ? this.selected.right : this.selected.left;
         oppositeHandle.position.copy(this.selectedHandle.position).negate();
       }
-      this.selected.splineVector.copy(this.selected.position);
-      this.selected.left.splineVector.copy(this.selected.left.position);
-      this.selected.right.splineVector.copy(this.selected.right.position);
     }
     if (this.selected || force) {
       this.spline.rebuild();
@@ -955,44 +993,27 @@ LW.EditTrack = (function(_super) {
   };
 
   EditTrack.prototype.renderTrack = function() {
-    var i, isControl, lastNode, node, vector, _i, _len, _ref;
+    var i, lastNode, node, point, _i, _len, _ref;
     this.clear();
     this.controlPoints = [];
     lastNode = null;
     if (LW.onRideCamera) {
       return;
     }
-    _ref = this.spline.vectors;
+    _ref = this.spline.points;
     for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-      vector = _ref[i];
-      isControl = (i - 1) % 3 === 0;
-      node = new LW.EditNode(isControl);
-      node.position.copy(vector);
-      node.splineVector = vector;
-      if (isControl) {
-        this.add(node);
-        node.left = lastNode;
-        node.add(lastNode);
-        this.controlPoints.push(node);
-      } else if (lastNode != null ? lastNode.isControl : void 0) {
-        lastNode.add(node);
-        lastNode.right = node;
-        lastNode.addLine();
-      }
-      lastNode = node;
+      point = _ref[i];
+      node = new LW.PointEditor(point);
+      this.add(node);
+      this.controlPoints.push(node);
     }
     return this.renderCurve();
   };
 
   EditTrack.prototype.renderCurve = function() {
-    var arrow, geo, mat, _i, _len, _ref;
+    var geo, mat;
     if (this.line) {
       this.remove(this.line);
-    }
-    _ref = this.arrows;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      arrow = _ref[_i];
-      this.remove(arrow);
     }
     if (LW.onRideCamera) {
       return;
@@ -1010,36 +1031,43 @@ LW.EditTrack = (function(_super) {
 
 })(THREE.Object3D);
 
-LW.EditNode = (function(_super) {
-  __extends(EditNode, _super);
+LW.PointEditor = (function(_super) {
+  __extends(PointEditor, _super);
 
-  function EditNode(isControl) {
-    var geo, mat;
-    this.isControl = isControl;
+  function PointEditor(point) {
+    var controlMaterial, geo, lineGeo, pointMaterial;
+    this.point = point;
     geo = new THREE.SphereGeometry(1);
-    mat = new THREE.MeshLambertMaterial({
-      color: isControl ? CONTROL_COLOR : POINT_COLOR
+    controlMaterial = new THREE.MeshLambertMaterial({
+      color: CONTROL_COLOR
     });
-    EditNode.__super__.constructor.call(this, geo, mat);
-    this.visible = isControl;
-  }
-
-  EditNode.prototype.addLine = function() {
-    var geo, mat;
-    geo = new THREE.Geometry;
-    geo.vertices.push(this.left.position);
-    geo.vertices.push(new THREE.Vector3);
-    geo.vertices.push(this.right.position);
-    mat = new THREE.LineBasicMaterial({
+    pointMaterial = new THREE.MeshLambertMaterial({
+      color: POINT_COLOR
+    });
+    PointEditor.__super__.constructor.call(this, geo, controlMaterial);
+    this.position = point.position;
+    this.isControl = true;
+    this.left = new THREE.Mesh(geo, pointMaterial);
+    this.left.position = point.left;
+    this.left.visible = false;
+    this.add(this.left);
+    this.right = new THREE.Mesh(geo, pointMaterial);
+    this.right.position = point.right;
+    this.right.visible = false;
+    this.add(this.right);
+    lineGeo = new THREE.Geometry;
+    lineGeo.vertices.push(point.left);
+    lineGeo.vertices.push(new THREE.Vector3);
+    lineGeo.vertices.push(point.right);
+    this.line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({
       color: POINT_COLOR,
       linewidth: 4
-    });
-    this.pointLine = new THREE.Line(geo, mat);
-    this.pointLine.visible = false;
-    return this.add(this.pointLine);
-  };
+    }));
+    this.line.visible = false;
+    this.add(this.line);
+  }
 
-  EditNode.prototype.select = function(selected) {
+  PointEditor.prototype.select = function(selected) {
     var _ref, _ref1, _ref2;
     this.material.color.setHex(selected ? SELECTED_COLOR : CONTROL_COLOR);
     if ((_ref = this.left) != null) {
@@ -1048,23 +1076,23 @@ LW.EditNode = (function(_super) {
     if ((_ref1 = this.right) != null) {
       _ref1.visible = selected;
     }
-    return (_ref2 = this.pointLine) != null ? _ref2.visible = selected : void 0;
+    return (_ref2 = this.line) != null ? _ref2.visible = selected : void 0;
   };
 
-  return EditNode;
+  return PointEditor;
 
 })(THREE.Mesh);
 var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 LW.BMTrack = (function(_super) {
-  var boxShape, boxSize, offsetX, offsetY, radius, tieShape;
+  var boxShape, boxSize, offsetX, offsetY, padding, radius, tieShape;
 
   __extends(BMTrack, _super);
 
   boxSize = 2;
 
-  offsetY = -3.5;
+  offsetY = -3.2;
 
   boxShape = new THREE.Shape;
 
@@ -1088,25 +1116,51 @@ LW.BMTrack = (function(_super) {
 
   offsetY = 0;
 
+  padding = boxSize / 4;
+
   tieShape = new THREE.Shape;
 
-  tieShape.moveTo(boxSize, boxSize - 3.5 - boxSize / 4);
+  tieShape.moveTo(boxSize, boxSize - 3.5 - padding);
 
-  tieShape.lineTo(offsetX, offsetY);
+  tieShape.lineTo(offsetX - radius, offsetY - radius);
 
   tieShape.lineTo(offsetX - radius, offsetY);
 
-  tieShape.lineTo(boxSize / 2, boxSize - 3);
+  tieShape.lineTo(boxSize / 3, boxSize - 2.5);
 
-  tieShape.lineTo(-boxSize / 2, boxSize - 3);
+  tieShape.lineTo(-boxSize / 3, boxSize - 2.5);
 
   tieShape.lineTo(-offsetX + radius, offsetY);
 
-  tieShape.lineTo(-offsetX, offsetY);
+  tieShape.lineTo(-offsetX + radius, offsetY - radius);
 
-  tieShape.lineTo(-boxSize, boxSize - 3.5 - boxSize / 4);
+  tieShape.lineTo(-boxSize, boxSize - 3.5 - padding);
 
   BMTrack.prototype.tieShape = tieShape;
+
+  tieShape = new THREE.Shape;
+
+  tieShape.moveTo(boxSize + padding, boxSize - 3.5 - padding);
+
+  tieShape.lineTo(offsetX - radius, offsetY - radius);
+
+  tieShape.lineTo(offsetX - radius, offsetY);
+
+  tieShape.lineTo(boxSize / 3, boxSize - 2.5);
+
+  tieShape.lineTo(-boxSize / 3, boxSize - 2.5);
+
+  tieShape.lineTo(-offsetX + radius, offsetY);
+
+  tieShape.lineTo(-offsetX + radius, offsetY - radius);
+
+  tieShape.lineTo(-boxSize - padding, boxSize - 3.5 - padding);
+
+  tieShape.lineTo(-boxSize - padding, -boxSize - 3.5 - padding);
+
+  tieShape.lineTo(boxSize + padding, -boxSize - 3.5 - padding);
+
+  BMTrack.prototype.extendedTieShape = tieShape;
 
   BMTrack.prototype.tieDepth = 0.4;
 
@@ -1122,18 +1176,8 @@ LW.BMTrack = (function(_super) {
       specular: 0x333333,
       shininess: 30
     });
-    this.tieMaterial = new THREE.MeshPhongMaterial({
-      color: 0xff0000,
-      ambient: 0x090909,
-      specular: 0x333333,
-      shininess: 30
-    });
-    this.railMaterial = new THREE.MeshPhongMaterial({
-      color: 0xff0000,
-      ambient: 0x090909,
-      specular: 0x333333,
-      shininess: 30
-    });
+    this.tieMaterial = this.spineMaterial.clone();
+    this.railMaterial = this.spineMaterial.clone();
     this.materials = [this.spineMaterial, this.tieMaterial, this.railMaterial];
   }
 
