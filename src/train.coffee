@@ -34,7 +34,7 @@ class LW.Train extends THREE.Object3D
   up = new THREE.Vector3(0,1,0)
 
   simulate: (delta) ->
-    return if !@numberOfCars
+    return if !@numberOfCars or !@spline
 
     @currentTime += @movementSpeed * delta
     @currentTime = 0 if @currentTime > 1

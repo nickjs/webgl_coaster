@@ -33,13 +33,12 @@ class LW.EditTrack extends THREE.Object3D
         oppositeHandle.position.copy(@selectedHandle.position).negate()
 
     if @selected || force
-      @spline.rebuild()
 
       if !@rerenderTimeout
         @rerenderTimeout = setTimeout =>
-          localStorage.setItem('track', JSON.stringify(@spline))
-
           @rerenderTimeout = null
+
+          @spline.rebuild()
           @renderCurve()
           LW.track.rebuild()
         , 10
@@ -114,15 +113,14 @@ class LW.EditTrack extends THREE.Object3D
       node.select(true)
       @transformControl.attach(node)
 
-    LW.selectionChanged(node)
-
-  renderTrack: ->
+  rebuild: ->
     @clear()
 
     @controlPoints = []
     lastNode = null
 
-    return if LW.onRideCamera
+    @spline = LW.spline if @spline != LW.spline
+    return if !@spline # or LW.onRideCamera
 
     for point, i in @spline.points
       node = new LW.PointEditor(point)

@@ -26,6 +26,9 @@ class LW.Track extends THREE.Object3D
   rebuild: ->
     @clear()
 
+    @spline = LW.spline if @spline != LW.spline
+    return if !@spline
+
     @prepareRails()
     @prepareTies()
     @prepareSpine()
