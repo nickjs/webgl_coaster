@@ -10,8 +10,8 @@ class LW.GUIController
     @_addTrackToDropdown("Untitled")
 
     LW.spline = new LW.BezierPath([
-      new LW.Point(-25,0,0, -10,0,0, 10,0,0)
-      new LW.Point(25,0,0, -10,0,0, 10,0,0)
+      new LW.Point(-20,0,0, -10,0,0, 10,0,0)
+      new LW.Point(20,0,0, -10,0,0, 10,0,0)
     ])
 
     LW.edit?.rebuild()

@@ -33,7 +33,7 @@ class LW.Track extends THREE.Object3D
     @prepareTies()
     @prepareSpine()
 
-    totalLength = Math.ceil(@spline.getLength())
+    totalLength = Math.ceil(@spline.getLength()) * 10
     spineSteps = 0
 
     binormal = new THREE.Vector3
@@ -42,7 +42,6 @@ class LW.Track extends THREE.Object3D
     for i in [0..totalLength]
       u = i / totalLength
 
-      curve = @spline.getCurveAt(u)
       pos = @spline.getPointAt(u)
       tangent = @spline.getTangentAt(u).normalize()
 
@@ -53,12 +52,11 @@ class LW.Track extends THREE.Object3D
       binormal.crossVectors(normal, tangent).normalize()
 
       if !lastSpinePos or lastSpinePos.distanceTo(pos) >= @spineDivisionLength
-        @tieStep(pos, normal, binormal, curve != lastSpineCurve)
+        @tieStep(pos, normal, binormal, spineSteps % 7 == 0)
         @spineStep(pos, normal, binormal)
 
         spineSteps++
         lastSpinePos = pos
-        lastSpineCurve = curve
 
       @railStep(pos, normal, binormal)
 
