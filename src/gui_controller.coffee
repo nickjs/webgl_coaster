@@ -50,13 +50,20 @@ class LW.GUIController
   loadTracks: ->
     @dropdown.innerHTML = ''
 
-    tracks = JSON.parse(localStorage.getItem('tracks'))
-    if tracks?.length
-      for track in tracks
-        @_addTrackToDropdown(track)
-      @loadTrack(track)
-    else
-      @newTrack()
+    try
+      tracks = JSON.parse(localStorage.getItem('tracks'))
+      if tracks?.length
+        for track in tracks
+          @_addTrackToDropdown(track)
+        @loadTrack(track)
+      else
+        @newTrack()
+
+    catch
+        alert("Well, seems like I've gone and changed the track format again. Unfortunately I'll have to clear all your tracks now. Sorry mate!")
+        localStorage.clear()
+
+        @loadTracks()
 
   clearAllTracks: ->
     if confirm("This will remove all your tracks. Are you sure you wish to do this?")
