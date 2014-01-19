@@ -34,6 +34,9 @@ window.LW =
     @track = new LW.BMInvertedTrack()
     renderer.scene.add(@track)
 
+    @train = new LW.Train(@track, numberOfCars: 2)
+    renderer.scene.add(@train)
+
     @gui = new LW.GUIController
 
     controls = @controls = new THREE.EditorControls([renderer.topCamera, renderer.sideCamera, renderer.frontCamera, renderer.camera], renderer.domElement)

@@ -10,8 +10,9 @@ class LW.GUIController
     @_addTrackToDropdown("Untitled")
 
     track = new LW.BezierPath([
-      new LW.Point(-20,0,0, -10,0,0, 10,0,0)
-      new LW.Point(20,0,0, -10,0,0, 10,0,0)
+      new LW.Point(-20,20,0, -10,0,0, 10,0,0)
+      new LW.Point(20,20,0, -10,0,0, 10,0,0)
+      new LW.Point(60,20,0, -10,0,0, 10,0,0)
     ])
 
     @loadTrack(track)
