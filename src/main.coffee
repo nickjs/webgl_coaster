@@ -8,7 +8,8 @@
 #= require train
 
 #= require edit_track
-#= require bm_track
+#= require bm_sitdown_track
+#= require bm_inverted_track
 
 # Some THREE objects don't create their prototype constructor chains correctly
 THREE.Mesh::constructor = THREE.Mesh
@@ -30,7 +31,7 @@ window.LW =
     @edit = new LW.EditTrack()
     renderer.scene.add(@edit)
 
-    @track = new LW.BMTrack()
+    @track = new LW.BMInvertedTrack()
     renderer.scene.add(@track)
 
     @gui = new LW.GUIController
