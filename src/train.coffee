@@ -15,12 +15,10 @@ class LW.Train extends THREE.Object3D
       loader = new THREE.ColladaLoader
       loader.load "resources/models/#{track.carModel}", (result) =>
         @carProto = result.scene.children[0]
+        @carProto.scale.copy(track.carScale)
+
         for child in @carProto.children
           child.castShadow = true
-        # car.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI * -0.5)
-        # car.rotateOnAxis(new THREE.Vector3(0,0,1), Math.PI * 0.5)
-        @carProto.scale.copy(track.carScale)
-        @carProto.rotation.copy(track.carRotation)
 
         @rebuild()
     else
@@ -51,21 +49,23 @@ class LW.Train extends THREE.Object3D
     @currentTime = 0 if @currentTime > 1
 
     lastPos = spline.getPointAt(@currentTime)
+    deltaPoint = @currentTime
+    desiredDistance = @track.carDistance
+
     for car, i in @cars
       pos = null
-      desiredDistance = i * @track.carDistance
 
-      deltaPoint = @currentTime
-      if desiredDistance > 0
+      if i > 0
         while deltaPoint > 0
           pos = spline.getPointAt(deltaPoint)
           break if pos.distanceTo(lastPos) >= desiredDistance
-          deltaPoint += 0.01
-          deltaPoint = 0 if deltaPoint > 1
+          deltaPoint -= 0.01
+          deltaPoint = 0 if deltaPoint < 0
       else
         pos = lastPos
 
       if pos
+        lastPos = pos
         tangent = spline.getTangentAt(deltaPoint).normalize()
 
         bank = THREE.Math.degToRad(spline.getBankAt(deltaPoint))
@@ -74,9 +74,10 @@ class LW.Train extends THREE.Object3D
         normal = tangent.clone().cross(binormal).normalize()
         binormal = normal.clone().cross(tangent).normalize()
         mat = new THREE.Matrix4(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1)
+        mat2 = new THREE.Matrix4().makeRotationFromEuler(@track.carRotation, 'XYZ')
 
         car.position.copy(pos).add(@track.carOffset.clone().applyMatrix4(mat))
-        # car.rotation.setFromRotationMatrix(mat)
+        car.rotation.setFromRotationMatrix(mat.multiply(mat2))
 
         if LW.onRideCamera
           LW.renderer.camera.position.copy(pos).add(new THREE.Vector3(0, 3, 0).applyMatrix4(mat))
