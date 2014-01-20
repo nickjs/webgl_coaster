@@ -9,7 +9,7 @@ class LW.Train extends THREE.Object3D
     @cars = []
 
     @numberOfCars ?= 1
-    @movementSpeed ?= 0.02
+    @movementSpeed ?= 0.06
 
     if track?.carModel
       loader = new THREE.ColladaLoader
@@ -20,7 +20,7 @@ class LW.Train extends THREE.Object3D
         # car.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI * -0.5)
         # car.rotateOnAxis(new THREE.Vector3(0,0,1), Math.PI * 0.5)
         @carProto.scale.copy(track.carScale)
-        @carProto.rotation.copy(track.carBaseRotation)
+        @carProto.rotation.copy(track.carRotation)
 
         @rebuild()
     else
@@ -53,7 +53,7 @@ class LW.Train extends THREE.Object3D
     lastPos = spline.getPointAt(@currentTime)
     for car, i in @cars
       pos = null
-      desiredDistance = i * 18
+      desiredDistance = i * @track.carDistance
 
       deltaPoint = @currentTime
       if desiredDistance > 0

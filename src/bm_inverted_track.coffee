@@ -50,7 +50,8 @@ class LW.BMInvertedTrack extends LW.Track
   carModel: 'inverted.dae'
   carScale: new THREE.Vector3(0.0429, 0.0429, 0.037)
   carOffset: new THREE.Vector3(2.05, -10.85, 0)
-  carBaseRotation: new THREE.Euler(-Math.PI * 0.5, 0, Math.PI * 0.5, 'XYZ')
+  carRotation: new THREE.Euler(-Math.PI * 0.5, 0, Math.PI * 0.5, 'XYZ')
+  carDistance: 10
 
   constructor: ->
     super

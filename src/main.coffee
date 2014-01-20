@@ -34,7 +34,7 @@ window.LW =
     @track = new LW.BMInvertedTrack()
     renderer.scene.add(@track)
 
-    @train = new LW.Train(@track, numberOfCars: 2)
+    @train = new LW.Train(@track, numberOfCars: 4)
     renderer.scene.add(@train)
 
     @gui = new LW.GUIController
