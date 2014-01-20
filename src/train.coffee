@@ -16,6 +16,7 @@ class LW.Train extends THREE.Object3D
       loader.load "resources/models/#{track.carModel}", (result) =>
         @carProto = result.scene.children[0]
         @carProto.scale.copy(track.carScale)
+        @carRot = new THREE.Matrix4().makeRotationFromEuler(track.carRotation, 'XYZ')
 
         for child in @carProto.children
           child.castShadow = true
@@ -74,10 +75,9 @@ class LW.Train extends THREE.Object3D
         normal = tangent.clone().cross(binormal).normalize()
         binormal = normal.clone().cross(tangent).normalize()
         mat = new THREE.Matrix4(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1)
-        mat2 = new THREE.Matrix4().makeRotationFromEuler(@track.carRotation, 'XYZ')
 
         car.position.copy(pos).add(@track.carOffset.clone().applyMatrix4(mat))
-        car.rotation.setFromRotationMatrix(mat.multiply(mat2))
+        car.rotation.setFromRotationMatrix(mat.multiply(@carRot))
 
         if LW.onRideCamera
           LW.renderer.camera.position.copy(pos).add(new THREE.Vector3(0, 3, 0).applyMatrix4(mat))
