@@ -1,71 +1,106 @@
 class LW.Train extends THREE.Object3D
-  constructor: (options) ->
+  constructor: (@track, options = {}) ->
     super()
 
     {
-      @numberOfCars, @carGeometry, @carMaterial, @carSpacing, @carLength, @movementSpeed
+      @numberOfCars, @velocity
     } = options
 
     @cars = []
-    @rebuild()
 
-    @movementSpeed ||= 0.08
+    @numberOfCars ?= 1
+    @velocity = 20
+    @displacement = 0
+
+    if track?.carModel
+      loader = new THREE.ColladaLoader
+      loader.load "resources/models/#{track.carModel}", (result) =>
+        @carProto = result.scene.children[0]
+        @carProto.scale.copy(track.carScale)
+        @carRot = new THREE.Matrix4().makeRotationFromEuler(track.carRotation, 'XYZ')
+
+        for child in @carProto.children
+          child.castShadow = true
+
+        @rebuild()
+    else
+      geo = new THREE.CubeGeometry(8,8,16)
+      mat = new THREE.MeshLambertMaterial(color: 0xeeeeee)
+      @carProto = new THREE.Mesh(geo, mat)
+
+      @rebuild()
 
   rebuild: ->
-    @carGeometry ||= new THREE.CubeGeometry(8,8,16)
-    @carMaterial ||= new THREE.MeshLambertMaterial(color: 0xeeeeee)
-    @carSpacing ||= 2
-    @carLength ||= 16
-
     @remove(@cars.pop()) while @cars.length
 
     if @numberOfCars
-      for i in [0..@numberOfCars - 1]
-        car = new THREE.Mesh(@carGeometry, @carMaterial)
-        car.castShadow = true
+      for i in [1..@numberOfCars]
+        car = @carProto.clone()
+
+        if i == @numberOfCars
+          car.remove(car.getObjectByName('connector'))
+
         @cars.push(car)
         @add(car)
 
     @currentTime = 0.0
 
-  attachToTrack: (@track) ->
-    @spline = @track.spline
+  up = new THREE.Vector3(0, 1, 0)
+  down = new THREE.Vector3(0, -1, 0)
 
-  up = new THREE.Vector3(0,1,0)
+  zero = new THREE.Vector3()
+  mat = new THREE.Matrix4()
 
   simulate: (delta) ->
-    return if !@numberOfCars
+    return if !@numberOfCars or !(model = @track.model)
 
-    @currentTime += @movementSpeed * delta
-    @currentTime = 0 if @currentTime > 1
+    if @lastTangent
+      alpha = down.angleTo(@lastTangent)
+      a = 9.81 * Math.cos(alpha)
+      @velocity = @velocity + a * delta
 
-    lastPos = @spline.getPointAt(@currentTime)
+    @displacement = @displacement + @velocity * delta
+
+    if @position == 0
+      @currentTime = 0
+    else
+      @currentTime = @displacement / model.spline.getLength()
+    if @currentTime > 1
+      @currentTime = 0
+      @displacement = 0
+
+    lastPos = model.spline.getPointAt(@currentTime)
+    deltaPoint = @currentTime
+    desiredDistance = @track.carDistance
+
     for car, i in @cars
       pos = null
-      desiredDistance = i * 18
 
-      deltaPoint = @currentTime
-      if desiredDistance > 0
+      if i > 0
         while deltaPoint > 0
-          pos = @spline.getPointAt(deltaPoint)
+          pos = model.spline.getPointAt(deltaPoint)
           break if pos.distanceTo(lastPos) >= desiredDistance
-          deltaPoint += 0.01
-          deltaPoint = 0 if deltaPoint > 1
+          deltaPoint -= 0.001
+          deltaPoint = 0 if deltaPoint < 0
       else
         pos = lastPos
 
       if pos
-        tangent = @spline.getTangentAt(deltaPoint).normalize()
+        lastPos = pos
+        tangent = model.spline.getTangentAt(deltaPoint).normalize()
+        @lastTangent = tangent if i == 0
 
-        bank = THREE.Math.degToRad(@spline.getBankAt(deltaPoint))
+        bank = THREE.Math.degToRad(model.getBankAt(deltaPoint))
         binormal = up.clone().applyAxisAngle(tangent, bank)
 
         normal = tangent.clone().cross(binormal).normalize()
         binormal = normal.clone().cross(tangent).normalize()
-        mat = new THREE.Matrix4(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1)
 
-        car.position.copy(pos).add(new THREE.Vector3(0, 5, 0).applyMatrix4(mat))
-        car.rotation.setFromRotationMatrix(mat)
+        zero.set(0, 0, 0)
+        mat.set(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1)
+
+        car.position.copy(pos).add(zero.applyMatrix4(mat))
+        car.rotation.setFromRotationMatrix(mat.multiply(@carRot))
 
         if LW.onRideCamera
           LW.renderer.camera.position.copy(pos).add(new THREE.Vector3(0, 3, 0).applyMatrix4(mat))

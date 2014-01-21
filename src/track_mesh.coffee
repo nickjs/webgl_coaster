@@ -1,4 +1,4 @@
-class LW.Track extends THREE.Object3D
+class LW.TrackMesh extends THREE.Object3D
   railRadius: 1
   railDistance: 2
   railRadialSegments: 8
@@ -14,7 +14,7 @@ class LW.Track extends THREE.Object3D
 
   debugNormals: false
 
-  constructor: (@spline, options) ->
+  constructor: (options) ->
     super()
 
     for key, value of options
@@ -26,11 +26,14 @@ class LW.Track extends THREE.Object3D
   rebuild: ->
     @clear()
 
+    @model = LW.model if @model != LW.model
+    return if !@model
+
     @prepareRails()
     @prepareTies()
     @prepareSpine()
 
-    totalLength = Math.ceil(@spline.getLength())
+    totalLength = Math.ceil(@model.spline.getLength()) * 10
     spineSteps = 0
 
     binormal = new THREE.Vector3
@@ -39,23 +42,21 @@ class LW.Track extends THREE.Object3D
     for i in [0..totalLength]
       u = i / totalLength
 
-      curve = @spline.getCurveAt(u)
-      pos = @spline.getPointAt(u)
-      tangent = @spline.getTangentAt(u).normalize()
+      pos = @model.spline.getPointAt(u)
+      tangent = @model.spline.getTangentAt(u).normalize()
 
-      bank = THREE.Math.degToRad(@spline.getBankAt(u))
+      bank = THREE.Math.degToRad(@model.getBankAt(u))
       binormal.copy(UP).applyAxisAngle(tangent, bank)
 
       normal.crossVectors(tangent, binormal).normalize()
       binormal.crossVectors(normal, tangent).normalize()
 
       if !lastSpinePos or lastSpinePos.distanceTo(pos) >= @spineDivisionLength
-        @tieStep(pos, normal, binormal, curve != lastSpineCurve)
+        @tieStep(pos, normal, binormal, spineSteps % 7 == 0)
         @spineStep(pos, normal, binormal)
 
         spineSteps++
         lastSpinePos = pos
-        lastSpineCurve = curve
 
       @railStep(pos, normal, binormal)
 

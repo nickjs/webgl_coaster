@@ -1,4 +1,4 @@
-class LW.BMTrack extends LW.Track
+class LW.BMTrack extends LW.TrackMesh
   boxSize = 2
   offsetY = -3
 
