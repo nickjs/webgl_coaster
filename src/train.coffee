@@ -42,6 +42,8 @@ class LW.Train extends THREE.Object3D
     @currentTime = 0.0
 
   up = new THREE.Vector3(0,1,0)
+  zero = new THREE.Vector3()
+  mat = new THREE.Matrix4()
 
   simulate: (delta) ->
     return if !@numberOfCars or !(spline = @track.spline)
@@ -74,9 +76,11 @@ class LW.Train extends THREE.Object3D
 
         normal = tangent.clone().cross(binormal).normalize()
         binormal = normal.clone().cross(tangent).normalize()
-        mat = new THREE.Matrix4(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1)
 
-        car.position.copy(pos).add(@track.carOffset.clone().applyMatrix4(mat))
+        zero.set(0, 0, 0)
+        mat.set(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1)
+
+        car.position.copy(pos).add(zero.applyMatrix4(mat))
         car.rotation.setFromRotationMatrix(mat.multiply(@carRot))
 
         if LW.onRideCamera
