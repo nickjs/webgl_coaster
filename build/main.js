@@ -15,319 +15,280 @@ THREE.Object3D.prototype.clear = function() {
 
 window.LW = {
   init: function() {
-    var controls, json, renderer, terrain, updateVector,
+    var controls, renderer, terrain,
       _this = this;
     renderer = this.renderer = new LW.Renderer;
     document.body.appendChild(renderer.domElement);
     terrain = new LW.Terrain(renderer);
-    if (json = localStorage.getItem('track')) {
-      this.spline = LW.BezierPath.fromJSON(JSON.parse(json));
-    } else {
-      this.spline = new LW.BezierPath([new LW.Point(-40, 0, 0, -10, 0, 0, 10, 0, 0), new LW.Point(0, 18, 0, -10, -20, 0, 10, 20, 0).setSegmentType(1), new LW.Point(47, 20, 40, -14, -10, -40, 14, 10, 40).setBank(60), new LW.Point(0, 0, 80, 30, 0, 0, -30, 0, 0).setBank(20), new LW.Point(-80, 0, 80, 18, 0, 0, -18, 0, 0).setBank(-359), new LW.Point(-120, 0, 40, 2.5, 0, 23, -2.5, 0, -23).setBank(-359), new LW.Point(-80, 0, 0, -33, 0, 0, 33, 0, 0).setBank(-359)]);
-    }
-    this.edit = new LW.EditTrack(this.spline);
-    this.edit.renderTrack();
+    this.edit = new LW.EditTrack();
     renderer.scene.add(this.edit);
-    this.track = new LW.BMTrack(this.spline);
-    this.track.forceWireframe = false;
-    this.track.rebuild();
+    this.track = new LW.BMInvertedTrack();
     renderer.scene.add(this.track);
-    this.train = new LW.Train({
-      numberOfCars: 2
+    this.train = new LW.Train(this.track, {
+      numberOfCars: 4
     });
-    this.train.attachToTrack(this.track);
     renderer.scene.add(this.train);
+    this.gui = new LW.GUIController;
     controls = this.controls = new THREE.EditorControls([renderer.topCamera, renderer.sideCamera, renderer.frontCamera, renderer.camera], renderer.domElement);
     controls.center.copy(this.edit.position);
     controls.addEventListener('change', function() {
       var _ref, _ref1;
       return (_ref = _this.edit) != null ? (_ref1 = _ref.transformControl) != null ? _ref1.update() : void 0 : void 0;
     });
-    renderer.render();
-    this.gui = new dat.GUI();
-    this.gui.add(this.renderer, 'useQuadView');
-    this.trackFolder = this.gui.addFolder('Track');
-    this.trackFolder.open();
-    this.trackFolder.addColor({
-      spineColor: "#ff0000"
-    }, 'spineColor').onChange(function(value) {
-      return _this.track.spineMaterial.color.setHex(value.replace('#', '0x'));
-    });
-    this.trackFolder.addColor({
-      tieColor: "#ff0000"
-    }, 'tieColor').onChange(function(value) {
-      return _this.track.tieMaterial.color.setHex(value.replace('#', '0x'));
-    });
-    this.trackFolder.addColor({
-      railColor: "#ff0000"
-    }, 'railColor').onChange(function(value) {
-      return _this.track.railMaterial.color.setHex(value.replace('#', '0x'));
-    });
-    this.trackFolder.add(this.track, 'forceWireframe');
-    this.trackFolder.add(this.track, 'debugNormals').onChange(function() {
-      return _this.track.rebuild();
-    });
-    this.trackFolder.add(this.spline, 'isConnected').onChange(function(value) {
-      _this.spline.isConnected = value;
-      return _this.edit.changed(true);
-    });
-    this.trackFolder.add({
-      addPoint: function() {
-        _this.spline.addControlPoint(_this.spline.getPoint(1).clone().add(new THREE.Vector3(40, 0, 0)));
-        _this.edit.renderTrack();
-        _this.track.rebuild();
-        return _this.edit.selectNode();
-      }
-    }, 'addPoint');
-    this.onRideCamera = false;
-    this.trainFolder = this.gui.addFolder('Train');
-    this.trainFolder.open();
-    this.trainFolder.addColor({
-      color: '#ffffff'
-    }, 'color').onChange(function(value) {
-      return _this.train.carMaterial.color.setHex(value.replace('#', '0x'));
-    });
-    this.trainFolder.add(this.train, 'movementSpeed', 0.01, 0.1);
-    this.trainFolder.add(this.train, 'numberOfCars', 0, 8).step(1).onChange(function(value) {
-      return _this.train.rebuild();
-    });
-    this.trainFolder.add(this, 'onRideCamera').onChange(function(value) {
-      if (value) {
-        _this.oldCamPos = _this.renderer.camera.position.clone();
-        _this.oldCamRot = _this.renderer.camera.rotation.clone();
-        return LW.renderer.scene.remove(_this.edit);
-      } else {
-        _this.renderer.camera.position.copy(_this.oldCamPos);
-        _this.renderer.camera.rotation.copy(_this.oldCamRot);
-        return LW.renderer.scene.add(_this.edit);
-      }
-    });
-    this.selected = {
-      x: 0,
-      y: 0,
-      z: 0,
-      bank: 0
-    };
-    updateVector = function(index, value) {
-      if (!_this.selected.node) {
-        return;
-      }
-      if (index === 'x' || index === 'y' || index === 'z') {
-        _this.selected.node.position[index] = value;
-      } else {
-        _this.selected.node.point[index] = value;
-      }
-      return _this.edit.changed(true);
-    };
-    this.pointFolder = this.gui.addFolder('Point');
-    this.pointFolder.add(this.selected, 'x').onChange(function(value) {
-      return updateVector('x', value);
-    });
-    this.pointFolder.add(this.selected, 'y').onChange(function(value) {
-      return updateVector('y', value);
-    });
-    this.pointFolder.add(this.selected, 'z').onChange(function(value) {
-      return updateVector('z', value);
-    });
-    return this.pointFolder.add(this.selected, 'bank').onChange(function(value) {
-      return updateVector('bank', value);
-    });
-  },
-  selectionChanged: function(selected) {
-    var controller, _i, _len, _ref;
-    if (selected) {
-      this.selected.x = selected.position.x;
-      this.selected.y = selected.position.y;
-      this.selected.z = selected.position.z;
-      this.selected.bank = selected.point.bank || 0;
-      this.selected.node = selected;
-      _ref = this.pointFolder.__controllers;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        controller = _ref[_i];
-        controller.updateDisplay();
-      }
-      return this.pointFolder.open();
-    } else {
-      return this.pointFolder.close();
-    }
+    return renderer.render();
   }
 };
 
 window.onload = function() {
   return LW.init();
 };
-var __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-LW.BezierPath = (function(_super) {
-  __extends(BezierPath, _super);
-
-  BezierPath.fromJSON = function(json) {
-    var p, points;
-    points = (function() {
-      var _i, _len, _results;
-      _results = [];
-      for (_i = 0, _len = json.length; _i < _len; _i++) {
-        p = json[_i];
-        _results.push(new LW.Point.fromJSON(p));
-      }
-      return _results;
-    })();
-    return new LW.BezierPath(points);
-  };
-
-  BezierPath.prototype.toJSON = function() {
-    var p, _i, _len, _ref, _results;
-    _ref = this.points;
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      p = _ref[_i];
-      _results.push(p.toJSON());
-    }
-    return _results;
-  };
-
-  function BezierPath(points) {
-    this.points = points;
-    BezierPath.__super__.constructor.call(this);
-    this.rebuild();
+LW.GUIController = (function() {
+  function GUIController() {
+    this.gui = new dat.GUI();
+    this.gui.addColor({
+      color: '#ffffff'
+    }, 'color');
+    this.addSaveBar();
+    this.loadTracks();
   }
 
-  BezierPath.prototype.rebuild = function() {
-    var curve, i, leftCP, leftHandle, p1, p2, rightCP, rightHandle, _i, _len, _ref;
-    while (this.curves.length) {
-      this.curves.pop();
-    }
-    this.cacheLengths = [];
-    _ref = this.points;
-    for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-      p1 = _ref[i];
-      if (i === this.points.length - 1) {
-        if (!this.isConnected) {
-          return;
+  GUIController.prototype.newTrack = function() {
+    var track;
+    this._addTrackToDropdown("Untitled");
+    track = new LW.TrackModel([new THREE.Vector4(-100, 20, 0, 1), new THREE.Vector4(-20, 20, 0, 1), new THREE.Vector4(20, 30, 0, 1), new THREE.Vector4(60, 20, 0, 1), new THREE.Vector4(100, 0, 0, 1), new THREE.Vector4(200, 0, 0, 1), new THREE.Vector4(250, 60, 0, 1)]);
+    return this.loadTrack(track);
+  };
+
+  GUIController.prototype.saveTrack = function() {
+    var name, tracks;
+    if (!LW.spline.name) {
+      name = prompt("What do you want to call this track?");
+      if (!name) {
+        return;
+      }
+      tracks = JSON.parse(localStorage.getItem('tracks')) || [];
+      if (tracks.indexOf(name) !== -1) {
+        if (!confirm("A track with name " + name + " already exists. Are you sure you want to overwrite it?")) {
+          return this.saveTrack();
         }
-        p2 = this.points[0];
+      }
+      LW.spline.name = name;
+      tracks.push(name);
+      localStorage.setItem('tracks', JSON.stringify(tracks));
+      this._addTrackToDropdown(name);
+    }
+    return localStorage.setItem("track." + LW.spline.name, JSON.stringify(LW.spline.toJSON()));
+  };
+
+  GUIController.prototype.loadTrack = function(track) {
+    var json, name, _ref, _ref1;
+    if (typeof track === 'string') {
+      name = track;
+      json = JSON.parse(localStorage.getItem("track." + name));
+      track = LW.BezierPath.fromJSON(json);
+      track.name = name;
+    }
+    LW.model = track;
+    if ((_ref = LW.edit) != null) {
+      _ref.rebuild();
+    }
+    return (_ref1 = LW.track) != null ? _ref1.rebuild() : void 0;
+  };
+
+  GUIController.prototype.loadTracks = function() {
+    var track, tracks, _i, _len;
+    this.dropdown.innerHTML = '';
+    try {
+      tracks = JSON.parse(localStorage.getItem('tracks'));
+      if (tracks != null ? tracks.length : void 0) {
+        for (_i = 0, _len = tracks.length; _i < _len; _i++) {
+          track = tracks[_i];
+          this._addTrackToDropdown(track);
+        }
+        return this.loadTrack(track);
       } else {
-        p2 = this.points[i + 1];
+        return this.newTrack();
       }
-      leftCP = p1.position;
-      rightCP = p2.position;
-      leftHandle = p1.right.clone().add(leftCP);
-      rightHandle = p2.left.clone().add(rightCP);
-      curve = new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP);
-      curve.p1 = p1;
-      curve.p2 = p2;
-      this.add(curve);
+    } catch (_error) {
+      alert("Well, seems like I've gone and changed the track format again. Unfortunately I'll have to clear all your tracks now. Sorry mate!");
+      localStorage.clear();
+      return this.loadTracks();
     }
   };
 
-  BezierPath.prototype.isConnected = false;
-
-  BezierPath.prototype.getCurveAt = function(t) {
-    var curveLengths, d, i;
-    d = t * this.getLength();
-    curveLengths = this.getCurveLengths();
-    i = 0;
-    while (i < curveLengths.length) {
-      if (curveLengths[i] >= d) {
-        return this.curves[i];
-      }
-      i++;
+  GUIController.prototype.clearAllTracks = function() {
+    if (confirm("This will remove all your tracks. Are you sure you wish to do this?")) {
+      localStorage.clear();
+      return this.loadTracks();
     }
-    return null;
   };
 
-  BezierPath.prototype.getBankAt = function(t) {
-    var curve, curveLengths, d, diff, i, leftBank, rightBank, u, _ref, _ref1;
-    d = t * this.getLength();
-    curveLengths = this.getCurveLengths();
-    i = 0;
-    while (i < curveLengths.length) {
-      if (curveLengths[i] >= d) {
-        diff = curveLengths[i] - d;
-        curve = this.curves[i];
-        u = 1 - diff / curve.getLength();
-        leftBank = ((_ref = curve.p1) != null ? _ref.bank : void 0) || 0;
-        rightBank = ((_ref1 = curve.p2) != null ? _ref1.bank : void 0) || 0;
-        return THREE.Curve.Utils.interpolate(leftBank, leftBank, rightBank, rightBank, u);
-      }
-      i++;
-    }
-    return 0;
+  GUIController.prototype.addSaveBar = function() {
+    var clearButton, gears, newButton, saveButton, saveRow,
+      _this = this;
+    saveRow = document.createElement('li');
+    saveRow.classList.add('save-row');
+    saveRow.style.width = '245px';
+    this.gui.__ul.insertBefore(saveRow, this.gui.__ul.firstChild);
+    this.gui.domElement.classList.add('has-save');
+    this.dropdown = document.createElement('select');
+    this.dropdown.addEventListener('change', function() {
+      return _this.loadTrack(_this.dropdown.value);
+    });
+    saveRow.appendChild(this.dropdown);
+    newButton = document.createElement('span');
+    newButton.innerHTML = 'New';
+    newButton.className = 'button new';
+    newButton.addEventListener('click', function() {
+      return _this.newTrack();
+    });
+    saveRow.appendChild(newButton);
+    saveButton = document.createElement('span');
+    saveButton.innerHTML = 'Save';
+    saveButton.className = 'button save';
+    saveButton.addEventListener('click', function() {
+      return _this.saveTrack();
+    });
+    saveRow.appendChild(saveButton);
+    clearButton = document.createElement('span');
+    clearButton.innerHTML = 'Reset';
+    clearButton.className = 'button clear';
+    clearButton.addEventListener('click', function() {
+      return _this.clearAllTracks();
+    });
+    saveRow.appendChild(clearButton);
+    gears = document.createElement('span');
+    gears.innerHTML = '&nbsp;';
+    gears.className = 'button gears';
+    return saveRow.appendChild(gears);
   };
 
-  BezierPath.prototype.addControlPoint = function(pos) {
-    this.points.push(new LW.Point(pos.x, pos.y, pos.z, -10, 0, 0, 10, 0, 0));
-    return this.rebuild();
+  GUIController.prototype._addTrackToDropdown = function(name) {
+    var option;
+    option = document.createElement('option');
+    option.innerHTML = name;
+    option.value = name;
+    option.selected = true;
+    return this.dropdown.appendChild(option);
   };
 
-  return BezierPath;
-
-})(THREE.CurvePath);
-
-LW.Point = (function() {
-  Point.prototype.position = null;
-
-  Point.prototype.bank = 0;
-
-  Point.prototype.segmentType = 0;
-
-  function Point(x, y, z, lx, ly, lz, rx, ry, rz) {
-    this.position = new THREE.Vector3(x, y, z);
-    this.left = new THREE.Vector3(lx, ly, lz);
-    this.right = new THREE.Vector3(rx, ry, rz);
-  }
-
-  Point.prototype.setBank = function(amount) {
-    this.bank = amount;
-    return this;
-  };
-
-  Point.prototype.setSegmentType = function(type) {
-    this.segmentType = type;
-    return this;
-  };
-
-  Point.prototype.toJSON = function() {
-    var obj;
-    obj = {
-      position: this.position,
-      left: this.left,
-      right: this.right
-    };
-    if (this.bank) {
-      obj.bank = this.bank;
-    }
-    if (this.segmentType) {
-      obj.segmentType = this.segmentType;
-    }
-    return obj;
-  };
-
-  Point.fromJSON = function(json) {
-    var p;
-    p = new LW.Point;
-    p.position.copy(json.position);
-    p.left.copy(json.left);
-    p.right.copy(json.right);
-    if (json.bank) {
-      p.bank = json.bank;
-    }
-    if (json.segmentType) {
-      p.segmentType = json.segmentType;
-    }
-    return p;
-  };
-
-  return Point;
+  return GUIController;
 
 })();
-LW.Spline = (function() {
-  function Spline() {}
 
-  return Spline;
+/*
+    @gui.save = => @saveTrack()
+    @gui.saveAs = (name) => @newTrack(name)
+    @gui.getSaveObject = => @getSaveObject()
+    @gui.revert = @revert
 
-})();
+    @tracks = {}
+    @gui.load.remembered = @tracks
+    @gui.remember(this)
+
+    if trackNames = localStorage.getItem('tracks')
+      for name in JSON.parse(trackNames)
+        json = JSON.parse(localStorage.getItem("track.#{name}"))
+        track = LW.BezierPath.fromJSON(json)
+        track.name = name
+        @tracks[name] = track
+        @gui.addPresetOption(@gui, name, true)
+
+      @setTrack(@tracks[name])
+    else
+      @newTrack('Untitled')
+
+  saveTrack: ->
+    localStorage.setItem("track.#{@track.name}", JSON.stringify(@track.toJSON()))
+
+  newTrack: (name) ->
+    track = new LW.BezierPath([
+      new LW.Point(-25,0,0, -10,0,0, 10,0,0)
+      new LW.Point(25,0,0, -10,0,0, 10,0,0)
+    ])
+
+    track.name = name
+    @tracks[name] = track
+
+    @gui.addPresetOption(@gui, name, true)
+
+    names = (name for name of @tracks)
+    localStorage.setItem('tracks', JSON.stringify(names))
+
+    @setTrack(track)
+    @saveTrack()
+
+  getSaveObject: ->
+    return @track.toJSON()
+
+  setTrack: (track) ->
+    @track = track
+
+    LW.edit.rebuild(track)
+    LW.track.rebuild(track)
+
+    # file.add(this, '')
+
+    # @gui = new dat.GUI()
+    # @gui.add(@renderer, 'useQuadView')
+
+    # file = @gui.addFolder('File')
+    # file.add()
+
+    # @trackFolder = @gui.addFolder('Track')
+    # @trackFolder.open()
+
+    # @trackFolder.addColor(spineColor: "#ff0000", 'spineColor').onChange (value) => @track.spineMaterial.color.setHex(value.replace('#', '0x'))
+    # @trackFolder.addColor(tieColor: "#ff0000", 'tieColor').onChange (value) => @track.tieMaterial.color.setHex(value.replace('#', '0x'))
+    # @trackFolder.addColor(railColor: "#ff0000", 'railColor').onChange (value) => @track.railMaterial.color.setHex(value.replace('#', '0x'))
+    # @trackFolder.add(@track, 'forceWireframe')
+    # @trackFolder.add(@track, 'debugNormals').onChange => @track.rebuild()
+    # @trackFolder.add(@spline, 'isConnected').onChange (value) =>
+    #   @spline.isConnected = value
+    #   @edit.changed(true)
+
+    # @trackFolder.add({addPoint: =>
+    #   @spline.addControlPoint(@spline.getPoint(1).clone().add(new THREE.Vector3(40, 0, 0)))
+    #   @edit.renderTrack()
+    #   @track.rebuild()
+
+    #   @edit.selectNode()
+    # }, 'addPoint')
+
+    # @onRideCamera = false
+    # @trainFolder = @gui.addFolder('Train')
+    # @trainFolder.open()
+
+    # @trainFolder.addColor(color: '#ffffff', 'color').onChange (value) => @train.carMaterial.color.setHex(value.replace('#', '0x'))
+    # @trainFolder.add(@train, 'movementSpeed', 0.01, 0.1)
+    # @trainFolder.add(@train, 'numberOfCars', 0, 8).step(1).onChange (value) => @train.rebuild()
+    # @trainFolder.add(this, 'onRideCamera').onChange (value) =>
+    #   if value
+    #     @oldCamPos = @renderer.camera.position.clone()
+    #     @oldCamRot = @renderer.camera.rotation.clone()
+    #     LW.renderer.scene.remove(@edit)
+    #   else
+    #     @renderer.camera.position.copy(@oldCamPos)
+    #     @renderer.camera.rotation.copy(@oldCamRot)
+    #     LW.renderer.scene.add(@edit)
+
+    # @selected = {x: 0, y: 0, z: 0, bank: 0}
+    # updateVector = (index, value) =>
+    #   return if not @selected.node
+    #   if index in ['x', 'y', 'z']
+    #     @selected.node.position[index] = value
+    #   else
+    #     @selected.node.point[index] = value
+
+    #   @edit.changed(true)
+
+    # @pointFolder = @gui.addFolder('Point')
+    # @pointFolder.add(@selected, 'x').onChange (value) -> updateVector('x', value)
+    # @pointFolder.add(@selected, 'y').onChange (value) -> updateVector('y', value)
+    # @pointFolder.add(@selected, 'z').onChange (value) -> updateVector('z', value)
+    # @pointFolder.add(@selected, 'bank').onChange (value) -> updateVector('bank', value)
+*/
+;
 var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
 LW.Renderer = (function() {
@@ -470,37 +431,36 @@ LW.Terrain = (function() {
 var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-LW.Track = (function(_super) {
+LW.TrackMesh = (function(_super) {
   var UP, uvgen, _binormal, _cross, _normal, _pos;
 
-  __extends(Track, _super);
+  __extends(TrackMesh, _super);
 
-  Track.prototype.railRadius = 1;
+  TrackMesh.prototype.railRadius = 1;
 
-  Track.prototype.railDistance = 2;
+  TrackMesh.prototype.railDistance = 2;
 
-  Track.prototype.railRadialSegments = 8;
+  TrackMesh.prototype.railRadialSegments = 8;
 
-  Track.prototype.numberOfRails = 2;
+  TrackMesh.prototype.numberOfRails = 2;
 
-  Track.prototype.spineShape = null;
+  TrackMesh.prototype.spineShape = null;
 
-  Track.prototype.spineDivisionLength = 5;
+  TrackMesh.prototype.spineDivisionLength = 5;
 
-  Track.prototype.spineShapeNeedsUpdate = true;
+  TrackMesh.prototype.spineShapeNeedsUpdate = true;
 
-  Track.prototype.tieShape = null;
+  TrackMesh.prototype.tieShape = null;
 
-  Track.prototype.tieDepth = 1;
+  TrackMesh.prototype.tieDepth = 1;
 
-  Track.prototype.tieShapeNeedsUpdate = true;
+  TrackMesh.prototype.tieShapeNeedsUpdate = true;
 
-  Track.prototype.debugNormals = false;
+  TrackMesh.prototype.debugNormals = false;
 
-  function Track(spline, options) {
+  function TrackMesh(options) {
     var key, value;
-    this.spline = spline;
-    Track.__super__.constructor.call(this);
+    TrackMesh.__super__.constructor.call(this);
     for (key in options) {
       value = options[key];
       this[key] = value;
@@ -511,31 +471,35 @@ LW.Track = (function(_super) {
 
   uvgen = THREE.ExtrudeGeometry.WorldUVGenerator;
 
-  Track.prototype.rebuild = function() {
-    var bank, binormal, curve, i, lastSpineCurve, lastSpinePos, normal, pos, spineSteps, tangent, totalLength, u, _i;
+  TrackMesh.prototype.rebuild = function() {
+    var bank, binormal, i, lastSpinePos, normal, pos, spineSteps, tangent, totalLength, u, _i;
     this.clear();
+    if (this.model !== LW.model) {
+      this.model = LW.model;
+    }
+    if (!this.model) {
+      return;
+    }
     this.prepareRails();
     this.prepareTies();
     this.prepareSpine();
-    totalLength = Math.ceil(this.spline.getLength());
+    totalLength = Math.ceil(this.model.spline.getLength()) * 10;
     spineSteps = 0;
     binormal = new THREE.Vector3;
     normal = new THREE.Vector3;
     for (i = _i = 0; 0 <= totalLength ? _i <= totalLength : _i >= totalLength; i = 0 <= totalLength ? ++_i : --_i) {
       u = i / totalLength;
-      curve = this.spline.getCurveAt(u);
-      pos = this.spline.getPointAt(u);
-      tangent = this.spline.getTangentAt(u).normalize();
-      bank = THREE.Math.degToRad(this.spline.getBankAt(u));
+      pos = this.model.spline.getPointAt(u);
+      tangent = this.model.spline.getTangentAt(u).normalize();
+      bank = THREE.Math.degToRad(this.model.getBankAt(u));
       binormal.copy(UP).applyAxisAngle(tangent, bank);
       normal.crossVectors(tangent, binormal).normalize();
       binormal.crossVectors(normal, tangent).normalize();
       if (!lastSpinePos || lastSpinePos.distanceTo(pos) >= this.spineDivisionLength) {
-        this.tieStep(pos, normal, binormal, curve !== lastSpineCurve);
+        this.tieStep(pos, normal, binormal, spineSteps % 7 === 0);
         this.spineStep(pos, normal, binormal);
         spineSteps++;
         lastSpinePos = pos;
-        lastSpineCurve = curve;
       }
       this.railStep(pos, normal, binormal);
       if (this.debugNormals) {
@@ -554,7 +518,7 @@ LW.Track = (function(_super) {
   */
 
 
-  Track.prototype.prepareRails = function() {
+  TrackMesh.prototype.prepareRails = function() {
     var i, _i, _ref, _results;
     this.railGeometry = new THREE.Geometry;
     this._railGrids = [];
@@ -565,7 +529,7 @@ LW.Track = (function(_super) {
     return _results;
   };
 
-  Track.prototype.railStep = function(pos, normal, binormal) {
+  TrackMesh.prototype.railStep = function(pos, normal, binormal) {
     var cx, cy, grid, i, j, v, xDistance, yDistance, _i, _j, _ref, _ref1, _results;
     if (!this.numberOfRails) {
       return;
@@ -590,7 +554,7 @@ LW.Track = (function(_super) {
     return _results;
   };
 
-  Track.prototype.finalizeRails = function(steps) {
+  TrackMesh.prototype.finalizeRails = function(steps) {
     var a, b, c, d, i, ip, j, jp, n, uva, uvb, uvc, uvd, _i, _j, _k, _ref, _ref1, _ref2;
     for (n = _i = 0, _ref = this.numberOfRails - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; n = 0 <= _ref ? ++_i : --_i) {
       for (i = _j = 0, _ref1 = steps - 1; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
@@ -625,7 +589,7 @@ LW.Track = (function(_super) {
   */
 
 
-  Track.prototype.prepareSpine = function() {
+  TrackMesh.prototype.prepareSpine = function() {
     this.spineGeometry = new THREE.Geometry;
     if (this.spineShapeNeedsUpdate && this.spineShape) {
       this.spineShapeNeedsUpdate = false;
@@ -634,14 +598,14 @@ LW.Track = (function(_super) {
     }
   };
 
-  Track.prototype.spineStep = function(pos, normal, binormal) {
+  TrackMesh.prototype.spineStep = function(pos, normal, binormal) {
     if (!this.spineShape) {
       return;
     }
     return this._extrudeVertices(this._spineVertices, this.spineGeometry.vertices, pos, normal, binormal);
   };
 
-  Track.prototype.finalizeSpine = function(spineSteps) {
+  TrackMesh.prototype.finalizeSpine = function(spineSteps) {
     this._joinFaces(this._spineVertices, this._spineFaces, this.spineGeometry, spineSteps, 0, this.spineGeometry.vertices.length - this._spineVertices.length);
     this.spineGeometry.computeCentroids();
     this.spineGeometry.computeFaceNormals();
@@ -655,7 +619,7 @@ LW.Track = (function(_super) {
   */
 
 
-  Track.prototype.prepareTies = function() {
+  TrackMesh.prototype.prepareTies = function() {
     this.tieGeometry = new THREE.Geometry;
     if (this.tieShapeNeedsUpdate && this.tieShape) {
       this.tieShapeNeedsUpdate = false;
@@ -670,7 +634,7 @@ LW.Track = (function(_super) {
 
   _cross = new THREE.Vector3;
 
-  Track.prototype.tieStep = function(pos, normal, binormal, useExtended) {
+  TrackMesh.prototype.tieStep = function(pos, normal, binormal, useExtended) {
     var faces, offset, vertices;
     if (!this.tieShape) {
       return;
@@ -686,7 +650,7 @@ LW.Track = (function(_super) {
     return this._joinFaces(vertices, faces, this.tieGeometry, 1, offset, vertices.length, true);
   };
 
-  Track.prototype.finalizeTies = function(tieSteps) {
+  TrackMesh.prototype.finalizeTies = function(tieSteps) {
     this.tieGeometry.computeCentroids();
     this.tieGeometry.computeFaceNormals();
     this.tieMesh = new THREE.Mesh(this.tieGeometry, this.tieMaterial);
@@ -705,7 +669,7 @@ LW.Track = (function(_super) {
 
   _pos = new THREE.Vector3;
 
-  Track.prototype._extrudeVertices = function(template, target, pos, normal, binormal, extra) {
+  TrackMesh.prototype._extrudeVertices = function(template, target, pos, normal, binormal, extra) {
     var vertex, _i, _len;
     for (_i = 0, _len = template.length; _i < _len; _i++) {
       vertex = template[_i];
@@ -719,7 +683,7 @@ LW.Track = (function(_super) {
     }
   };
 
-  Track.prototype._joinFaces = function(vertices, template, target, totalSteps, startOffset, endOffset, flipOutside) {
+  TrackMesh.prototype._joinFaces = function(vertices, template, target, totalSteps, startOffset, endOffset, flipOutside) {
     var a, b, c, d, face, i, j, k, s, slen1, slen2, uvs, _i, _j, _len, _ref;
     for (_i = 0, _len = template.length; _i < _len; _i++) {
       face = template[_i];
@@ -757,40 +721,94 @@ LW.Track = (function(_super) {
     }
   };
 
-  return Track;
+  return TrackMesh;
 
 })(THREE.Object3D);
+LW.TrackModel = (function() {
+  function TrackModel(points) {
+    this.points = points;
+    this.rebuild();
+  }
+
+  TrackModel.prototype.rebuild = function() {
+    var i, knot, knots, p, _i, _len, _ref;
+    knots = [0, 0, 0, 0];
+    _ref = this.points;
+    for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+      p = _ref[i];
+      knot = (i + 1) / (this.points.length - 3);
+      knots.push(THREE.Math.clamp(knot, 0, 1));
+    }
+    return this.spline = new THREE.NURBSCurve(3, knots, this.points);
+  };
+
+  TrackModel.prototype.isConnected = false;
+
+  TrackModel.prototype.getBankAt = function(t) {
+    return 0;
+  };
+
+  return TrackModel;
+
+})();
 var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 LW.Train = (function(_super) {
-  var up;
+  var down, mat, up, zero;
 
   __extends(Train, _super);
 
-  function Train(options) {
+  function Train(track, options) {
+    var geo, loader, mat,
+      _this = this;
+    this.track = track;
+    if (options == null) {
+      options = {};
+    }
     Train.__super__.constructor.call(this);
-    this.numberOfCars = options.numberOfCars, this.carGeometry = options.carGeometry, this.carMaterial = options.carMaterial, this.carSpacing = options.carSpacing, this.carLength = options.carLength, this.movementSpeed = options.movementSpeed;
+    this.numberOfCars = options.numberOfCars, this.velocity = options.velocity;
     this.cars = [];
-    this.rebuild();
-    this.movementSpeed || (this.movementSpeed = 0.08);
+    if (this.numberOfCars == null) {
+      this.numberOfCars = 1;
+    }
+    this.velocity = 20;
+    this.displacement = 0;
+    if (track != null ? track.carModel : void 0) {
+      loader = new THREE.ColladaLoader;
+      loader.load("resources/models/" + track.carModel, function(result) {
+        var child, _i, _len, _ref;
+        _this.carProto = result.scene.children[0];
+        _this.carProto.scale.copy(track.carScale);
+        _this.carRot = new THREE.Matrix4().makeRotationFromEuler(track.carRotation, 'XYZ');
+        _ref = _this.carProto.children;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          child = _ref[_i];
+          child.castShadow = true;
+        }
+        return _this.rebuild();
+      });
+    } else {
+      geo = new THREE.CubeGeometry(8, 8, 16);
+      mat = new THREE.MeshLambertMaterial({
+        color: 0xeeeeee
+      });
+      this.carProto = new THREE.Mesh(geo, mat);
+      this.rebuild();
+    }
   }
 
   Train.prototype.rebuild = function() {
     var car, i, _i, _ref;
-    this.carGeometry || (this.carGeometry = new THREE.CubeGeometry(8, 8, 16));
-    this.carMaterial || (this.carMaterial = new THREE.MeshLambertMaterial({
-      color: 0xeeeeee
-    }));
-    this.carSpacing || (this.carSpacing = 2);
-    this.carLength || (this.carLength = 16);
     while (this.cars.length) {
       this.remove(this.cars.pop());
     }
     if (this.numberOfCars) {
-      for (i = _i = 0, _ref = this.numberOfCars - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-        car = new THREE.Mesh(this.carGeometry, this.carMaterial);
-        car.castShadow = true;
+      for (i = _i = 1, _ref = this.numberOfCars; 1 <= _ref ? _i <= _ref : _i >= _ref; i = 1 <= _ref ? ++_i : --_i) {
+        car = this.carProto.clone();
+        if (i === this.numberOfCars) {
+          car.remove(car.getObjectByName('connector'));
+        }
         this.cars.push(car);
         this.add(car);
       }
@@ -798,37 +816,49 @@ LW.Train = (function(_super) {
     return this.currentTime = 0.0;
   };
 
-  Train.prototype.attachToTrack = function(track) {
-    this.track = track;
-    return this.spline = this.track.spline;
-  };
-
   up = new THREE.Vector3(0, 1, 0);
 
+  down = new THREE.Vector3(0, -1, 0);
+
+  zero = new THREE.Vector3();
+
+  mat = new THREE.Matrix4();
+
   Train.prototype.simulate = function(delta) {
-    var bank, binormal, car, deltaPoint, desiredDistance, i, lastPos, mat, normal, pos, tangent, _i, _len, _ref;
-    if (!this.numberOfCars) {
+    var a, alpha, bank, binormal, car, deltaPoint, desiredDistance, i, lastPos, model, normal, pos, tangent, _i, _len, _ref;
+    if (!this.numberOfCars || !(model = this.track.model)) {
       return;
     }
-    this.currentTime += this.movementSpeed * delta;
+    if (this.lastTangent) {
+      alpha = down.angleTo(this.lastTangent);
+      a = 9.81 * Math.cos(alpha);
+      this.velocity = this.velocity + a * delta;
+    }
+    this.displacement = this.displacement + this.velocity * delta;
+    if (this.position === 0) {
+      this.currentTime = 0;
+    } else {
+      this.currentTime = this.displacement / model.spline.getLength();
+    }
     if (this.currentTime > 1) {
       this.currentTime = 0;
+      this.displacement = 0;
     }
-    lastPos = this.spline.getPointAt(this.currentTime);
+    lastPos = model.spline.getPointAt(this.currentTime);
+    deltaPoint = this.currentTime;
+    desiredDistance = this.track.carDistance;
     _ref = this.cars;
     for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
       car = _ref[i];
       pos = null;
-      desiredDistance = i * 18;
-      deltaPoint = this.currentTime;
-      if (desiredDistance > 0) {
+      if (i > 0) {
         while (deltaPoint > 0) {
-          pos = this.spline.getPointAt(deltaPoint);
+          pos = model.spline.getPointAt(deltaPoint);
           if (pos.distanceTo(lastPos) >= desiredDistance) {
             break;
           }
-          deltaPoint += 0.01;
-          if (deltaPoint > 1) {
+          deltaPoint -= 0.001;
+          if (deltaPoint < 0) {
             deltaPoint = 0;
           }
         }
@@ -836,14 +866,19 @@ LW.Train = (function(_super) {
         pos = lastPos;
       }
       if (pos) {
-        tangent = this.spline.getTangentAt(deltaPoint).normalize();
-        bank = THREE.Math.degToRad(this.spline.getBankAt(deltaPoint));
+        lastPos = pos;
+        tangent = model.spline.getTangentAt(deltaPoint).normalize();
+        if (i === 0) {
+          this.lastTangent = tangent;
+        }
+        bank = THREE.Math.degToRad(model.getBankAt(deltaPoint));
         binormal = up.clone().applyAxisAngle(tangent, bank);
         normal = tangent.clone().cross(binormal).normalize();
         binormal = normal.clone().cross(tangent).normalize();
-        mat = new THREE.Matrix4(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1);
-        car.position.copy(pos).add(new THREE.Vector3(0, 5, 0).applyMatrix4(mat));
-        car.rotation.setFromRotationMatrix(mat);
+        zero.set(0, 0, 0);
+        mat.set(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1);
+        car.position.copy(pos).add(zero.applyMatrix4(mat));
+        car.rotation.setFromRotationMatrix(mat.multiply(this.carRot));
         if (LW.onRideCamera) {
           LW.renderer.camera.position.copy(pos).add(new THREE.Vector3(0, 3, 0).applyMatrix4(mat));
           LW.renderer.camera.rotation.setFromRotationMatrix(mat);
@@ -855,7 +890,7 @@ LW.Train = (function(_super) {
   return Train;
 
 })(THREE.Object3D);
-var CONTROL_COLOR, POINT_COLOR, SELECTED_COLOR,
+var CONTROL_COLOR, NODE_GEO, POINT_COLOR, SELECTED_COLOR,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -865,6 +900,8 @@ CONTROL_COLOR = 0x0000ee;
 POINT_COLOR = 0xdddddd;
 
 SELECTED_COLOR = 0xffffff;
+
+NODE_GEO = new THREE.SphereGeometry(1);
 
 LW.EditTrack = (function(_super) {
   __extends(EditTrack, _super);
@@ -905,11 +942,10 @@ LW.EditTrack = (function(_super) {
       }
     }
     if (this.selected || force) {
-      this.spline.rebuild();
       if (!this.rerenderTimeout) {
         this.rerenderTimeout = setTimeout(function() {
-          localStorage.setItem('track', JSON.stringify(_this.spline));
           _this.rerenderTimeout = null;
+          _this.model.rebuild();
           _this.renderCurve();
           return LW.track.rebuild();
         }, 10);
@@ -987,23 +1023,27 @@ LW.EditTrack = (function(_super) {
     this.selected = node;
     if (node) {
       node.select(true);
-      this.transformControl.attach(node);
+      return this.transformControl.attach(node);
     }
-    return LW.selectionChanged(node);
   };
 
-  EditTrack.prototype.renderTrack = function() {
-    var i, lastNode, node, point, _i, _len, _ref;
+  EditTrack.prototype.rebuild = function() {
+    var i, node, point, _i, _len, _ref;
     this.clear();
     this.controlPoints = [];
-    lastNode = null;
-    if (LW.onRideCamera) {
+    if (this.model !== LW.model) {
+      this.model = LW.model;
+    }
+    if (!this.model) {
       return;
     }
-    _ref = this.spline.points;
+    _ref = this.model.points;
     for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
       point = _ref[i];
-      node = new LW.PointEditor(point);
+      node = new THREE.Mesh(NODE_GEO, new THREE.MeshLambertMaterial({
+        color: CONTROL_COLOR
+      }));
+      node.position.copy(point);
       this.add(node);
       this.controlPoints.push(node);
     }
@@ -1011,14 +1051,19 @@ LW.EditTrack = (function(_super) {
   };
 
   EditTrack.prototype.renderCurve = function() {
-    var geo, mat;
+    var geo, mat, point, _i, _len, _ref;
     if (this.line) {
       this.remove(this.line);
     }
     if (LW.onRideCamera) {
       return;
     }
-    geo = this.spline.createPointsGeometry(this.spline.getLength());
+    geo = new THREE.Geometry;
+    _ref = this.model.points;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      point = _ref[_i];
+      geo.vertices.push(point);
+    }
     mat = new THREE.LineBasicMaterial({
       color: 0xff0000,
       linewidth: 2
@@ -1030,58 +1075,6 @@ LW.EditTrack = (function(_super) {
   return EditTrack;
 
 })(THREE.Object3D);
-
-LW.PointEditor = (function(_super) {
-  __extends(PointEditor, _super);
-
-  function PointEditor(point) {
-    var controlMaterial, geo, lineGeo, pointMaterial;
-    this.point = point;
-    geo = new THREE.SphereGeometry(1);
-    controlMaterial = new THREE.MeshLambertMaterial({
-      color: CONTROL_COLOR
-    });
-    pointMaterial = new THREE.MeshLambertMaterial({
-      color: POINT_COLOR
-    });
-    PointEditor.__super__.constructor.call(this, geo, controlMaterial);
-    this.position = point.position;
-    this.isControl = true;
-    this.left = new THREE.Mesh(geo, pointMaterial);
-    this.left.position = point.left;
-    this.left.visible = false;
-    this.add(this.left);
-    this.right = new THREE.Mesh(geo, pointMaterial);
-    this.right.position = point.right;
-    this.right.visible = false;
-    this.add(this.right);
-    lineGeo = new THREE.Geometry;
-    lineGeo.vertices.push(point.left);
-    lineGeo.vertices.push(new THREE.Vector3);
-    lineGeo.vertices.push(point.right);
-    this.line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({
-      color: POINT_COLOR,
-      linewidth: 4
-    }));
-    this.line.visible = false;
-    this.add(this.line);
-  }
-
-  PointEditor.prototype.select = function(selected) {
-    var _ref, _ref1, _ref2;
-    this.material.color.setHex(selected ? SELECTED_COLOR : CONTROL_COLOR);
-    if ((_ref = this.left) != null) {
-      _ref.visible = selected;
-    }
-    if ((_ref1 = this.right) != null) {
-      _ref1.visible = selected;
-    }
-    return (_ref2 = this.line) != null ? _ref2.visible = selected : void 0;
-  };
-
-  return PointEditor;
-
-})(THREE.Mesh);
 var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -1183,4 +1176,114 @@ LW.BMTrack = (function(_super) {
 
   return BMTrack;
 
-})(LW.Track);
+})(LW.TrackMesh);
+var __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+LW.BMInvertedTrack = (function(_super) {
+  var boxShape, boxSize, offsetX, offsetY, padding, radius, tieShape;
+
+  __extends(BMInvertedTrack, _super);
+
+  boxSize = 2;
+
+  offsetY = 3;
+
+  boxShape = new THREE.Shape;
+
+  boxShape.moveTo(-boxSize, -boxSize + offsetY);
+
+  boxShape.lineTo(-boxSize, boxSize + offsetY);
+
+  boxShape.lineTo(boxSize, boxSize + offsetY);
+
+  boxShape.lineTo(boxSize, -boxSize + offsetY);
+
+  boxShape.lineTo(-boxSize, -boxSize + offsetY);
+
+  BMInvertedTrack.prototype.spineShape = boxShape;
+
+  BMInvertedTrack.prototype.spineDivisionLength = 7;
+
+  radius = 0.5;
+
+  offsetX = boxSize + 2;
+
+  offsetY = 0;
+
+  padding = boxSize / 4;
+
+  tieShape = new THREE.Shape;
+
+  tieShape.moveTo(-boxSize, -boxSize + 3 + padding);
+
+  tieShape.lineTo(-offsetX + radius * 1.5, offsetY);
+
+  tieShape.lineTo(-offsetX + radius * 1.5, offsetY - radius * 0.75);
+
+  tieShape.lineTo(-boxSize / 2, -boxSize + 2.5);
+
+  tieShape.lineTo(boxSize / 2, -boxSize + 2.5);
+
+  tieShape.lineTo(offsetX - radius * 1.5, offsetY - radius * 0.75);
+
+  tieShape.lineTo(offsetX - radius * 1.5, offsetY);
+
+  tieShape.lineTo(boxSize, -boxSize + 3 + padding);
+
+  BMInvertedTrack.prototype.tieShape = tieShape;
+
+  tieShape = new THREE.Shape;
+
+  tieShape.moveTo(-boxSize - padding, -boxSize + 3 + padding);
+
+  tieShape.lineTo(-offsetX + radius * 1.5, offsetY);
+
+  tieShape.lineTo(-offsetX + radius * 1.5, offsetY - radius * 0.75);
+
+  tieShape.lineTo(-boxSize / 2, -boxSize + 2.5);
+
+  tieShape.lineTo(boxSize / 2, -boxSize + 2.5);
+
+  tieShape.lineTo(offsetX - radius * 1.5, offsetY - radius * 0.75);
+
+  tieShape.lineTo(offsetX - radius * 1.5, offsetY);
+
+  tieShape.lineTo(boxSize + padding, -boxSize + 3 + padding);
+
+  tieShape.lineTo(boxSize + padding, boxSize + 3 + padding);
+
+  tieShape.lineTo(-boxSize - padding, boxSize + 3 + padding);
+
+  BMInvertedTrack.prototype.extendedTieShape = tieShape;
+
+  BMInvertedTrack.prototype.tieDepth = 0.4;
+
+  BMInvertedTrack.prototype.railRadius = radius;
+
+  BMInvertedTrack.prototype.railDistance = offsetX - radius;
+
+  BMInvertedTrack.prototype.carModel = 'inverted.dae';
+
+  BMInvertedTrack.prototype.carScale = new THREE.Vector3(0.0429, 0.0429, 0.037);
+
+  BMInvertedTrack.prototype.carRotation = new THREE.Euler(-Math.PI * 0.5, 0, Math.PI, 'XYZ');
+
+  BMInvertedTrack.prototype.carDistance = 9;
+
+  function BMInvertedTrack() {
+    BMInvertedTrack.__super__.constructor.apply(this, arguments);
+    this.spineMaterial = new THREE.MeshPhongMaterial({
+      color: 0xff0000,
+      ambient: 0x090909,
+      specular: 0x333333,
+      shininess: 30
+    });
+    this.tieMaterial = this.spineMaterial.clone();
+    this.railMaterial = this.spineMaterial.clone();
+    this.materials = [this.spineMaterial, this.tieMaterial, this.railMaterial];
+  }
+
+  return BMInvertedTrack;
+
+})(LW.TrackMesh);
