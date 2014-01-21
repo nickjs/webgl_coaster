@@ -35,7 +35,10 @@ class LW.Train extends THREE.Object3D
     if @numberOfCars
       for i in [1..@numberOfCars]
         car = @carProto.clone()
-        car.castShadow = true
+
+        if i == @numberOfCars
+          car.remove(car.getObjectByName('connector'))
+
         @cars.push(car)
         @add(car)
 
