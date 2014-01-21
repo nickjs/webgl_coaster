@@ -9,10 +9,14 @@ class LW.GUIController
   newTrack: ->
     @_addTrackToDropdown("Untitled")
 
-    track = new LW.BezierPath([
-      new LW.Point(-20,20,0, -10,0,0, 10,0,0)
-      new LW.Point(20,20,0, -10,0,0, 10,0,0)
-      new LW.Point(60,20,0, -10,0,0, 10,0,0)
+    track = new LW.TrackModel([
+      new THREE.Vector4(-100, 20, 0, 1)
+      new THREE.Vector4(-20, 20, 0, 1)
+      new THREE.Vector4(20, 30, 0, 1)
+      new THREE.Vector4(60, 20, 0, 1)
+      new THREE.Vector4(100, 0, 0, 1)
+      new THREE.Vector4(200, 0, 0, 1)
+      new THREE.Vector4(250, 60, 0, 1)
     ])
 
     @loadTrack(track)
@@ -43,8 +47,7 @@ class LW.GUIController
       track = LW.BezierPath.fromJSON(json)
       track.name = name
 
-    LW.spline = track
-
+    LW.model = track
     LW.edit?.rebuild()
     LW.track?.rebuild()
 

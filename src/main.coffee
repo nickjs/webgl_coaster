@@ -1,10 +1,9 @@
 #= require_self
-#= require bezier_path
 #= require gui_controller
-#= require spline
 #= require renderer
 #= require terrain
-#= require track
+#= require track_mesh
+#= require track_model
 #= require train
 
 #= require edit_track

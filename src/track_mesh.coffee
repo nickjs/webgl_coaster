@@ -1,4 +1,4 @@
-class LW.Track extends THREE.Object3D
+class LW.TrackMesh extends THREE.Object3D
   railRadius: 1
   railDistance: 2
   railRadialSegments: 8
@@ -14,7 +14,7 @@ class LW.Track extends THREE.Object3D
 
   debugNormals: false
 
-  constructor: (@spline, options) ->
+  constructor: (options) ->
     super()
 
     for key, value of options
@@ -26,14 +26,14 @@ class LW.Track extends THREE.Object3D
   rebuild: ->
     @clear()
 
-    @spline = LW.spline if @spline != LW.spline
-    return if !@spline
+    @model = LW.model if @model != LW.model
+    return if !@model
 
     @prepareRails()
     @prepareTies()
     @prepareSpine()
 
-    totalLength = Math.ceil(@spline.getLength()) * 10
+    totalLength = Math.ceil(@model.spline.getLength()) * 10
     spineSteps = 0
 
     binormal = new THREE.Vector3
@@ -42,10 +42,10 @@ class LW.Track extends THREE.Object3D
     for i in [0..totalLength]
       u = i / totalLength
 
-      pos = @spline.getPointAt(u)
-      tangent = @spline.getTangentAt(u).normalize()
+      pos = @model.spline.getPointAt(u)
+      tangent = @model.spline.getTangentAt(u).normalize()
 
-      bank = THREE.Math.degToRad(@spline.getBankAt(u))
+      bank = THREE.Math.degToRad(@model.getBankAt(u))
       binormal.copy(UP).applyAxisAngle(tangent, bank)
 
       normal.crossVectors(tangent, binormal).normalize()

@@ -2,6 +2,8 @@ CONTROL_COLOR = 0x0000ee
 POINT_COLOR = 0xdddddd
 SELECTED_COLOR = 0xffffff
 
+NODE_GEO = new THREE.SphereGeometry(1)
+
 class LW.EditTrack extends THREE.Object3D
   debugNormals: false
 
@@ -38,7 +40,7 @@ class LW.EditTrack extends THREE.Object3D
         @rerenderTimeout = setTimeout =>
           @rerenderTimeout = null
 
-          @spline.rebuild()
+          @model.rebuild()
           @renderCurve()
           LW.track.rebuild()
         , 10
@@ -115,15 +117,15 @@ class LW.EditTrack extends THREE.Object3D
 
   rebuild: ->
     @clear()
-
     @controlPoints = []
-    lastNode = null
 
-    @spline = LW.spline if @spline != LW.spline
-    return if !@spline # or LW.onRideCamera
+    @model = LW.model if @model != LW.model
+    return if !@model # or LW.onRideCamera
 
-    for point, i in @spline.points
-      node = new LW.PointEditor(point)
+    for point, i in @model.points
+      node = new THREE.Mesh(NODE_GEO, new THREE.MeshLambertMaterial(color: CONTROL_COLOR))
+      node.position.copy(point)
+
       @add(node)
       @controlPoints.push(node)
 
@@ -133,46 +135,12 @@ class LW.EditTrack extends THREE.Object3D
     @remove(@line) if @line
     return if LW.onRideCamera
 
-    geo = @spline.createPointsGeometry(@spline.getLength())
+    geo = new THREE.Geometry
+    for point in @model.points
+      geo.vertices.push(point)
+
     mat = new THREE.LineBasicMaterial(color: 0xff0000, linewidth: 2)
     @line = new THREE.Line(geo, mat)
     @add(@line)
 
     return
-
-class LW.PointEditor extends THREE.Mesh
-  constructor: (@point) ->
-    geo = new THREE.SphereGeometry(1)
-    controlMaterial = new THREE.MeshLambertMaterial(color: CONTROL_COLOR)
-    pointMaterial = new THREE.MeshLambertMaterial(color: POINT_COLOR)
-
-    super(geo, controlMaterial)
-
-    @position = point.position
-    @isControl = true
-
-    @left = new THREE.Mesh(geo, pointMaterial)
-    @left.position = point.left
-    @left.visible = false
-    @add(@left)
-
-    @right = new THREE.Mesh(geo, pointMaterial)
-    @right.position = point.right
-    @right.visible = false
-    @add(@right)
-
-    lineGeo = new THREE.Geometry
-    lineGeo.vertices.push(point.left)
-    lineGeo.vertices.push(new THREE.Vector3)
-    lineGeo.vertices.push(point.right)
-
-    @line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial(color: POINT_COLOR, linewidth: 4))
-    @line.visible = false
-    @add(@line)
-
-  select: (selected) ->
-    @material.color.setHex(if selected then SELECTED_COLOR else CONTROL_COLOR)
-
-    @left?.visible = selected
-    @right?.visible = selected
-    @line?.visible = selected

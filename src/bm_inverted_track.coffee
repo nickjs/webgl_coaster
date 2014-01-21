@@ -1,4 +1,4 @@
-class LW.BMInvertedTrack extends LW.Track
+class LW.BMInvertedTrack extends LW.TrackMesh
   boxSize = 2
   offsetY = 3
 

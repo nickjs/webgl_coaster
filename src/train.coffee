@@ -9,7 +9,7 @@ class LW.Train extends THREE.Object3D
     @cars = []
 
     @numberOfCars ?= 1
-    @velocity = 15
+    @velocity = 20
     @displacement = 0
 
     if track?.carModel
@@ -52,7 +52,7 @@ class LW.Train extends THREE.Object3D
   mat = new THREE.Matrix4()
 
   simulate: (delta) ->
-    return if !@numberOfCars or !(spline = @track.spline)
+    return if !@numberOfCars or !(model = @track.model)
 
     if @lastTangent
       alpha = down.angleTo(@lastTangent)
@@ -64,12 +64,12 @@ class LW.Train extends THREE.Object3D
     if @position == 0
       @currentTime = 0
     else
-      @currentTime = @displacement / spline.getLength()
+      @currentTime = @displacement / model.spline.getLength()
     if @currentTime > 1
       @currentTime = 0
       @displacement = 0
 
-    lastPos = spline.getPointAt(@currentTime)
+    lastPos = model.spline.getPointAt(@currentTime)
     deltaPoint = @currentTime
     desiredDistance = @track.carDistance
 
@@ -78,7 +78,7 @@ class LW.Train extends THREE.Object3D
 
       if i > 0
         while deltaPoint > 0
-          pos = spline.getPointAt(deltaPoint)
+          pos = model.spline.getPointAt(deltaPoint)
           break if pos.distanceTo(lastPos) >= desiredDistance
           deltaPoint -= 0.001
           deltaPoint = 0 if deltaPoint < 0
@@ -87,10 +87,10 @@ class LW.Train extends THREE.Object3D
 
       if pos
         lastPos = pos
-        tangent = spline.getTangentAt(deltaPoint).normalize()
+        tangent = model.spline.getTangentAt(deltaPoint).normalize()
         @lastTangent = tangent if i == 0
 
-        bank = THREE.Math.degToRad(spline.getBankAt(deltaPoint))
+        bank = THREE.Math.degToRad(model.getBankAt(deltaPoint))
         binormal = up.clone().applyAxisAngle(tangent, bank)
 
         normal = tangent.clone().cross(binormal).normalize()
