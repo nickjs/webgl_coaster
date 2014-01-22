@@ -28,6 +28,7 @@ class LW.GUIController
     @updateFolder('vertex', !!vertex)
 
   changeVertex: (isFinal) ->
+    LW.edit.transformControl.update()
     LW.edit.selected.position.copy(@vertexProxy)
     LW.edit.changed(isFinal)
 
