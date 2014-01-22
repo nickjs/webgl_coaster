@@ -1,5 +1,4 @@
 CONTROL_COLOR = 0x0000ee
-POINT_COLOR = 0xdddddd
 SELECTED_COLOR = 0xffffff
 
 NODE_GEO = new THREE.SphereGeometry(1)
@@ -21,29 +20,35 @@ class LW.EditTrack extends THREE.Object3D
 
     @transformControl.addEventListener 'change', =>
       LW.controls?.enabled = @transformControl.axis == undefined
+    @transformControl.addEventListener 'move', =>
+      @changed()
+    @transformControl.addEventListener 'finalMove', =>
+      @rerenderTrack = true
       @changed()
 
     LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
 
-  changed: (force) ->
-    if @selected and @transformControl.axis != undefined
-      if @selectedHandle
-        @selected.line.geometry.verticesNeedUpdate = true
+  changed: ->
+    LW.train?.stop() if LW.train.shouldSimulate
 
-        oppositeHandle = if @selectedHandle == @selected.left then @selected.right else @selected.left
-        oppositeHandle.position.copy(@selectedHandle.position).negate()
+    if @selected
+      @selected.point.x = @selected.position.x
+      @selected.point.y = @selected.position.y
+      @selected.point.z = @selected.position.z
 
-    if @selected || force
+    if !@rerenderTimeout
+      @rerenderTimeout = setTimeout =>
+        @rerenderTimeout = null
 
-      if !@rerenderTimeout
-        @rerenderTimeout = setTimeout =>
-          @rerenderTimeout = null
+        @model.rebuild()
+        @renderCurve()
 
-          @model.rebuild()
-          @renderCurve()
+        if @rerenderTrack
+          @rerenderTrack = false
           LW.track.rebuild()
-        , 10
+          LW.train?.start()
+      , 10
 
     return
 
@@ -81,39 +86,19 @@ class LW.EditTrack extends THREE.Object3D
     @mouseUp.y = event.clientY / window.innerHeight
 
     if @mouseDown.distanceTo(@mouseUp) == 0
-      nodes = if @selected
-        @controlPoints.concat([@selected.left, @selected.right])
-      else
-        @controlPoints
-
-      intersects = @pick(@mouseUp, nodes)
-      @transformControl.detach()
-
-      if intersects.length > 0
-        object = intersects[0].object
-
-        if object.isControl
-          @selectedHandle = null
-          @selectNode(object)
-        else
-          @selectedHandle = object
-          @transformControl.attach(object)
-      else
-        @selectedHandle = null
-        @selectNode(null)
+      intersects = @pick(@mouseUp, @controlPoints)
+      @selectNode(intersects[0]?.object)
 
     @isMouseDown = false
 
   selectNode: (node) ->
-    if node == undefined
-      node = @controlPoints[@controlPoints.length - 1]
+    @selected?.material.color.setHex(CONTROL_COLOR)
+    @transformControl.detach()
 
-    @selected?.select(false)
     @selected = node
 
-    if node
-      node.select(true)
-      @transformControl.attach(node)
+    @selected?.material.color.setHex(SELECTED_COLOR)
+    @transformControl.attach(@selected) if @selected
 
   rebuild: ->
     @clear()
@@ -125,6 +110,7 @@ class LW.EditTrack extends THREE.Object3D
     for point, i in @model.points
       node = new THREE.Mesh(NODE_GEO, new THREE.MeshLambertMaterial(color: CONTROL_COLOR))
       node.position.copy(point)
+      node.point = point
 
       @add(node)
       @controlPoints.push(node)

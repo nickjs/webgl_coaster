@@ -34,6 +34,7 @@ window.LW =
     renderer.scene.add(@track)
 
     @train = new LW.Train(@track, numberOfCars: 4)
+    @train.start()
     renderer.scene.add(@train)
 
     @gui = new LW.GUIController

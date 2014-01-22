@@ -1,16 +1,15 @@
 class LW.Train extends THREE.Object3D
+  velocity: 20
+  initialVelocity: 20
+  displacement: 0
+
+  numberOfCars: 1
+
   constructor: (@track, options = {}) ->
     super()
 
-    {
-      @numberOfCars, @velocity
-    } = options
-
-    @cars = []
-
-    @numberOfCars ?= 1
-    @velocity = 20
-    @displacement = 0
+    for own key, val of options
+      @[key] = val
 
     if track?.carModel
       loader = new THREE.ColladaLoader
@@ -31,9 +30,10 @@ class LW.Train extends THREE.Object3D
       @rebuild()
 
   rebuild: ->
-    @remove(@cars.pop()) while @cars.length
+    @clear()
+    @cars = []
 
-    if @numberOfCars
+    if @numberOfCars && @carProto
       for i in [1..@numberOfCars]
         car = @carProto.clone()
 
@@ -43,7 +43,16 @@ class LW.Train extends THREE.Object3D
         @cars.push(car)
         @add(car)
 
-    @currentTime = 0.0
+  start: ->
+    @shouldSimulate = true
+    @velocity = @initialVelocity
+    @displacement = 0
+    @rebuild()
+
+  stop: ->
+    @shouldSimulate = false
+    @clear()
+    @cars = []
 
   up = new THREE.Vector3(0, 1, 0)
   down = new THREE.Vector3(0, -1, 0)
@@ -52,7 +61,7 @@ class LW.Train extends THREE.Object3D
   mat = new THREE.Matrix4()
 
   simulate: (delta) ->
-    return if !@numberOfCars or !(model = @track.model)
+    return if !@shouldSimulate or !@cars.length or !(model = @track.model)
 
     if @lastTangent
       alpha = down.angleTo(@lastTangent)
