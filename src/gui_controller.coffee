@@ -2,15 +2,14 @@ class LW.GUIController
   constructor: ->
     @gui = new dat.GUI()
 
-    context = this
-
-    @vertexProxy = new THREE.Vector3
+    @vertexProxy = new THREE.Vector4
     @vertex = @gui.addFolder("Vertex Properties")
-    @vertex.add(@vertexProxy, 'x', -250, 250).onChange(-> context.changeVertex(false)).onFinishChange(-> context.changeVertex(true))
-    @vertex.add(@vertexProxy, 'y', 0, 500).onChange(-> context.changeVertex(false)).onFinishChange(-> context.changeVertex(true))
-    @vertex.add(@vertexProxy, 'z', -250, 250).onChange(-> context.changeVertex(false)).onFinishChange(-> context.changeVertex(true))
+    @vertex.add(@vertexProxy, 'x', -250, 250).onChange(@changeVertex)
+    @vertex.add(@vertexProxy, 'y', 0, 500).onChange(@changeVertex)
+    @vertex.add(@vertexProxy, 'z', -250, 250).onChange(@changeVertex)
+    @vertex.add(@vertexProxy, 'w', 0, Math.PI).name('weight').onChange(@changeVertex)
 
-    LW.edit.observe('vertexChanged', @vertexChanged.bind(context))
+    LW.edit.observe('vertexChanged', @vertexChanged)
 
     @addSaveBar()
     @loadTracks()
@@ -19,7 +18,7 @@ class LW.GUIController
     controller.updateDisplay() for controller in @[folderKey].__controllers
     @[folderKey][if openFolder then 'open' else 'close']()
 
-  vertexChanged: (vertex) ->
+  vertexChanged: (vertex) =>
     if vertex
       @vertexProxy.copy(vertex.point)
     else
@@ -27,10 +26,10 @@ class LW.GUIController
 
     @updateFolder('vertex', !!vertex)
 
-  changeVertex: (isFinal) ->
+  changeVertex: =>
     LW.edit.transformControl.update()
-    LW.edit.selected.position.copy(@vertexProxy)
-    LW.edit.changed(isFinal)
+    LW.edit.selected.point.copy(@vertexProxy)
+    LW.edit.changed()
 
   newTrack: ->
     @_addTrackToDropdown("Untitled")
