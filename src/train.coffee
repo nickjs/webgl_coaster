@@ -17,8 +17,12 @@ class LW.Train extends THREE.Object3D
         @carProto.scale.copy(track.carScale)
         @carRot = new THREE.Matrix4().makeRotationFromEuler(track.carRotation, 'XYZ')
 
-        for child in @carProto.children
-          child.castShadow = true
+        sizeVector = new THREE.Vector3
+        @carProto.traverse (child) ->
+          if child instanceof THREE.Mesh
+            child.geometry.computeBoundingBox()
+            if child.geometry.boundingBox.size(sizeVector).lengthSq() > 10000
+              child.castShadow = true
 
         @rebuild()
     else
