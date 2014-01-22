@@ -1,5 +1,6 @@
 class LW.Renderer
   useQuadView: false
+  showFPS: true
 
   constructor: (container) ->
     @renderer = new THREE.WebGLRenderer(antialias: true)
@@ -18,7 +19,7 @@ class LW.Renderer
     container.appendChild(@domElement)
 
     @stats = new Stats
-    container.appendChild(@stats.domElement)
+    container.appendChild(@stats.domElement) if @showFPS
 
     @scene = new THREE.Scene
     @clock = new THREE.Clock

@@ -12,6 +12,13 @@ class LW.GUIController
     LW.edit.observe('vertexChanged', @vertexChanged)
 
     @viewFolder = @gui.addFolder("View Properties")
+    @viewFolder.add(LW.renderer, 'showFPS').name("show FPS").onChange (value) ->
+      node = LW.renderer.stats.domElement
+      if value
+        LW.renderer.domElement.parentNode.appendChild(node)
+      else
+        node.parentNode.removeChild(node)
+
     @viewFolder.add(LW.renderer, 'useQuadView').name("quad view")
     @viewFolder.add(LW.track, 'forceWireframe').name("force wireframe").onChange (value) ->
       if value
