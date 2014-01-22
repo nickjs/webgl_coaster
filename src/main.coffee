@@ -22,6 +22,16 @@ THREE.Object3D::clear = ->
     @remove(child)
     child = @children[0]
 
+THREE.Vector4::copy = (v) ->
+  @x = v.x
+  @y = v.y
+  @z = v.z
+
+  if v.w?
+    @w = v.w
+  if !@w?
+    @w = 1
+
 window.LW =
   init: ->
     renderer = @renderer = new LW.Renderer
