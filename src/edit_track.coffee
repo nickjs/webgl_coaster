@@ -6,6 +6,8 @@ NODE_GEO = new THREE.SphereGeometry(1)
 class LW.EditTrack extends THREE.Object3D
   debugNormals: false
 
+  LW.mixin(@prototype, LW.Observable)
+
   constructor: (@spline) ->
     super()
 

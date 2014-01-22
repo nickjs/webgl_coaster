@@ -1,4 +1,6 @@
 #= require_self
+#= require observable
+
 #= require gui_controller
 #= require renderer
 #= require terrain
