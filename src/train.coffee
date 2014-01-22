@@ -70,7 +70,7 @@ class LW.Train extends THREE.Object3D
 
     @displacement = @displacement + @velocity * delta
 
-    if @position == 0
+    if @displacement <= 0
       @currentTime = 0
     else
       @currentTime = @displacement / model.spline.getLength()
