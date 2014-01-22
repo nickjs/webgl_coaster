@@ -47,6 +47,7 @@ class LW.GUIController
 
   changeVertex: =>
     LW.edit.transformControl.update()
+    LW.edit.selected.position.copy(@vertexProxy)
     LW.edit.selected.point.copy(@vertexProxy)
     LW.edit.changed()
 
