@@ -4,8 +4,6 @@ SELECTED_COLOR = 0xffffff
 NODE_GEO = new THREE.SphereGeometry(1)
 
 class LW.EditTrack extends THREE.Object3D
-  debugNormals: false
-
   LW.mixin(@prototype, LW.Observable)
 
   constructor: (@spline) ->
@@ -88,7 +86,7 @@ class LW.EditTrack extends THREE.Object3D
 
     @selected = node
 
-    LW.track?.wireframe = !!node || LW.track.forceWireframe
+    LW.track?.wireframe = !!node
     @changed()
 
     if node
@@ -104,7 +102,7 @@ class LW.EditTrack extends THREE.Object3D
     @controlPoints = []
 
     @model = LW.model if @model != LW.model
-    return if !@model or LW.renderer.onRideCamera
+    return if !@model or @model.onRideCamera
 
     for point, i in @model.points
       node = new THREE.Mesh(NODE_GEO, new THREE.MeshLambertMaterial(color: CONTROL_COLOR))
@@ -118,7 +116,7 @@ class LW.EditTrack extends THREE.Object3D
 
   renderCurve: ->
     @remove(@line) if @line
-    return if LW.renderer.onRideCamera
+    return if @model.onRideCamera
 
     geo = new THREE.Geometry
     for point in @model.points

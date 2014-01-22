@@ -2,6 +2,8 @@ class LW.GUIController
   constructor: ->
     @gui = new dat.GUI()
 
+    @modelProxy = new LW.TrackModel
+
     @vertexProxy = new THREE.Vector4
     @vertexFolder = @gui.addFolder("Vertex Properties")
     @vertexFolder.add(@vertexProxy, 'x', -250, 250).onChange(@changeVertex)
@@ -13,10 +15,10 @@ class LW.GUIController
 
     @viewFolder = @gui.addFolder("View Properties")
     @viewFolder.add(LW.renderer, 'showFPS').name("show FPS").onChange(@changeShowFPS)
-    @viewFolder.add(LW.renderer, 'onRideCamera').name("ride camera").onChange(@changeOnRideCamera)
     @viewFolder.add(LW.renderer, 'useQuadView').name("quad view")
-    @viewFolder.add(LW.track, 'forceWireframe').name("force wireframe").onChange(@changeForceWireframe)
-    @viewFolder.add(LW.track, 'debugNormals').name("show normals").onChange -> LW.track?.rebuild()
+    @viewFolder.add(@modelProxy, 'onRideCamera').name("ride camera").onChange(@changeOnRideCamera)
+    @viewFolder.add(@modelProxy, 'forceWireframe').name("force wireframe").onChange(@changeForceWireframe)
+    @viewFolder.add(@modelProxy, 'debugNormals').name("show normals").onChange(@changeDebugNormals)
 
     @addSaveBar()
     @loadTracks()
@@ -47,21 +49,32 @@ class LW.GUIController
       node.parentNode.removeChild(node)
 
   changeOnRideCamera: (value) =>
+    LW.model.onRideCamera = value
+
     if value
       @oldCamPos = LW.renderer.camera.position.clone()
       @oldCamRot = LW.renderer.camera.rotation.clone()
       LW.renderer.scene.remove(LW.edit)
     else
+      @oldCamPos ||= LW.renderer.defaultCamPos
+      @oldCamRot ||= LW.renderer.defaultCamRot
+
       LW.renderer.camera.position.copy(@oldCamPos)
       LW.renderer.camera.rotation.copy(@oldCamRot)
       LW.renderer.scene.add(LW.edit)
 
   changeForceWireframe: (value) ->
+    LW.model.forceWireframe = value
+
     if value
       LW.track?.wireframe = true
     else
       LW.track?.wireframe = !!LW.edit?.selected
 
+    LW.track?.rebuild()
+
+  changeDebugNormals: (value) ->
+    LW.model.debugNormals = value
     LW.track?.rebuild()
 
   newTrack: ->
@@ -106,6 +119,10 @@ class LW.GUIController
       track.fromJSON(json)
 
     LW.model = track
+
+    @modelProxy.fromJSON(track.toJSON())
+    @updateFolder('viewFolder', false)
+
     LW.edit?.rebuild()
     LW.track?.rebuild()
     LW.train?.start()
@@ -177,115 +194,13 @@ class LW.GUIController
     option.selected = true
     @dropdown.appendChild(option)
 
-###
-    @gui.save = => @saveTrack()
-    @gui.saveAs = (name) => @newTrack(name)
-    @gui.getSaveObject = => @getSaveObject()
-    @gui.revert = @revert
+dat.controllers.BooleanController::updateDisplay = ->
+  @__prev = @getValue()
 
-    @tracks = {}
-    @gui.load.remembered = @tracks
-    @gui.remember(this)
+  if @__prev == true
+    @__checkbox.setAttribute('checked', 'checked')
+    @__checkbox.checked = true
+  else
+    @__checkbox.checked = false
 
-    if trackNames = localStorage.getItem('tracks')
-      for name in JSON.parse(trackNames)
-        json = JSON.parse(localStorage.getItem("track.#{name}"))
-        track = LW.BezierPath.fromJSON(json)
-        track.name = name
-        @tracks[name] = track
-        @gui.addPresetOption(@gui, name, true)
-
-      @setTrack(@tracks[name])
-    else
-      @newTrack('Untitled')
-
-  saveTrack: ->
-    localStorage.setItem("track.#{@track.name}", JSON.stringify(@track.toJSON()))
-
-  newTrack: (name) ->
-    track = new LW.BezierPath([
-      new LW.Point(-25,0,0, -10,0,0, 10,0,0)
-      new LW.Point(25,0,0, -10,0,0, 10,0,0)
-    ])
-
-    track.name = name
-    @tracks[name] = track
-
-    @gui.addPresetOption(@gui, name, true)
-
-    names = (name for name of @tracks)
-    localStorage.setItem('tracks', JSON.stringify(names))
-
-    @setTrack(track)
-    @saveTrack()
-
-  getSaveObject: ->
-    return @track.toJSON()
-
-  setTrack: (track) ->
-    @track = track
-
-    LW.edit.rebuild(track)
-    LW.track.rebuild(track)
-
-    # file.add(this, '')
-
-    # @gui = new dat.GUI()
-    # @gui.add(@renderer, 'useQuadView')
-
-    # file = @gui.addFolder('File')
-    # file.add()
-
-    # @trackFolder = @gui.addFolder('Track')
-    # @trackFolder.open()
-
-    # @trackFolder.addColor(spineColor: "#ff0000", 'spineColor').onChange (value) => @track.spineMaterial.color.setHex(value.replace('#', '0x'))
-    # @trackFolder.addColor(tieColor: "#ff0000", 'tieColor').onChange (value) => @track.tieMaterial.color.setHex(value.replace('#', '0x'))
-    # @trackFolder.addColor(railColor: "#ff0000", 'railColor').onChange (value) => @track.railMaterial.color.setHex(value.replace('#', '0x'))
-    # @trackFolder.add(@track, 'forceWireframe')
-    # @trackFolder.add(@track, 'debugNormals').onChange => @track.rebuild()
-    # @trackFolder.add(@spline, 'isConnected').onChange (value) =>
-    #   @spline.isConnected = value
-    #   @edit.changed(true)
-
-    # @trackFolder.add({addPoint: =>
-    #   @spline.addControlPoint(@spline.getPoint(1).clone().add(new THREE.Vector3(40, 0, 0)))
-    #   @edit.renderTrack()
-    #   @track.rebuild()
-
-    #   @edit.selectNode()
-    # }, 'addPoint')
-
-    # @onRideCamera = false
-    # @trainFolder = @gui.addFolder('Train')
-    # @trainFolder.open()
-
-    # @trainFolder.addColor(color: '#ffffff', 'color').onChange (value) => @train.carMaterial.color.setHex(value.replace('#', '0x'))
-    # @trainFolder.add(@train, 'movementSpeed', 0.01, 0.1)
-    # @trainFolder.add(@train, 'numberOfCars', 0, 8).step(1).onChange (value) => @train.rebuild()
-    # @trainFolder.add(this, 'onRideCamera').onChange (value) =>
-    #   if value
-    #     @oldCamPos = @renderer.camera.position.clone()
-    #     @oldCamRot = @renderer.camera.rotation.clone()
-    #     LW.renderer.scene.remove(@edit)
-    #   else
-    #     @renderer.camera.position.copy(@oldCamPos)
-    #     @renderer.camera.rotation.copy(@oldCamRot)
-    #     LW.renderer.scene.add(@edit)
-
-    # @selected = {x: 0, y: 0, z: 0, bank: 0}
-    # updateVector = (index, value) =>
-    #   return if not @selected.node
-    #   if index in ['x', 'y', 'z']
-    #     @selected.node.position[index] = value
-    #   else
-    #     @selected.node.point[index] = value
-
-    #   @edit.changed(true)
-
-    # @pointFolder = @gui.addFolder('Point')
-    # @pointFolder.add(@selected, 'x').onChange (value) -> updateVector('x', value)
-    # @pointFolder.add(@selected, 'y').onChange (value) -> updateVector('y', value)
-    # @pointFolder.add(@selected, 'z').onChange (value) -> updateVector('z', value)
-    # @pointFolder.add(@selected, 'bank').onChange (value) -> updateVector('bank', value)
-###
+  return dat.controllers.BooleanController.superclass::updateDisplay.call(this)

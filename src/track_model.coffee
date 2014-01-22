@@ -4,6 +4,11 @@ class LW.TrackModel
   spline: null
   isConnected: false
 
+  onRideCamera: false
+
+  forceWireframe: false
+  debugNormals: false
+
   constructor: (@points) ->
     @rebuild()
 
@@ -22,10 +27,15 @@ class LW.TrackModel
     return 0
 
   toJSON: ->
-    return {@name, @points, @isConnected}
+    return {
+            @name,
+            @points, @isConnected,
+            @onRideCamera,
+            @forceWireframe, @debugNormals
+           }
 
   fromJSON: (json) ->
-    {@name, @isConnected} = json
+    {@name, @isConnected, @onRideCamera, @forceWireframe, @debugNormals} = json
 
     @points = for p in json.points
       new THREE.Vector4(p.x, p.y, p.z, p.w)

@@ -1,7 +1,9 @@
 class LW.Renderer
-  onRideCamera: false
-  useQuadView: false
   showFPS: true
+  useQuadView: false
+
+  defaultCamPos: new THREE.Vector3(0, 0, 60)
+  defaultCamRot: new THREE.Euler(0, 0, 0, 'XYZ')
 
   constructor: (container) ->
     @renderer = new THREE.WebGLRenderer(antialias: true)
@@ -27,7 +29,8 @@ class LW.Renderer
 
     @camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000)
     @camera.shouldRotate = true
-    @camera.position.z += 60
+    @camera.position.copy(@defaultCamPos)
+    @camera.rotation.copy(@defaultCamRot)
 
     zoom = 16
     x = window.innerWidth / zoom

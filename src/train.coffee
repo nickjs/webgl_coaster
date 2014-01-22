@@ -111,7 +111,7 @@ class LW.Train extends THREE.Object3D
         zero.set(0, 0, 0)
         mat.set(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1)
 
-        if i == 0 and LW.renderer.onRideCamera
+        if i == 0 and model.onRideCamera
           LW.renderer.camera.position.copy(pos).add(@track.onRideCameraOffset.clone().applyMatrix4(mat))
           LW.renderer.camera.rotation.setFromRotationMatrix(mat)
 

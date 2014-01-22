@@ -13,9 +13,6 @@ class LW.TrackMesh extends THREE.Object3D
   tieShapeNeedsUpdate: true
 
   wireframe: false
-  forceWireframe: false
-
-  debugNormals: false
 
   constructor: (options) ->
     super()
@@ -30,6 +27,8 @@ class LW.TrackMesh extends THREE.Object3D
 
     @model = LW.model if @model != LW.model
     return if !@model
+
+    @wireframe = true if @model.forceWireframe
 
     @prepareRails()
     @prepareTies()
@@ -57,7 +56,7 @@ class LW.TrackMesh extends THREE.Object3D
         @tieStep(pos, normal, binormal, spineSteps % 7 == 0)
         @spineStep(pos, normal, binormal)
 
-        if @debugNormals
+        if @model.debugNormals
           @add(new THREE.ArrowHelper(normal, pos, 5, 0x00ff00))
           @add(new THREE.ArrowHelper(binormal, pos, 5, 0x0000ff))
 
