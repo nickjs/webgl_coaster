@@ -88,14 +88,9 @@ class LW.GUIController
     else
       node.parentNode.removeChild(node)
 
-  changeOnRideCamera: (value) =>
+  changeOnRideCamera: (value) ->
     LW.model.onRideCamera = value
-
-    if value
-      LW.renderer.scene.remove(LW.edit)
-    else
-      LW.edit.rebuild()
-      LW.renderer.scene.add(LW.edit)
+    LW.edit.rebuild()
 
   changeForceWireframe: (value) ->
     LW.model.forceWireframe = value
