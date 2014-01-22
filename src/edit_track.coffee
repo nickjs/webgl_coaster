@@ -36,8 +36,6 @@ class LW.EditTrack extends THREE.Object3D
       @rerenderTimeout = setTimeout =>
         @rerenderTimeout = null
 
-        LW.model.rebuild()
-
         @renderCurve()
         LW.track?.rebuild()
       , 50
