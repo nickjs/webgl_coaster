@@ -1,7 +1,7 @@
 class LW.Renderer
   useQuadView: false
 
-  constructor: ->
+  constructor: (container) ->
     @renderer = new THREE.WebGLRenderer(antialias: true)
     @renderer.setSize(window.innerWidth, window.innerHeight)
     @renderer.setClearColor(0xf0f0f0)
@@ -15,9 +15,13 @@ class LW.Renderer
     @renderer.shadowMapType = THREE.PCFSoftShadowMap
 
     @domElement = @renderer.domElement
+    container.appendChild(@domElement)
+
+    @stats = new Stats
+    container.appendChild(@stats.domElement)
 
     @scene = new THREE.Scene
-    @clock = new THREE.Clock()
+    @clock = new THREE.Clock
 
     @camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000)
     @camera.shouldRotate = true
@@ -85,5 +89,7 @@ class LW.Renderer
       @renderer.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
 
     @renderer.render(@scene, @camera)
+
+    @stats.update()
 
     requestAnimationFrame(@render)

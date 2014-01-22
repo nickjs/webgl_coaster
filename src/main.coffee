@@ -34,15 +34,14 @@ THREE.Vector4::copy = (v) ->
 
 window.LW =
   init: ->
-    renderer = @renderer = new LW.Renderer
-    document.body.appendChild(renderer.domElement)
+    renderer = @renderer = new LW.Renderer(document.body)
 
     terrain = new LW.Terrain(renderer)
 
-    @edit = new LW.EditTrack()
+    @edit = new LW.EditTrack
     renderer.scene.add(@edit)
 
-    @track = new LW.BMInvertedTrack()
+    @track = new LW.BMInvertedTrack
     renderer.scene.add(@track)
 
     @train = new LW.Train(@track, numberOfCars: 4)
