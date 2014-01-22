@@ -91,19 +91,10 @@ class LW.GUIController
     LW.model.onRideCamera = value
 
     if value
-      @oldCamPos = LW.renderer.camera.position.clone()
-      @oldCamRot = LW.renderer.camera.rotation.clone()
       LW.renderer.scene.remove(LW.edit)
     else
-      @oldCamPos ||= LW.renderer.defaultCamPos
-      @oldCamRot ||= LW.renderer.defaultCamRot
-
-      LW.renderer.camera.position.copy(@oldCamPos)
-      LW.renderer.camera.rotation.copy(@oldCamRot)
       LW.edit.rebuild()
-
       LW.renderer.scene.add(LW.edit)
-
 
   changeForceWireframe: (value) ->
     LW.model.forceWireframe = value
