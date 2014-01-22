@@ -34,12 +34,16 @@ class LW.TrackModel
 
   positionOnSpline: (seekingPos) ->
     totalLength = Math.ceil(@spline.getLength()) * 10
+    bestDistance = {t: 0, distance: 10}
     for i in [0..totalLength]
       u = i / totalLength
       currentPos = @spline.getPointAt(u)
       distance = currentPos.distanceTo(seekingPos)
-      if currentPos.distanceTo(seekingPos) <= 5 # FIXME
-        return u
+      if distance < bestDistance.distance
+        bestDistance.t = u
+        bestDistance.distance = distance
+
+    return bestDistance.t
 
   addRollPoint: (t, amount) ->
     @rollPoints.push(new THREE.Vector2(t, amount))
