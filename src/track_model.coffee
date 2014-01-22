@@ -34,7 +34,8 @@ class LW.TrackModel
 
     @spline = new THREE.NURBSCurve(3, knots, @points)
 
-    @rollSpline = new THREE.SplineCurve(@rollPoints)
+    @rollSpline ||= new LW.RollCurve(@rollPoints)
+    @rollSpline.rebuild()
 
   positionOnSpline: (seekingPos) ->
     totalLength = Math.ceil(@spline.getLength()) * 10
@@ -51,9 +52,10 @@ class LW.TrackModel
 
   addRollPoint: (t, amount) ->
     @rollPoints.push(new THREE.Vector2(t, amount))
+    @rollSpline.rebuild()
 
   getBankAt: (t) ->
-    return @rollSpline.getPoint(t).y
+    return @rollSpline.getPoint(t)
 
   toJSON: ->
     return {

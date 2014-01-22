@@ -3,6 +3,7 @@
 
 #= require gui_controller
 #= require renderer
+#= require roll_curve
 #= require terrain
 #= require track_mesh
 #= require track_model
