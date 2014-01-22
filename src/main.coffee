@@ -1,4 +1,6 @@
 #= require_self
+#= require observable
+
 #= require gui_controller
 #= require renderer
 #= require terrain
@@ -15,25 +17,35 @@ THREE.Mesh::constructor = THREE.Mesh
 THREE.CurvePath::constructor = THREE.CurvePath
 
 THREE.Object3D::clear = ->
+  child = @children[0]
+  while child
+    @remove(child)
     child = @children[0]
-    while child
-      @remove(child)
-      child = @children[0]
+
+THREE.Vector4::copy = (v) ->
+  @x = v.x
+  @y = v.y
+  @z = v.z
+
+  if v.w?
+    @w = v.w
+  if !@w?
+    @w = 1
 
 window.LW =
   init: ->
-    renderer = @renderer = new LW.Renderer
-    document.body.appendChild(renderer.domElement)
+    renderer = @renderer = new LW.Renderer(document.body)
 
     terrain = new LW.Terrain(renderer)
 
-    @edit = new LW.EditTrack()
+    @edit = new LW.EditTrack
     renderer.scene.add(@edit)
 
-    @track = new LW.BMInvertedTrack()
+    @track = new LW.BMInvertedTrack
     renderer.scene.add(@track)
 
     @train = new LW.Train(@track, numberOfCars: 4)
+    @train.start()
     renderer.scene.add(@train)
 
     @gui = new LW.GUIController
@@ -44,5 +56,9 @@ window.LW =
       @edit?.transformControl?.update()
 
     renderer.render()
+
+  mixin: (context, mixin) ->
+    for own key, val of mixin
+      context[key] = val
 
 window.onload = -> LW.init()

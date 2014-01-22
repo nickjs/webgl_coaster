@@ -1,7 +1,11 @@
 class LW.Renderer
+  showFPS: true
   useQuadView: false
 
-  constructor: ->
+  defaultCamPos: new THREE.Vector3(0, 0, 60)
+  defaultCamRot: new THREE.Euler(0, 0, 0, 'XYZ')
+
+  constructor: (container) ->
     @renderer = new THREE.WebGLRenderer(antialias: true)
     @renderer.setSize(window.innerWidth, window.innerHeight)
     @renderer.setClearColor(0xf0f0f0)
@@ -15,13 +19,18 @@ class LW.Renderer
     @renderer.shadowMapType = THREE.PCFSoftShadowMap
 
     @domElement = @renderer.domElement
+    container.appendChild(@domElement)
+
+    @stats = new Stats
+    container.appendChild(@stats.domElement) if @showFPS
 
     @scene = new THREE.Scene
-    @clock = new THREE.Clock()
+    @clock = new THREE.Clock
 
     @camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000)
     @camera.shouldRotate = true
-    @camera.position.z += 60
+    @camera.position.copy(@defaultCamPos)
+    @camera.rotation.copy(@defaultCamRot)
 
     zoom = 16
     x = window.innerWidth / zoom
@@ -71,8 +80,6 @@ class LW.Renderer
     @renderer.clear()
 
     if @useQuadView
-      mat.wireframe = true for mat in LW.track.materials
-
       @renderer.setViewport(1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2)
       @renderer.render(@scene, @topCamera)
 
@@ -86,7 +93,8 @@ class LW.Renderer
     else
       @renderer.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
 
-    mat.wireframe = LW.track.forceWireframe || false for mat in LW.track.materials
     @renderer.render(@scene, @camera)
+
+    @stats.update()
 
     requestAnimationFrame(@render)

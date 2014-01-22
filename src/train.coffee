@@ -1,16 +1,14 @@
 class LW.Train extends THREE.Object3D
-  constructor: (@track, options = {}) ->
+  velocity: 20
+  initialVelocity: 20
+  displacement: 0
+
+  numberOfCars: 1
+
+  constructor: (@track, options) ->
     super()
 
-    {
-      @numberOfCars, @velocity
-    } = options
-
-    @cars = []
-
-    @numberOfCars ?= 1
-    @velocity = 20
-    @displacement = 0
+    LW.mixin(this, options)
 
     if track?.carModel
       loader = new THREE.ColladaLoader
@@ -19,8 +17,12 @@ class LW.Train extends THREE.Object3D
         @carProto.scale.copy(track.carScale)
         @carRot = new THREE.Matrix4().makeRotationFromEuler(track.carRotation, 'XYZ')
 
-        for child in @carProto.children
-          child.castShadow = true
+        sizeVector = new THREE.Vector3
+        @carProto.traverse (child) ->
+          if child instanceof THREE.Mesh
+            child.geometry.computeBoundingBox()
+            if child.geometry.boundingBox.size(sizeVector).lengthSq() > 10000
+              child.castShadow = true
 
         @rebuild()
     else
@@ -31,9 +33,10 @@ class LW.Train extends THREE.Object3D
       @rebuild()
 
   rebuild: ->
-    @remove(@cars.pop()) while @cars.length
+    @clear()
+    @cars = []
 
-    if @numberOfCars
+    if @numberOfCars && @carProto
       for i in [1..@numberOfCars]
         car = @carProto.clone()
 
@@ -43,7 +46,16 @@ class LW.Train extends THREE.Object3D
         @cars.push(car)
         @add(car)
 
-    @currentTime = 0.0
+  start: ->
+    @shouldSimulate = true
+    @velocity = @initialVelocity
+    @displacement = 0
+    @rebuild()
+
+  stop: ->
+    @shouldSimulate = false
+    @clear()
+    @cars = []
 
   up = new THREE.Vector3(0, 1, 0)
   down = new THREE.Vector3(0, -1, 0)
@@ -52,11 +64,11 @@ class LW.Train extends THREE.Object3D
   mat = new THREE.Matrix4()
 
   simulate: (delta) ->
-    return if !@numberOfCars or !(model = @track.model)
+    return if !@shouldSimulate or !@cars.length or !(model = @track.model)
 
     if @lastTangent
       alpha = down.angleTo(@lastTangent)
-      a = 9.81 * Math.cos(alpha)
+      a = 29.43 * Math.cos(alpha)
       @velocity = @velocity + a * delta
 
     @displacement = @displacement + @velocity * delta
@@ -99,11 +111,11 @@ class LW.Train extends THREE.Object3D
         zero.set(0, 0, 0)
         mat.set(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1)
 
+        if i == 0 and model.onRideCamera
+          LW.renderer.camera.position.copy(pos).add(@track.onRideCameraOffset.clone().applyMatrix4(mat))
+          LW.renderer.camera.rotation.setFromRotationMatrix(mat)
+
         car.position.copy(pos).add(zero.applyMatrix4(mat))
         car.rotation.setFromRotationMatrix(mat.multiply(@carRot))
-
-        if LW.onRideCamera
-          LW.renderer.camera.position.copy(pos).add(new THREE.Vector3(0, 3, 0).applyMatrix4(mat))
-          LW.renderer.camera.rotation.setFromRotationMatrix(mat)
 
     return

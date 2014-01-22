@@ -1,11 +1,20 @@
 CONTROL_COLOR = 0x0000ee
-POINT_COLOR = 0xdddddd
+ROLL_NODE_COLOR = 0x00ff00
 SELECTED_COLOR = 0xffffff
 
 NODE_GEO = new THREE.SphereGeometry(1)
+ROLL_NODE_GEO = new THREE.CylinderGeometry(1, 2, 0.5)
+
+MODES = {
+  SELECT: 'select'
+  ADD_ROLL: 'add roll'
+}
 
 class LW.EditTrack extends THREE.Object3D
-  debugNormals: false
+  @MODES: MODES
+  mode: MODES.SELECT
+
+  LW.mixin(@prototype, LW.Observable)
 
   constructor: (@spline) ->
     super()
@@ -21,33 +30,27 @@ class LW.EditTrack extends THREE.Object3D
 
     @transformControl.addEventListener 'change', =>
       LW.controls?.enabled = @transformControl.axis == undefined
+    @transformControl.addEventListener 'move', =>
       @changed()
 
     LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
 
-  changed: (force) ->
-    if @selected and @transformControl.axis != undefined
-      if @selectedHandle
-        @selected.line.geometry.verticesNeedUpdate = true
+  changed: ->
+    if @selected
+      @selected.point.copy(@selected.position)
 
-        oppositeHandle = if @selectedHandle == @selected.left then @selected.right else @selected.left
-        oppositeHandle.position.copy(@selectedHandle.position).negate()
+    if !@rerenderTimeout
+      @rerenderTimeout = setTimeout =>
+        @rerenderTimeout = null
 
-    if @selected || force
+        @renderCurve()
+        LW.track?.rebuild()
+      , 50
 
-      if !@rerenderTimeout
-        @rerenderTimeout = setTimeout =>
-          @rerenderTimeout = null
+    @fire('vertexChanged', @selected)
 
-          @model.rebuild()
-          @renderCurve()
-          LW.track.rebuild()
-        , 10
-
-    return
-
-  pick: (pos, objects) ->
+  pick: (pos, objects, deep) ->
     camera = LW.controls.camera
     {x, y} = pos
 
@@ -62,11 +65,13 @@ class LW.EditTrack extends THREE.Object3D
     if camera instanceof THREE.PerspectiveCamera
       @projector.unprojectVector(vector, camera)
       @raycaster.set(camera.position, vector.sub(camera.position).normalize())
-      return @raycaster.intersectObjects(objects)
+      if Array.isArray(objects)
+        return @raycaster.intersectObjects(objects, deep)
+      else
+        return @raycaster.intersectObject(objects, deep)
     else
       ray = @projector.pickingRay(vector, camera)
       return ray.intersectObjects(objects)
-
 
   onMouseDown: (event) =>
     @mouseDown.x = event.clientX / window.innerWidth
@@ -81,50 +86,57 @@ class LW.EditTrack extends THREE.Object3D
     @mouseUp.y = event.clientY / window.innerHeight
 
     if @mouseDown.distanceTo(@mouseUp) == 0
-      nodes = if @selected
-        @controlPoints.concat([@selected.left, @selected.right])
-      else
-        @controlPoints
-
-      intersects = @pick(@mouseUp, nodes)
-      @transformControl.detach()
-
-      if intersects.length > 0
-        object = intersects[0].object
-
-        if object.isControl
-          @selectedHandle = null
-          @selectNode(object)
-        else
-          @selectedHandle = object
-          @transformControl.attach(object)
-      else
-        @selectedHandle = null
-        @selectNode(null)
+      switch @mode
+        when MODES.SELECT
+          intersects = @pick(@mouseUp, @controlPoints)
+          @selectNode(intersects[0]?.object)
+        when MODES.ADD_ROLL
+          intersects = @pick(@mouseUp, LW.track, true)
+          if point = intersects[0]?.point
+            @model.addRollPoint(@model.positionOnSpline(point), Math.floor(Math.random()*300))
+            @rebuild()
+            LW.track.rebuild()
 
     @isMouseDown = false
 
   selectNode: (node) ->
-    if node == undefined
-      node = @controlPoints[@controlPoints.length - 1]
+    return if @selected == node
 
-    @selected?.select(false)
+    @selected?.material.color.setHex(CONTROL_COLOR)
+    @transformControl.detach()
+
     @selected = node
 
+    LW.track?.wireframe = !!node
+    @changed()
+
     if node
-      node.select(true)
+      node.material.color.setHex(SELECTED_COLOR)
       @transformControl.attach(node)
+
+      LW.train?.stop()
+    else
+      LW.train?.start()
 
   rebuild: ->
     @clear()
     @controlPoints = []
 
     @model = LW.model if @model != LW.model
-    return if !@model # or LW.onRideCamera
+    return if !@model or @model.onRideCamera
 
     for point, i in @model.points
       node = new THREE.Mesh(NODE_GEO, new THREE.MeshLambertMaterial(color: CONTROL_COLOR))
       node.position.copy(point)
+      node.point = point
+
+      @add(node)
+      @controlPoints.push(node)
+
+    for point, i in @model.rollPoints
+      node = new THREE.Mesh(ROLL_NODE_GEO, new THREE.MeshLambertMaterial(color: ROLL_NODE_COLOR))
+      node.position.copy(@model.spline.getPointAt(point.x))
+      node.point = point
 
       @add(node)
       @controlPoints.push(node)
@@ -133,7 +145,7 @@ class LW.EditTrack extends THREE.Object3D
 
   renderCurve: ->
     @remove(@line) if @line
-    return if LW.onRideCamera
+    return if @model.onRideCamera
 
     geo = new THREE.Geometry
     for point in @model.points

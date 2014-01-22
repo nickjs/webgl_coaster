@@ -1,10 +1,97 @@
 class LW.GUIController
   constructor: ->
     @gui = new dat.GUI()
-    @gui.addColor(color: '#ffffff', 'color')
+
+    @modelProxy = new LW.TrackModel
+    @segmentProxy = new LW.TrackModel
+    @vertexProxy = new THREE.Vector4
+
+    @gui.add(LW.edit, 'mode', (val for own key, val of LW.EditTrack.MODES)).name("tool")
+
+    @vertexFolder = @gui.addFolder("Vertex Properties")
+    @vertexFolder.add(@vertexProxy, 'x', -250, 250).onChange(@changeVertex)
+    @vertexFolder.add(@vertexProxy, 'y', 0, 500).onChange(@changeVertex)
+    @vertexFolder.add(@vertexProxy, 'z', -250, 250).onChange(@changeVertex)
+    @vertexFolder.add(@vertexProxy, 'w', 0, Math.PI).name("weight").onChange(@changeVertex)
+
+    LW.edit.observe('vertexChanged', @vertexChanged)
+
+    @styleFolder = @gui.addFolder("Style Properties")
+    @styleFolder.addColor(@segmentProxy, 'spineColor').name("spine color").onChange(@changeColor('spine'))
+    @styleFolder.addColor(@segmentProxy, 'tieColor').name("tie color").onChange(@changeColor('tie'))
+    @styleFolder.addColor(@segmentProxy, 'railColor').name("rail color").onChange(@changeColor('rail'))
+    @styleFolder.addColor(@segmentProxy, 'wireframeColor').name("wireframe color").onChange(@changeColor('wireframe'))
+
+    @viewFolder = @gui.addFolder("View Properties")
+    @viewFolder.add(LW.renderer, 'showFPS').name("show FPS").onChange(@changeShowFPS)
+    @viewFolder.add(LW.renderer, 'useQuadView').name("quad view")
+    @viewFolder.add(@modelProxy, 'onRideCamera').name("ride camera").onChange(@changeOnRideCamera)
+    @viewFolder.add(@modelProxy, 'forceWireframe').name("force wireframe").onChange(@changeForceWireframe)
+    @viewFolder.add(@modelProxy, 'debugNormals').name("show normals").onChange(@changeDebugNormals)
 
     @addSaveBar()
     @loadTracks()
+
+  updateFolder: (folderKey, openFolder) ->
+    controller.updateDisplay() for controller in @[folderKey].__controllers
+    @[folderKey][if openFolder then 'open' else 'close']()
+
+  vertexChanged: (vertex) =>
+    if vertex
+      @vertexProxy.copy(vertex.point)
+    else
+      @vertexProxy.set(0, 0, 0)
+
+    @updateFolder('vertexFolder', !!vertex)
+
+  changeVertex: =>
+    LW.edit.transformControl.update()
+    LW.edit.selected.position.copy(@vertexProxy)
+    LW.edit.selected.point.copy(@vertexProxy)
+    LW.edit.changed()
+
+  changeColor: (key) ->
+    return (value) ->
+      LW.model["#{key}Color"] = value
+      LW.track?.updateMaterials()
+
+  changeShowFPS: (value) ->
+    node = LW.renderer.stats.domElement
+    if value
+      LW.renderer.domElement.parentNode.appendChild(node)
+    else
+      node.parentNode.removeChild(node)
+
+  changeOnRideCamera: (value) =>
+    LW.model.onRideCamera = value
+
+    if value
+      @oldCamPos = LW.renderer.camera.position.clone()
+      @oldCamRot = LW.renderer.camera.rotation.clone()
+      LW.renderer.scene.remove(LW.edit)
+    else
+      @oldCamPos ||= LW.renderer.defaultCamPos
+      @oldCamRot ||= LW.renderer.defaultCamRot
+
+      LW.renderer.camera.position.copy(@oldCamPos)
+      LW.renderer.camera.rotation.copy(@oldCamRot)
+      LW.renderer.scene.add(LW.edit)
+
+      LW.edit.rebuild()
+
+  changeForceWireframe: (value) ->
+    LW.model.forceWireframe = value
+
+    if value
+      LW.track?.wireframe = true
+    else
+      LW.track?.wireframe = !!LW.edit?.selected
+
+    LW.track?.rebuild()
+
+  changeDebugNormals: (value) ->
+    LW.model.debugNormals = value
+    LW.track?.rebuild()
 
   newTrack: ->
     @_addTrackToDropdown("Untitled")
@@ -22,7 +109,7 @@ class LW.GUIController
     @loadTrack(track)
 
   saveTrack: ->
-    if not LW.spline.name
+    if not LW.model.name
       name = prompt("What do you want to call this track?")
       return if !name
 
@@ -31,25 +118,31 @@ class LW.GUIController
         if !confirm("A track with name #{name} already exists. Are you sure you want to overwrite it?")
           return @saveTrack()
 
-      LW.spline.name = name
+      LW.model.name = name
 
       tracks.push(name)
       localStorage.setItem('tracks', JSON.stringify(tracks))
 
       @_addTrackToDropdown(name)
 
-    localStorage.setItem("track.#{LW.spline.name}", JSON.stringify(LW.spline.toJSON()))
+    localStorage.setItem("track.#{LW.model.name}", JSON.stringify(LW.model.toJSON()))
 
   loadTrack: (track) ->
     if typeof track is 'string'
-      name = track
-      json = JSON.parse(localStorage.getItem("track.#{name}"))
-      track = LW.BezierPath.fromJSON(json)
-      track.name = name
+      json = JSON.parse(localStorage.getItem("track.#{track}"))
+
+      track = new LW.TrackModel
+      track.fromJSON(json)
 
     LW.model = track
+
+    @modelProxy.fromJSON(track.toJSON())
+    @segmentProxy.fromJSON(track.toJSON())
+    @updateFolder('viewFolder', false)
+
     LW.edit?.rebuild()
     LW.track?.rebuild()
+    LW.train?.start()
 
   loadTracks: ->
     @dropdown.innerHTML = ''
@@ -63,11 +156,14 @@ class LW.GUIController
       else
         @newTrack()
 
-    catch
-        alert("Well, seems like I've gone and changed the track format again. Unfortunately I'll have to clear all your tracks now. Sorry mate!")
-        localStorage.clear()
+    catch e
+      console.log e
+      console.log e.stack
 
-        @loadTracks()
+      alert("Well, seems like I've gone and changed the track format again. Unfortunately I'll have to clear all your tracks now. Sorry mate!")
+      localStorage.clear()
+
+      @loadTracks()
 
   clearAllTracks: ->
     if confirm("This will remove all your tracks. Are you sure you wish to do this?")
@@ -115,115 +211,7 @@ class LW.GUIController
     option.selected = true
     @dropdown.appendChild(option)
 
-###
-    @gui.save = => @saveTrack()
-    @gui.saveAs = (name) => @newTrack(name)
-    @gui.getSaveObject = => @getSaveObject()
-    @gui.revert = @revert
-
-    @tracks = {}
-    @gui.load.remembered = @tracks
-    @gui.remember(this)
-
-    if trackNames = localStorage.getItem('tracks')
-      for name in JSON.parse(trackNames)
-        json = JSON.parse(localStorage.getItem("track.#{name}"))
-        track = LW.BezierPath.fromJSON(json)
-        track.name = name
-        @tracks[name] = track
-        @gui.addPresetOption(@gui, name, true)
-
-      @setTrack(@tracks[name])
-    else
-      @newTrack('Untitled')
-
-  saveTrack: ->
-    localStorage.setItem("track.#{@track.name}", JSON.stringify(@track.toJSON()))
-
-  newTrack: (name) ->
-    track = new LW.BezierPath([
-      new LW.Point(-25,0,0, -10,0,0, 10,0,0)
-      new LW.Point(25,0,0, -10,0,0, 10,0,0)
-    ])
-
-    track.name = name
-    @tracks[name] = track
-
-    @gui.addPresetOption(@gui, name, true)
-
-    names = (name for name of @tracks)
-    localStorage.setItem('tracks', JSON.stringify(names))
-
-    @setTrack(track)
-    @saveTrack()
-
-  getSaveObject: ->
-    return @track.toJSON()
-
-  setTrack: (track) ->
-    @track = track
-
-    LW.edit.rebuild(track)
-    LW.track.rebuild(track)
-
-    # file.add(this, '')
-
-    # @gui = new dat.GUI()
-    # @gui.add(@renderer, 'useQuadView')
-
-    # file = @gui.addFolder('File')
-    # file.add()
-
-    # @trackFolder = @gui.addFolder('Track')
-    # @trackFolder.open()
-
-    # @trackFolder.addColor(spineColor: "#ff0000", 'spineColor').onChange (value) => @track.spineMaterial.color.setHex(value.replace('#', '0x'))
-    # @trackFolder.addColor(tieColor: "#ff0000", 'tieColor').onChange (value) => @track.tieMaterial.color.setHex(value.replace('#', '0x'))
-    # @trackFolder.addColor(railColor: "#ff0000", 'railColor').onChange (value) => @track.railMaterial.color.setHex(value.replace('#', '0x'))
-    # @trackFolder.add(@track, 'forceWireframe')
-    # @trackFolder.add(@track, 'debugNormals').onChange => @track.rebuild()
-    # @trackFolder.add(@spline, 'isConnected').onChange (value) =>
-    #   @spline.isConnected = value
-    #   @edit.changed(true)
-
-    # @trackFolder.add({addPoint: =>
-    #   @spline.addControlPoint(@spline.getPoint(1).clone().add(new THREE.Vector3(40, 0, 0)))
-    #   @edit.renderTrack()
-    #   @track.rebuild()
-
-    #   @edit.selectNode()
-    # }, 'addPoint')
-
-    # @onRideCamera = false
-    # @trainFolder = @gui.addFolder('Train')
-    # @trainFolder.open()
-
-    # @trainFolder.addColor(color: '#ffffff', 'color').onChange (value) => @train.carMaterial.color.setHex(value.replace('#', '0x'))
-    # @trainFolder.add(@train, 'movementSpeed', 0.01, 0.1)
-    # @trainFolder.add(@train, 'numberOfCars', 0, 8).step(1).onChange (value) => @train.rebuild()
-    # @trainFolder.add(this, 'onRideCamera').onChange (value) =>
-    #   if value
-    #     @oldCamPos = @renderer.camera.position.clone()
-    #     @oldCamRot = @renderer.camera.rotation.clone()
-    #     LW.renderer.scene.remove(@edit)
-    #   else
-    #     @renderer.camera.position.copy(@oldCamPos)
-    #     @renderer.camera.rotation.copy(@oldCamRot)
-    #     LW.renderer.scene.add(@edit)
-
-    # @selected = {x: 0, y: 0, z: 0, bank: 0}
-    # updateVector = (index, value) =>
-    #   return if not @selected.node
-    #   if index in ['x', 'y', 'z']
-    #     @selected.node.position[index] = value
-    #   else
-    #     @selected.node.point[index] = value
-
-    #   @edit.changed(true)
-
-    # @pointFolder = @gui.addFolder('Point')
-    # @pointFolder.add(@selected, 'x').onChange (value) -> updateVector('x', value)
-    # @pointFolder.add(@selected, 'y').onChange (value) -> updateVector('y', value)
-    # @pointFolder.add(@selected, 'z').onChange (value) -> updateVector('z', value)
-    # @pointFolder.add(@selected, 'bank').onChange (value) -> updateVector('bank', value)
-###
+oldUpdateDisplay = dat.controllers.BooleanController::updateDisplay
+dat.controllers.BooleanController::updateDisplay = ->
+  @__prev = @getValue()
+  return oldUpdateDisplay.call(this)
