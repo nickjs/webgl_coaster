@@ -87,7 +87,7 @@ class LW.EditTrack extends THREE.Object3D
 
     @selected = node
 
-    LW.track?.wireframe = !!node
+    LW.track?.wireframe = !!node || LW.track.forceWireframe
     @changed()
 
     if node

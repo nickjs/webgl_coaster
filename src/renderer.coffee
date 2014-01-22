@@ -71,8 +71,6 @@ class LW.Renderer
     @renderer.clear()
 
     if @useQuadView
-      mat.wireframe = true for mat in LW.track.materials
-
       @renderer.setViewport(1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2)
       @renderer.render(@scene, @topCamera)
 

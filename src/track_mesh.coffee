@@ -13,6 +13,8 @@ class LW.TrackMesh extends THREE.Object3D
   tieShapeNeedsUpdate: true
 
   wireframe: false
+  forceWireframe: false
+
   debugNormals: false
 
   constructor: (options) ->

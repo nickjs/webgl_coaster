@@ -3,11 +3,22 @@ class LW.GUIController
     @gui = new dat.GUI()
 
     @vertexProxy = new THREE.Vector4
-    @vertex = @gui.addFolder("Vertex Properties")
-    @vertex.add(@vertexProxy, 'x', -250, 250).onChange(@changeVertex)
-    @vertex.add(@vertexProxy, 'y', 0, 500).onChange(@changeVertex)
-    @vertex.add(@vertexProxy, 'z', -250, 250).onChange(@changeVertex)
-    @vertex.add(@vertexProxy, 'w', 0, Math.PI).name('weight').onChange(@changeVertex)
+    @vertexFolder = @gui.addFolder("Vertex Properties")
+    @vertexFolder.add(@vertexProxy, 'x', -250, 250).onChange(@changeVertex)
+    @vertexFolder.add(@vertexProxy, 'y', 0, 500).onChange(@changeVertex)
+    @vertexFolder.add(@vertexProxy, 'z', -250, 250).onChange(@changeVertex)
+    @vertexFolder.add(@vertexProxy, 'w', 0, Math.PI).name("weight").onChange(@changeVertex)
+
+    @viewFolder = @gui.addFolder("View Properties")
+    @viewFolder.add(LW.renderer, 'useQuadView').name("quad view")
+    @viewFolder.add(LW.track, 'debugNormals').name("show normals")
+    @viewFolder.add(LW.track, 'forceWireframe').name("force wireframe").onChange (value) ->
+      if value
+        LW.track?.wireframe = true
+      else
+        LW.track?.wireframe = !!LW.edit?.selected
+
+      LW.track?.rebuild()
 
     LW.edit.observe('vertexChanged', @vertexChanged)
 
@@ -24,7 +35,7 @@ class LW.GUIController
     else
       @vertexProxy.set(0, 0, 0)
 
-    @updateFolder('vertex', !!vertex)
+    @updateFolder('vertexFolder', !!vertex)
 
   changeVertex: =>
     LW.edit.transformControl.update()
