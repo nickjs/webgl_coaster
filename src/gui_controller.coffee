@@ -2,8 +2,8 @@ class LW.GUIController
   constructor: ->
     @gui = new dat.GUI()
 
-    @modelProxy = new LW.TrackModel
-    @segmentProxy = new LW.TrackModel
+    @modelProxy = new LW.TrackModel(null, true)
+    @segmentProxy = new LW.TrackModel(null, true)
     @vertexProxy = new THREE.Vector4
 
     @gui.add(LW.edit, 'mode', (val for own key, val of LW.EditTrack.MODES)).name("tool")

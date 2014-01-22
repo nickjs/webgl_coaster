@@ -16,12 +16,16 @@ class LW.TrackModel
   railColor: '#ff0000'
   wireframeColor: '#0000ff'
 
-  constructor: (@points) ->
+  constructor: (@points, @proxy) ->
+    return if @proxy
+
     @rollPoints = [new THREE.Vector2(0,0), new THREE.Vector2(1,0)]
     @rebuild()
 
   rebuild: ->
+    return if @proxy
     return unless @points?.length > 1
+
     knots = [0,0,0,0]
 
     for p, i in @points
@@ -62,6 +66,7 @@ class LW.TrackModel
 
   fromJSON: (json) ->
     LW.mixin(this, json)
+    return if @proxy
 
     @points = for p in json.points
       new THREE.Vector4(p.x, p.y, p.z, p.w)
