@@ -1,4 +1,5 @@
 class LW.Renderer
+  onRideCamera: false
   useQuadView: false
   showFPS: true
 

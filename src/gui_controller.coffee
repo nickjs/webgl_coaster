@@ -19,6 +19,7 @@ class LW.GUIController
       else
         node.parentNode.removeChild(node)
 
+    @viewFolder.add(LW.renderer, 'onRideCamera').name("ride camera").onChange(@changeOnRideCamera)
     @viewFolder.add(LW.renderer, 'useQuadView').name("quad view")
     @viewFolder.add(LW.track, 'forceWireframe').name("force wireframe").onChange (value) ->
       if value
@@ -50,6 +51,16 @@ class LW.GUIController
     LW.edit.selected.position.copy(@vertexProxy)
     LW.edit.selected.point.copy(@vertexProxy)
     LW.edit.changed()
+
+  changeOnRideCamera: (value) =>
+    if value
+      @oldCamPos = LW.renderer.camera.position.clone()
+      @oldCamRot = LW.renderer.camera.rotation.clone()
+      LW.renderer.scene.remove(LW.edit)
+    else
+      LW.renderer.camera.position.copy(@oldCamPos)
+      LW.renderer.camera.rotation.copy(@oldCamRot)
+      LW.renderer.scene.add(LW.edit)
 
   newTrack: ->
     @_addTrackToDropdown("Untitled")

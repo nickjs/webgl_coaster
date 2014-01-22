@@ -66,6 +66,8 @@ class LW.BMInvertedTrack extends LW.TrackMesh
   carRotation: new THREE.Euler(-Math.PI * 0.5, 0, Math.PI, 'XYZ')
   carDistance: 9
 
+  onRideCameraOffset: new THREE.Vector3(2, -6, 0)
+
   constructor: ->
     super
 

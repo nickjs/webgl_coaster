@@ -104,7 +104,7 @@ class LW.EditTrack extends THREE.Object3D
     @controlPoints = []
 
     @model = LW.model if @model != LW.model
-    return if !@model # or LW.onRideCamera
+    return if !@model or LW.renderer.onRideCamera
 
     for point, i in @model.points
       node = new THREE.Mesh(NODE_GEO, new THREE.MeshLambertMaterial(color: CONTROL_COLOR))
@@ -118,7 +118,7 @@ class LW.EditTrack extends THREE.Object3D
 
   renderCurve: ->
     @remove(@line) if @line
-    return if LW.onRideCamera
+    return if LW.renderer.onRideCamera
 
     geo = new THREE.Geometry
     for point in @model.points
