@@ -12,23 +12,10 @@ class LW.GUIController
     LW.edit.observe('vertexChanged', @vertexChanged)
 
     @viewFolder = @gui.addFolder("View Properties")
-    @viewFolder.add(LW.renderer, 'showFPS').name("show FPS").onChange (value) ->
-      node = LW.renderer.stats.domElement
-      if value
-        LW.renderer.domElement.parentNode.appendChild(node)
-      else
-        node.parentNode.removeChild(node)
-
+    @viewFolder.add(LW.renderer, 'showFPS').name("show FPS").onChange(@changeShowFPS)
     @viewFolder.add(LW.renderer, 'onRideCamera').name("ride camera").onChange(@changeOnRideCamera)
     @viewFolder.add(LW.renderer, 'useQuadView').name("quad view")
-    @viewFolder.add(LW.track, 'forceWireframe').name("force wireframe").onChange (value) ->
-      if value
-        LW.track?.wireframe = true
-      else
-        LW.track?.wireframe = !!LW.edit?.selected
-
-      LW.track?.rebuild()
-
+    @viewFolder.add(LW.track, 'forceWireframe').name("force wireframe").onChange(@changeForceWireframe)
     @viewFolder.add(LW.track, 'debugNormals').name("show normals").onChange -> LW.track?.rebuild()
 
     @addSaveBar()
@@ -52,6 +39,13 @@ class LW.GUIController
     LW.edit.selected.point.copy(@vertexProxy)
     LW.edit.changed()
 
+  changeShowFPS: (value) ->
+    node = LW.renderer.stats.domElement
+    if value
+      LW.renderer.domElement.parentNode.appendChild(node)
+    else
+      node.parentNode.removeChild(node)
+
   changeOnRideCamera: (value) =>
     if value
       @oldCamPos = LW.renderer.camera.position.clone()
@@ -61,6 +55,14 @@ class LW.GUIController
       LW.renderer.camera.position.copy(@oldCamPos)
       LW.renderer.camera.rotation.copy(@oldCamRot)
       LW.renderer.scene.add(LW.edit)
+
+  changeForceWireframe: (value) ->
+    if value
+      LW.track?.wireframe = true
+    else
+      LW.track?.wireframe = !!LW.edit?.selected
+
+    LW.track?.rebuild()
 
   newTrack: ->
     @_addTrackToDropdown("Untitled")
