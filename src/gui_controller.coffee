@@ -35,6 +35,7 @@ class LW.GUIController
     @viewFolder.add(@modelProxy, 'onRideCamera').name("ride camera").onChange(@changeOnRideCamera)
     @viewFolder.add(@modelProxy, 'forceWireframe').name("force wireframe").onChange(@changeForceWireframe)
     @viewFolder.add(@modelProxy, 'debugNormals').name("show normals").onChange(@changeDebugNormals)
+    @viewFolder.add(LW.train.cameraHelper, 'visible').name("debug ride cam")
 
     @addSaveBar()
     @loadTracks()

@@ -33,6 +33,9 @@ class LW.Train extends THREE.Object3D
       @rebuild()
 
     @camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000)
+    @cameraHelper = new THREE.CameraHelper(@camera)
+    @cameraHelper.visible = false
+
   rebuild: ->
     @clear()
     @cars = []
@@ -47,6 +50,7 @@ class LW.Train extends THREE.Object3D
         @cars.push(car)
         @add(car)
 
+    @add(@cameraHelper)
     @add(@camera)
 
   start: ->
@@ -105,7 +109,7 @@ class LW.Train extends THREE.Object3D
         if i == 0
           @lastTangent = tangent
 
-          if model.onRideCamera
+          if model.onRideCamera || @cameraHelper.visible
             LW.positionObjectOnSpline(@camera, model.spline, deltaPoint, @track.onRideCameraOffset)
 
     return
