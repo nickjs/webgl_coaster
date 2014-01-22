@@ -24,35 +24,25 @@ class LW.EditTrack extends THREE.Object3D
       LW.controls?.enabled = @transformControl.axis == undefined
     @transformControl.addEventListener 'move', =>
       @changed()
-    @transformControl.addEventListener 'finalMove', =>
-      @changed(true)
 
     LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
 
-  changed: (forceRerender) ->
-    @rerenderTrack = true if forceRerender
-
-    LW.train?.stop() if LW.train.shouldSimulate
-
+  changed: ->
     if @selected
       @selected.point.copy(@selected.position)
-      @fire('vertexChanged', @selected)
 
     if !@rerenderTimeout
       @rerenderTimeout = setTimeout =>
         @rerenderTimeout = null
 
-        @model.rebuild()
+        LW.model.rebuild()
+
         @renderCurve()
+        LW.track?.rebuild()
+      , 50
 
-        if @rerenderTrack
-          @rerenderTrack = false
-          LW.track.rebuild()
-          LW.train?.start()
-      , 10
-
-    return
+    @fire('vertexChanged', @selected)
 
   pick: (pos, objects) ->
     camera = LW.controls.camera
@@ -73,7 +63,6 @@ class LW.EditTrack extends THREE.Object3D
     else
       ray = @projector.pickingRay(vector, camera)
       return ray.intersectObjects(objects)
-
 
   onMouseDown: (event) =>
     @mouseDown.x = event.clientX / window.innerWidth
@@ -100,11 +89,16 @@ class LW.EditTrack extends THREE.Object3D
 
     @selected = node
 
+    LW.track?.wireframe = !!node
+    @changed()
+
     if node
       node.material.color.setHex(SELECTED_COLOR)
       @transformControl.attach(node)
 
-    @fire('vertexChanged', node, lastSelected)
+      LW.train?.stop()
+    else
+      LW.train?.start()
 
   rebuild: ->
     @clear()

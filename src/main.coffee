@@ -42,7 +42,7 @@ window.LW =
     @edit = new LW.EditTrack()
     renderer.scene.add(@edit)
 
-    @track = new LW.BMInvertedTrack(wireframe: true)
+    @track = new LW.BMInvertedTrack()
     renderer.scene.add(@track)
 
     @train = new LW.Train(@track, numberOfCars: 4)
