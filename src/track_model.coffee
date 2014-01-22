@@ -9,6 +9,11 @@ class LW.TrackModel
   forceWireframe: false
   debugNormals: false
 
+  spineColor: '#ff0000'
+  tieColor: '#ff0000'
+  railColor: '#ff0000'
+  wireframeColor: '#0000ff'
+
   constructor: (@points) ->
     @rebuild()
 
@@ -31,11 +36,12 @@ class LW.TrackModel
             @name,
             @points, @isConnected,
             @onRideCamera,
-            @forceWireframe, @debugNormals
+            @forceWireframe, @debugNormals,
+            @spineColor, @tieColor, @railColor, @wireframeColor
            }
 
   fromJSON: (json) ->
-    {@name, @isConnected, @onRideCamera, @forceWireframe, @debugNormals} = json
+    LW.mixin(this, json)
 
     @points = for p in json.points
       new THREE.Vector4(p.x, p.y, p.z, p.w)

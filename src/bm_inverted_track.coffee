@@ -67,14 +67,3 @@ class LW.BMInvertedTrack extends LW.TrackMesh
   carDistance: 9
 
   onRideCameraOffset: new THREE.Vector3(2, -6, 0)
-
-  constructor: ->
-    super
-
-    @spineMaterial = new THREE.MeshPhongMaterial(color: 0xff0000, ambient: 0x090909, specular: 0x333333, shininess: 30)
-    @tieMaterial = @spineMaterial.clone()
-    @railMaterial = @spineMaterial.clone()
-
-    @wireframeMaterial = new THREE.LineBasicMaterial(color: 0x0000ff, linewidth: 2)
-
-    @materials = [@spineMaterial, @tieMaterial, @railMaterial, @wireframeMaterial]

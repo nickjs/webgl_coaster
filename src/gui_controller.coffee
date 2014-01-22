@@ -3,8 +3,9 @@ class LW.GUIController
     @gui = new dat.GUI()
 
     @modelProxy = new LW.TrackModel
-
+    @segmentProxy = new LW.TrackModel
     @vertexProxy = new THREE.Vector4
+
     @vertexFolder = @gui.addFolder("Vertex Properties")
     @vertexFolder.add(@vertexProxy, 'x', -250, 250).onChange(@changeVertex)
     @vertexFolder.add(@vertexProxy, 'y', 0, 500).onChange(@changeVertex)
@@ -12,6 +13,12 @@ class LW.GUIController
     @vertexFolder.add(@vertexProxy, 'w', 0, Math.PI).name("weight").onChange(@changeVertex)
 
     LW.edit.observe('vertexChanged', @vertexChanged)
+
+    @styleFolder = @gui.addFolder("Style Properties")
+    @styleFolder.addColor(@segmentProxy, 'spineColor').name("spine color").onChange(@changeColor('spine'))
+    @styleFolder.addColor(@segmentProxy, 'tieColor').name("tie color").onChange(@changeColor('tie'))
+    @styleFolder.addColor(@segmentProxy, 'railColor').name("rail color").onChange(@changeColor('rail'))
+    @styleFolder.addColor(@segmentProxy, 'wireframeColor').name("wireframe color").onChange(@changeColor('wireframe'))
 
     @viewFolder = @gui.addFolder("View Properties")
     @viewFolder.add(LW.renderer, 'showFPS').name("show FPS").onChange(@changeShowFPS)
@@ -40,6 +47,11 @@ class LW.GUIController
     LW.edit.selected.position.copy(@vertexProxy)
     LW.edit.selected.point.copy(@vertexProxy)
     LW.edit.changed()
+
+  changeColor: (key) ->
+    return (value) ->
+      LW.model["#{key}Color"] = value
+      LW.track?.updateMaterials()
 
   changeShowFPS: (value) ->
     node = LW.renderer.stats.domElement
@@ -123,6 +135,7 @@ class LW.GUIController
     LW.model = track
 
     @modelProxy.fromJSON(track.toJSON())
+    @segmentProxy.fromJSON(track.toJSON())
     @updateFolder('viewFolder', false)
 
     LW.edit?.rebuild()

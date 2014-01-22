@@ -22,6 +22,17 @@ class LW.TrackMesh extends THREE.Object3D
   UP = new THREE.Vector3(0, 1, 0)
   uvgen = THREE.ExtrudeGeometry.WorldUVGenerator
 
+  updateMaterials: ->
+    @wireframeMaterial ||= new THREE.LineBasicMaterial(color: 0x0000ff, linewidth: 2)
+    @spineMaterial ||= new THREE.MeshPhongMaterial(color: 0xff0000, ambient: 0x090909, specular: 0x333333, shininess: 30)
+    @tieMaterial ||= @spineMaterial.clone()
+    @railMaterial ||= @spineMaterial.clone()
+
+    @wireframeMaterial.color.setStyle(@model.wireframeColor)
+    @spineMaterial.color.setStyle(@model.spineColor)
+    @tieMaterial.color.setStyle(@model.tieColor)
+    @railMaterial.color.setStyle(@model.railColor)
+
   rebuild: ->
     @clear()
 
@@ -29,6 +40,8 @@ class LW.TrackMesh extends THREE.Object3D
     return if !@model
 
     @wireframe = true if @model.forceWireframe
+
+    @updateMaterials()
 
     @prepareRails()
     @prepareTies()
