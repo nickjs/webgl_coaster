@@ -16,12 +16,16 @@ class LW.TrackModel
   railColor: '#ff0000'
   wireframeColor: '#0000ff'
 
-  constructor: (@points) ->
+  constructor: (@points, @proxy) ->
+    return if @proxy
+
     @rollPoints = [new THREE.Vector2(0,0), new THREE.Vector2(1,0)]
     @rebuild()
 
   rebuild: ->
+    return if @proxy
     return unless @points?.length > 1
+
     knots = [0,0,0,0]
 
     for p, i in @points
@@ -30,22 +34,28 @@ class LW.TrackModel
 
     @spline = new THREE.NURBSCurve(3, knots, @points)
 
-    @rollSpline = new THREE.SplineCurve(@rollPoints)
+    @rollSpline ||= new LW.RollCurve(@rollPoints)
+    @rollSpline.rebuild()
 
   positionOnSpline: (seekingPos) ->
     totalLength = Math.ceil(@spline.getLength()) * 10
+    bestDistance = {t: 0, distance: 10}
     for i in [0..totalLength]
       u = i / totalLength
       currentPos = @spline.getPointAt(u)
       distance = currentPos.distanceTo(seekingPos)
-      if currentPos.distanceTo(seekingPos) <= 5 # FIXME
-        return u
+      if distance < bestDistance.distance
+        bestDistance.t = u
+        bestDistance.distance = distance
+
+    return bestDistance.t
 
   addRollPoint: (t, amount) ->
     @rollPoints.push(new THREE.Vector2(t, amount))
+    @rollSpline.rebuild()
 
   getBankAt: (t) ->
-    return @rollSpline.getPoint(t).y
+    return @rollSpline.getPoint(t)
 
   toJSON: ->
     return {
@@ -58,6 +68,7 @@ class LW.TrackModel
 
   fromJSON: (json) ->
     LW.mixin(this, json)
+    return if @proxy
 
     @points = for p in json.points
       new THREE.Vector4(p.x, p.y, p.z, p.w)

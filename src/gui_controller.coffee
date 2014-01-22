@@ -1,21 +1,28 @@
 class LW.GUIController
   constructor: ->
+    @modelProxy = new LW.TrackModel(null, true)
+
     @gui = new dat.GUI()
-
-    @modelProxy = new LW.TrackModel
-    @segmentProxy = new LW.TrackModel
-    @vertexProxy = new THREE.Vector4
-
     @gui.add(LW.edit, 'mode', (val for own key, val of LW.EditTrack.MODES)).name("tool")
 
+    @vertexProxy = new THREE.Vector4(50, 50, 50, 0.5)
     @vertexFolder = @gui.addFolder("Vertex Properties")
-    @vertexFolder.add(@vertexProxy, 'x', -250, 250).onChange(@changeVertex)
-    @vertexFolder.add(@vertexProxy, 'y', 0, 500).onChange(@changeVertex)
-    @vertexFolder.add(@vertexProxy, 'z', -250, 250).onChange(@changeVertex)
-    @vertexFolder.add(@vertexProxy, 'w', 0, Math.PI).name("weight").onChange(@changeVertex)
+    @vertexFolder.add(@vertexProxy, 'x', -100, 100).onChange(@changeVertex)
+    @vertexFolder.add(@vertexProxy, 'y', 0, 200).onChange(@changeVertex)
+    @vertexFolder.add(@vertexProxy, 'z', -100, 100).onChange(@changeVertex)
+    @vertexFolder.add(@vertexProxy, 'w', 0, 3.5).name("weight").onChange(@changeVertex)
+    @vertexFolder.__ul.classList.add('hidden')
 
-    LW.edit.observe('vertexChanged', @vertexChanged)
+    LW.edit.observe('nodeChanged', @nodeChanged)
+    LW.edit.observe('selectionChanged', @selectionChanged)
 
+    @rollProxy = new THREE.Vector2(0.05, 100)
+    @rollFolder = @gui.addFolder("Roll Properties")
+    @rollFolder.add(@rollProxy, 'x', 0.01, 0.99).name("position").onChange(@changeRoll)
+    @rollFolder.add(@rollProxy, 'y', -360, 360).name("amount").onChange(@changeRoll)
+    @rollFolder.__ul.classList.add('hidden')
+
+    @segmentProxy = new LW.TrackModel(null, true)
     @styleFolder = @gui.addFolder("Style Properties")
     @styleFolder.addColor(@segmentProxy, 'spineColor').name("spine color").onChange(@changeColor('spine'))
     @styleFolder.addColor(@segmentProxy, 'tieColor').name("tie color").onChange(@changeColor('tie'))
@@ -32,23 +39,41 @@ class LW.GUIController
     @addSaveBar()
     @loadTracks()
 
-  updateFolder: (folderKey, openFolder) ->
-    controller.updateDisplay() for controller in @[folderKey].__controllers
-    @[folderKey][if openFolder then 'open' else 'close']()
+  updateFolder: (folder) ->
+    controller.updateDisplay() for controller in folder.__controllers
 
-  vertexChanged: (vertex) =>
-    if vertex
-      @vertexProxy.copy(vertex.point)
+  nodeChanged: (node) =>
+    if node.isVertex
+      @vertexProxy.copy(node.point)
+      @updateFolder(@vertexFolder)
     else
-      @vertexProxy.set(0, 0, 0)
+      @rollProxy.copy(node.point)
+      @updateFolder(@rollFolder)
 
-    @updateFolder('vertexFolder', !!vertex)
+  selectionChanged: (selected) =>
+    if selected
+      if selected.isVertex
+        @vertexFolder.open()
+        @rollFolder.close()
+      else
+        @rollFolder.open()
+        @vertexFolder.close()
+
+      @nodeChanged(selected)
+    else
+      @vertexFolder.close()
+      @rollFolder.close()
 
   changeVertex: =>
-    LW.edit.transformControl.update()
     LW.edit.selected.position.copy(@vertexProxy)
     LW.edit.selected.point.copy(@vertexProxy)
-    LW.edit.changed()
+    LW.edit.changed(false)
+
+    LW.edit.transformControl.update()
+
+  changeRoll: =>
+    LW.edit.selected.point.copy(@rollProxy)
+    LW.edit.changed(false)
 
   changeColor: (key) ->
     return (value) ->
@@ -75,9 +100,10 @@ class LW.GUIController
 
       LW.renderer.camera.position.copy(@oldCamPos)
       LW.renderer.camera.rotation.copy(@oldCamRot)
+      LW.edit.rebuild()
+
       LW.renderer.scene.add(LW.edit)
 
-      LW.edit.rebuild()
 
   changeForceWireframe: (value) ->
     LW.model.forceWireframe = value
@@ -138,7 +164,7 @@ class LW.GUIController
 
     @modelProxy.fromJSON(track.toJSON())
     @segmentProxy.fromJSON(track.toJSON())
-    @updateFolder('viewFolder', false)
+    @updateFolder(@viewFolder, false)
 
     LW.edit?.rebuild()
     LW.track?.rebuild()
