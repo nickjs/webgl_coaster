@@ -1,7 +1,9 @@
 class LW.TrackModel
   name: ""
 
+  points: null
   spline: null
+  rollSpline: null
   isConnected: false
 
   onRideCamera: false
@@ -15,6 +17,7 @@ class LW.TrackModel
   wireframeColor: '#0000ff'
 
   constructor: (@points) ->
+    @rollPoints = [new THREE.Vector2(0,0), new THREE.Vector2(1,0)]
     @rebuild()
 
   rebuild: ->
@@ -27,14 +30,27 @@ class LW.TrackModel
 
     @spline = new THREE.NURBSCurve(3, knots, @points)
 
+    @rollSpline = new THREE.SplineCurve(@rollPoints)
+
+  positionOnSpline: (seekingPos) ->
+    totalLength = Math.ceil(@spline.getLength()) * 10
+    for i in [0..totalLength]
+      u = i / totalLength
+      currentPos = @spline.getPointAt(u)
+      distance = currentPos.distanceTo(seekingPos)
+      if currentPos.distanceTo(seekingPos) <= 5 # FIXME
+        return u
+
+  addRollPoint: (t, amount) ->
+    @rollPoints.push(new THREE.Vector2(t, amount))
 
   getBankAt: (t) ->
-    return 0
+    return @rollSpline.getPoint(t).y
 
   toJSON: ->
     return {
-            @name,
-            @points, @isConnected,
+            @name, @isConnected,
+            @points, @rollPoints,
             @onRideCamera,
             @forceWireframe, @debugNormals,
             @spineColor, @tieColor, @railColor, @wireframeColor
@@ -45,5 +61,8 @@ class LW.TrackModel
 
     @points = for p in json.points
       new THREE.Vector4(p.x, p.y, p.z, p.w)
+
+    @rollPoints = for p in json.rollPoints
+      new THREE.Vector2(p.x, p.y)
 
     @rebuild()

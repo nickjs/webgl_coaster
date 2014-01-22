@@ -1,7 +1,9 @@
 CONTROL_COLOR = 0x0000ee
+ROLL_NODE_COLOR = 0x00ff00
 SELECTED_COLOR = 0xffffff
 
 NODE_GEO = new THREE.SphereGeometry(1)
+ROLL_NODE_GEO = new THREE.CylinderGeometry(1, 2, 0.5)
 
 MODES = {
   SELECT: 'select'
@@ -48,7 +50,7 @@ class LW.EditTrack extends THREE.Object3D
 
     @fire('vertexChanged', @selected)
 
-  pick: (pos, objects) ->
+  pick: (pos, objects, deep) ->
     camera = LW.controls.camera
     {x, y} = pos
 
@@ -63,7 +65,10 @@ class LW.EditTrack extends THREE.Object3D
     if camera instanceof THREE.PerspectiveCamera
       @projector.unprojectVector(vector, camera)
       @raycaster.set(camera.position, vector.sub(camera.position).normalize())
-      return @raycaster.intersectObjects(objects)
+      if Array.isArray(objects)
+        return @raycaster.intersectObjects(objects, deep)
+      else
+        return @raycaster.intersectObject(objects, deep)
     else
       ray = @projector.pickingRay(vector, camera)
       return ray.intersectObjects(objects)
@@ -80,9 +85,17 @@ class LW.EditTrack extends THREE.Object3D
     @mouseUp.x = event.clientX / window.innerWidth
     @mouseUp.y = event.clientY / window.innerHeight
 
-    if @mode == MODES.SELECT && @mouseDown.distanceTo(@mouseUp) == 0
-      intersects = @pick(@mouseUp, @controlPoints)
-      @selectNode(intersects[0]?.object)
+    if @mouseDown.distanceTo(@mouseUp) == 0
+      switch @mode
+        when MODES.SELECT
+          intersects = @pick(@mouseUp, @controlPoints)
+          @selectNode(intersects[0]?.object)
+        when MODES.ADD_ROLL
+          intersects = @pick(@mouseUp, LW.track, true)
+          if point = intersects[0]?.point
+            @model.addRollPoint(@model.positionOnSpline(point), Math.floor(Math.random()*300))
+            @rebuild()
+            LW.track.rebuild()
 
     @isMouseDown = false
 
@@ -115,6 +128,14 @@ class LW.EditTrack extends THREE.Object3D
     for point, i in @model.points
       node = new THREE.Mesh(NODE_GEO, new THREE.MeshLambertMaterial(color: CONTROL_COLOR))
       node.position.copy(point)
+      node.point = point
+
+      @add(node)
+      @controlPoints.push(node)
+
+    for point, i in @model.rollPoints
+      node = new THREE.Mesh(ROLL_NODE_GEO, new THREE.MeshLambertMaterial(color: ROLL_NODE_COLOR))
+      node.position.copy(@model.spline.getPointAt(point.x))
       node.point = point
 
       @add(node)
