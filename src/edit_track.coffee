@@ -3,7 +3,7 @@ ROLL_NODE_COLOR = 0x00ff00
 SELECTED_COLOR = 0xffffff
 
 NODE_GEO = new THREE.SphereGeometry(1)
-ROLL_NODE_GEO = new THREE.CylinderGeometry(1, 2, 0.5)
+ROLL_NODE_GEO = new THREE.CubeGeometry(2, 2, 2)
 
 MODES = {
   SELECT: 'select'
@@ -36,9 +36,12 @@ class LW.EditTrack extends THREE.Object3D
     LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
 
-  changed: ->
+  changed: (fireEvent) ->
     if @selected
-      @selected.point.copy(@selected.position)
+      if @selected.isVertex
+        @selected.point.copy(@selected.position)
+      else
+        @selected.position.copy(@model.spline.getPointAt(@selected.point.x))
 
     if !@rerenderTimeout
       @rerenderTimeout = setTimeout =>
@@ -48,7 +51,7 @@ class LW.EditTrack extends THREE.Object3D
         LW.track?.rebuild()
       , 50
 
-    @fire('vertexChanged', @selected)
+    @fire('vertexChanged', @selected) if fireEvent != false
 
   pick: (pos, objects, deep) ->
     camera = LW.controls.camera
@@ -93,7 +96,7 @@ class LW.EditTrack extends THREE.Object3D
         when MODES.ADD_ROLL
           intersects = @pick(@mouseUp, LW.track, true)
           if point = intersects[0]?.point
-            @model.addRollPoint(@model.positionOnSpline(point), Math.floor(Math.random()*300))
+            @model.addRollPoint(@model.positionOnSpline(point), 0)
             @rebuild()
             LW.track.rebuild()
 
@@ -101,22 +104,29 @@ class LW.EditTrack extends THREE.Object3D
 
   selectNode: (node) ->
     return if @selected == node
+    oldSelected = @selected
 
-    @selected?.material.color.setHex(CONTROL_COLOR)
+    @selected?.material.color.setHex(@selected.defaultColor)
+    @selected?.defaultColor = null
+
     @transformControl.detach()
 
     @selected = node
 
     LW.track?.wireframe = !!node
-    @changed()
+    LW.track?.rebuild()
 
     if node
+      node.defaultColor ||= node.material.color.getHex()
       node.material.color.setHex(SELECTED_COLOR)
-      @transformControl.attach(node)
+
+      @transformControl.attach(node) if node.isVertex
 
       LW.train?.stop()
     else
       LW.train?.start()
+
+    @fire('selectionChanged', node, oldSelected)
 
   rebuild: ->
     @clear()
@@ -129,6 +139,7 @@ class LW.EditTrack extends THREE.Object3D
       node = new THREE.Mesh(NODE_GEO, new THREE.MeshLambertMaterial(color: CONTROL_COLOR))
       node.position.copy(point)
       node.point = point
+      node.isVertex = true
 
       @add(node)
       @controlPoints.push(node)
@@ -137,6 +148,7 @@ class LW.EditTrack extends THREE.Object3D
       node = new THREE.Mesh(ROLL_NODE_GEO, new THREE.MeshLambertMaterial(color: ROLL_NODE_COLOR))
       node.position.copy(@model.spline.getPointAt(point.x))
       node.point = point
+      node.isRoll = true
 
       @add(node)
       @controlPoints.push(node)
