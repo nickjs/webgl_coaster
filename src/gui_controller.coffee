@@ -13,7 +13,7 @@ class LW.GUIController
     @vertexFolder.add(@vertexProxy, 'w', 0, 3.5).name("weight").onChange(@changeVertex)
     @vertexFolder.__ul.classList.add('hidden')
 
-    LW.edit.observe('vertexChanged', @vertexChanged)
+    LW.edit.observe('nodeChanged', @nodeChanged)
     LW.edit.observe('selectionChanged', @selectionChanged)
 
     @rollProxy = new THREE.Vector2(0.05, 100)
@@ -42,12 +42,12 @@ class LW.GUIController
   updateFolder: (folder) ->
     controller.updateDisplay() for controller in folder.__controllers
 
-  vertexChanged: (vertex) =>
-    if vertex?.isVertex
-      @vertexProxy.copy(vertex.point)
+  nodeChanged: (node) =>
+    if node.isVertex
+      @vertexProxy.copy(node.point)
       @updateFolder(@vertexFolder)
     else
-      @rollProxy.copy(vertex.point)
+      @rollProxy.copy(node.point)
       @updateFolder(@rollFolder)
 
   selectionChanged: (selected) =>
@@ -59,7 +59,7 @@ class LW.GUIController
         @rollFolder.open()
         @vertexFolder.close()
 
-      @vertexChanged(selected)
+      @nodeChanged(selected)
     else
       @vertexFolder.close()
       @rollFolder.close()

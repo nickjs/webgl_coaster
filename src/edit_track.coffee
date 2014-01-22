@@ -51,7 +51,7 @@ class LW.EditTrack extends THREE.Object3D
         LW.track?.rebuild()
       , 50
 
-    @fire('vertexChanged', @selected) if fireEvent != false
+    @fire('nodeChanged', @selected) if fireEvent != false
 
   pick: (pos, objects, deep) ->
     camera = LW.controls.camera
