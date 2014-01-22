@@ -64,7 +64,7 @@ class LW.Train extends THREE.Object3D
 
     if @lastTangent
       alpha = down.angleTo(@lastTangent)
-      a = 9.81 * Math.cos(alpha)
+      a = 29.43 * Math.cos(alpha)
       @velocity = @velocity + a * delta
 
     @displacement = @displacement + @velocity * delta
