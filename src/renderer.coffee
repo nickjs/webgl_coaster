@@ -86,7 +86,6 @@ class LW.Renderer
     else
       @renderer.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
 
-    mat.wireframe = LW.track.forceWireframe || false for mat in LW.track.materials
     @renderer.render(@scene, @camera)
 
     requestAnimationFrame(@render)

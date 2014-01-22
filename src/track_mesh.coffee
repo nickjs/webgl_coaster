@@ -12,6 +12,7 @@ class LW.TrackMesh extends THREE.Object3D
   tieDepth: 1
   tieShapeNeedsUpdate: true
 
+  wireframe: false
   debugNormals: false
 
   constructor: (options) ->
@@ -74,63 +75,80 @@ class LW.TrackMesh extends THREE.Object3D
   ###
 
   prepareRails: ->
-    @railGeometry = new THREE.Geometry
-    @_railGrids = []
-    for i in [0..@numberOfRails - 1]
-      @_railGrids.push([])
+    if @wireframe
+      @railGeometries = []
+      for i in [0..@numberOfRails - 1]
+        @railGeometries.push(new THREE.Geometry)
+
+    else
+      @railGeometry = new THREE.Geometry
+
+      @_railGrids = []
+      for i in [0..@numberOfRails - 1]
+        @_railGrids.push([])
 
   railStep: (pos, normal, binormal) ->
     return if !@numberOfRails
 
     for i in [0..@numberOfRails - 1]
-      grid = []
-      xDistance = if i % 2 == 0 then @railDistance else -@railDistance
-      yDistance = if i > 1 then -@railDistance else 0
+      if @wireframe
+        distance = @railDistance
+        distance = -distance if i % 2 == 0
+        @_extrudeVertices([new THREE.Vector3(distance, 0)], @railGeometries[i].vertices, pos, normal, binormal)
+      else
+        grid = []
+        xDistance = if i % 2 == 0 then @railDistance else -@railDistance
+        yDistance = if i > 1 then -@railDistance else 0
 
-      for j in [0..@railRadialSegments]
-        v = j / @railRadialSegments * 2 * Math.PI
-        cx = -@railRadius * Math.cos(v) + xDistance
-        cy = @railRadius * Math.sin(v) + yDistance
+        for j in [0..@railRadialSegments]
+          v = j / @railRadialSegments * 2 * Math.PI
+          cx = -@railRadius * Math.cos(v) + xDistance
+          cy = @railRadius * Math.sin(v) + yDistance
 
-        _pos.copy(pos)
-        _pos.x += cx * normal.x + cy * binormal.x;
-        _pos.y += cx * normal.y + cy * binormal.y;
-        _pos.z += cx * normal.z + cy * binormal.z;
+          _pos.copy(pos)
+          _pos.x += cx * normal.x + cy * binormal.x;
+          _pos.y += cx * normal.y + cy * binormal.y;
+          _pos.z += cx * normal.z + cy * binormal.z;
 
-        grid.push(@railGeometry.vertices.push(_pos.clone()) - 1)
+          grid.push(@railGeometry.vertices.push(_pos.clone()) - 1)
 
-      @_railGrids[i].push(grid)
+        @_railGrids[i].push(grid)
 
   finalizeRails: (steps) ->
-    for n in [0..@numberOfRails - 1]
-      for i in [0..steps - 1]
-        for j in [0..@railRadialSegments]
-          ip = i + 1
-          jp = (j + 1) % @railRadialSegments
+    if @wireframe
+      for i in [0..@numberOfRails - 1]
+        @add(new THREE.Line(@railGeometries[i], @wireframeMaterial))
+    else
+      for n in [0..@numberOfRails - 1]
+        for i in [0..steps - 1]
+          for j in [0..@railRadialSegments]
+            ip = i + 1
+            jp = (j + 1) % @railRadialSegments
 
-          a = @_railGrids[n][i][j]
-          b = @_railGrids[n][ip][j]
-          c = @_railGrids[n][ip][jp]
-          d = @_railGrids[n][i][jp]
+            a = @_railGrids[n][i][j]
+            b = @_railGrids[n][ip][j]
+            c = @_railGrids[n][ip][jp]
+            d = @_railGrids[n][i][jp]
 
-          uva = new THREE.Vector2(i / steps, j / @railRadialSegments)
-          uvb = new THREE.Vector2((i + 1) / steps, j / @railRadialSegments)
-          uvc = new THREE.Vector2((i + 1) / steps, (j + 1) / @railRadialSegments)
-          uvd = new THREE.Vector2(i / steps, (j + 1) / @railRadialSegments)
+            uva = new THREE.Vector2(i / steps, j / @railRadialSegments)
+            uvb = new THREE.Vector2((i + 1) / steps, j / @railRadialSegments)
+            uvc = new THREE.Vector2((i + 1) / steps, (j + 1) / @railRadialSegments)
+            uvd = new THREE.Vector2(i / steps, (j + 1) / @railRadialSegments)
 
-          @railGeometry.faces.push(new THREE.Face3(d, b, a))
-          @railGeometry.faceVertexUvs[0].push([uva, uvb, uvd])
+            @railGeometry.faces.push(new THREE.Face3(d, b, a))
+            @railGeometry.faceVertexUvs[0].push([uva, uvb, uvd])
 
-          @railGeometry.faces.push(new THREE.Face3(d, c, b))
-          @railGeometry.faceVertexUvs[0].push([uvb.clone(), uvc, uvd.clone()])
+            @railGeometry.faces.push(new THREE.Face3(d, c, b))
+            @railGeometry.faceVertexUvs[0].push([uvb.clone(), uvc, uvd.clone()])
 
-    @railGeometry.computeCentroids()
-    @railGeometry.computeFaceNormals()
-    @railGeometry.computeVertexNormals()
+      @railGeometry.computeCentroids()
+      @railGeometry.computeFaceNormals()
+      @railGeometry.computeVertexNormals()
 
-    @railMesh = new THREE.Mesh(@railGeometry, @railMaterial)
-    @railMesh.castShadow = true
-    @add(@railMesh)
+      @railMesh = new THREE.Mesh(@railGeometry, @railMaterial)
+      @railMesh.castShadow = true
+
+      @add(@railMesh)
 
   ###
   # Spine Drawing
@@ -138,6 +156,7 @@ class LW.TrackMesh extends THREE.Object3D
 
   prepareSpine: ->
     @spineGeometry = new THREE.Geometry
+    return if @wireframe
 
     if @spineShapeNeedsUpdate and @spineShape
       @spineShapeNeedsUpdate = false
@@ -148,17 +167,24 @@ class LW.TrackMesh extends THREE.Object3D
     return
 
   spineStep: (pos, normal, binormal) ->
-    return if !@spineShape
-    @_extrudeVertices(@_spineVertices, @spineGeometry.vertices, pos, normal, binormal)
+    if @wireframe
+      @_extrudeVertices(@wireframeSpine, @spineGeometry.vertices, pos, normal, binormal)
+    else
+      return if !@spineShape
+      @_extrudeVertices(@_spineVertices, @spineGeometry.vertices, pos, normal, binormal)
 
   finalizeSpine: (spineSteps) ->
-    @_joinFaces(@_spineVertices, @_spineFaces, @spineGeometry, spineSteps, 0, @spineGeometry.vertices.length - @_spineVertices.length)
+    if @wireframe
+      @spineMesh = new THREE.Line(@spineGeometry, @wireframeMaterial)
+    else
+      @_joinFaces(@_spineVertices, @_spineFaces, @spineGeometry, spineSteps, 0, @spineGeometry.vertices.length - @_spineVertices.length)
 
-    @spineGeometry.computeCentroids()
-    @spineGeometry.computeFaceNormals()
+      @spineGeometry.computeCentroids()
+      @spineGeometry.computeFaceNormals()
 
-    @spineMesh = new THREE.Mesh(@spineGeometry, @spineMaterial)
-    @spineMesh.castShadow = true
+      @spineMesh = new THREE.Mesh(@spineGeometry, @spineMaterial)
+      @spineMesh.castShadow = true
+
     @add(@spineMesh)
 
   ###
@@ -167,6 +193,7 @@ class LW.TrackMesh extends THREE.Object3D
 
   prepareTies: ->
     @tieGeometry = new THREE.Geometry
+    return if @wireframe
 
     if @tieShapeNeedsUpdate and @tieShape
       @tieShapeNeedsUpdate = false
@@ -183,27 +210,34 @@ class LW.TrackMesh extends THREE.Object3D
   _cross = new THREE.Vector3
 
   tieStep: (pos, normal, binormal, useExtended) ->
-    return if !@tieShape
+    if @wireframe
+      @_extrudeVertices(@wireframeTies, @tieGeometry.vertices, pos, normal, binormal)
+    else
+      return if !@tieShape
 
-    offset = @tieGeometry.vertices.length
-    vertices = if useExtended then @_extendedTieVertices else @_tieVertices
-    faces = if useExtended then @_extendedTieFaces else @_tieFaces
+      offset = @tieGeometry.vertices.length
+      vertices = if useExtended then @_extendedTieVertices else @_tieVertices
+      faces = if useExtended then @_extendedTieFaces else @_tieFaces
 
-    _cross.crossVectors(normal, binormal).normalize()
-    _cross.setLength(@tieDepth / 2).negate()
-    @_extrudeVertices(vertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
+      _cross.crossVectors(normal, binormal).normalize()
+      _cross.setLength(@tieDepth / 2).negate()
+      @_extrudeVertices(vertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
 
-    _cross.negate()
-    @_extrudeVertices(vertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
+      _cross.negate()
+      @_extrudeVertices(vertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
 
-    @_joinFaces(vertices, faces, @tieGeometry, 1, offset, vertices.length, true)
+      @_joinFaces(vertices, faces, @tieGeometry, 1, offset, vertices.length, true)
 
   finalizeTies: (tieSteps) ->
-    @tieGeometry.computeCentroids()
-    @tieGeometry.computeFaceNormals()
+    if @wireframe
+      @tieMesh = new THREE.Line(@tieGeometry, @wireframeMaterial, THREE.LinePieces)
+    else
+      @tieGeometry.computeCentroids()
+      @tieGeometry.computeFaceNormals()
 
-    @tieMesh = new THREE.Mesh(@tieGeometry, @tieMaterial)
-    @tieMesh.castShadow = true
+      @tieMesh = new THREE.Mesh(@tieGeometry, @tieMaterial)
+      @tieMesh.castShadow = true
+
     @add(@tieMesh)
 
   ###
