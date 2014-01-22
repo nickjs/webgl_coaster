@@ -1,4 +1,5 @@
-var __hasProp = {}.hasOwnProperty;
+var appliedOffset, binormal, matrix, normal,
+  __hasProp = {}.hasOwnProperty;
 
 THREE.Mesh.prototype.constructor = THREE.Mesh;
 
@@ -63,6 +64,37 @@ window.LW = {
   }
 };
 
+LW.UP = new THREE.Vector3(0, 1, 0);
+
+normal = new THREE.Vector3;
+
+binormal = new THREE.Vector3;
+
+appliedOffset = new THREE.Vector3;
+
+matrix = new THREE.Matrix4;
+
+LW.positionObjectOnSpline = function(object, spline, u, offset, offsetRotation) {
+  var bank, pos, tangent;
+  pos = spline.getPointAt(u);
+  tangent = spline.getTangentAt(u).normalize();
+  bank = THREE.Math.degToRad(this.model.getBankAt(u));
+  binormal.copy(LW.UP).applyAxisAngle(tangent, bank);
+  normal.crossVectors(tangent, binormal).normalize();
+  binormal.crossVectors(normal, tangent).normalize();
+  matrix.set(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1);
+  object.position.copy(pos);
+  if (offset) {
+    appliedOffset.copy(offset);
+    object.position.add(appliedOffset.applyMatrix4(matrix));
+  }
+  if (offsetRotation) {
+    matrix.multiply(offsetRotation);
+  }
+  object.rotation.setFromRotationMatrix(matrix);
+  return tangent;
+};
+
 window.onload = function() {
   return LW.init();
 };
@@ -93,13 +125,13 @@ var oldUpdateDisplay,
 LW.GUIController = (function() {
   function GUIController() {
     this.changeOnRideCamera = __bind(this.changeOnRideCamera, this);
+    this.changeRoll = __bind(this.changeRoll, this);
     this.changeVertex = __bind(this.changeVertex, this);
-    this.vertexChanged = __bind(this.vertexChanged, this);
+    this.selectionChanged = __bind(this.selectionChanged, this);
+    this.nodeChanged = __bind(this.nodeChanged, this);
     var key, val;
+    this.modelProxy = new LW.TrackModel(null, true);
     this.gui = new dat.GUI();
-    this.modelProxy = new LW.TrackModel;
-    this.segmentProxy = new LW.TrackModel;
-    this.vertexProxy = new THREE.Vector4;
     this.gui.add(LW.edit, 'mode', (function() {
       var _ref, _results;
       _ref = LW.EditTrack.MODES;
@@ -111,12 +143,21 @@ LW.GUIController = (function() {
       }
       return _results;
     })()).name("tool");
+    this.vertexProxy = new THREE.Vector4(50, 50, 50, 0.5);
     this.vertexFolder = this.gui.addFolder("Vertex Properties");
-    this.vertexFolder.add(this.vertexProxy, 'x', -250, 250).onChange(this.changeVertex);
-    this.vertexFolder.add(this.vertexProxy, 'y', 0, 500).onChange(this.changeVertex);
-    this.vertexFolder.add(this.vertexProxy, 'z', -250, 250).onChange(this.changeVertex);
-    this.vertexFolder.add(this.vertexProxy, 'w', 0, Math.PI).name("weight").onChange(this.changeVertex);
-    LW.edit.observe('vertexChanged', this.vertexChanged);
+    this.vertexFolder.add(this.vertexProxy, 'x', -100, 100).onChange(this.changeVertex);
+    this.vertexFolder.add(this.vertexProxy, 'y', 0, 200).onChange(this.changeVertex);
+    this.vertexFolder.add(this.vertexProxy, 'z', -100, 100).onChange(this.changeVertex);
+    this.vertexFolder.add(this.vertexProxy, 'w', 0, 3.5).name("weight").onChange(this.changeVertex);
+    this.vertexFolder.__ul.classList.add('hidden');
+    LW.edit.observe('nodeChanged', this.nodeChanged);
+    LW.edit.observe('selectionChanged', this.selectionChanged);
+    this.rollProxy = new THREE.Vector2(0.05, 100);
+    this.rollFolder = this.gui.addFolder("Roll Properties");
+    this.rollFolder.add(this.rollProxy, 'x', 0.01, 0.99).name("position").onChange(this.changeRoll);
+    this.rollFolder.add(this.rollProxy, 'y', -360, 360).name("amount").onChange(this.changeRoll);
+    this.rollFolder.__ul.classList.add('hidden');
+    this.segmentProxy = new LW.TrackModel(null, true);
     this.styleFolder = this.gui.addFolder("Style Properties");
     this.styleFolder.addColor(this.segmentProxy, 'spineColor').name("spine color").onChange(this.changeColor('spine'));
     this.styleFolder.addColor(this.segmentProxy, 'tieColor').name("tie color").onChange(this.changeColor('tie'));
@@ -132,30 +173,53 @@ LW.GUIController = (function() {
     this.loadTracks();
   }
 
-  GUIController.prototype.updateFolder = function(folderKey, openFolder) {
-    var controller, _i, _len, _ref;
-    _ref = this[folderKey].__controllers;
+  GUIController.prototype.updateFolder = function(folder) {
+    var controller, _i, _len, _ref, _results;
+    _ref = folder.__controllers;
+    _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       controller = _ref[_i];
-      controller.updateDisplay();
+      _results.push(controller.updateDisplay());
     }
-    return this[folderKey][openFolder ? 'open' : 'close']();
+    return _results;
   };
 
-  GUIController.prototype.vertexChanged = function(vertex) {
-    if (vertex) {
-      this.vertexProxy.copy(vertex.point);
+  GUIController.prototype.nodeChanged = function(node) {
+    if (node.isVertex) {
+      this.vertexProxy.copy(node.point);
+      return this.updateFolder(this.vertexFolder);
     } else {
-      this.vertexProxy.set(0, 0, 0);
+      this.rollProxy.copy(node.point);
+      return this.updateFolder(this.rollFolder);
     }
-    return this.updateFolder('vertexFolder', !!vertex);
+  };
+
+  GUIController.prototype.selectionChanged = function(selected) {
+    if (selected) {
+      if (selected.isVertex) {
+        this.vertexFolder.open();
+        this.rollFolder.close();
+      } else {
+        this.rollFolder.open();
+        this.vertexFolder.close();
+      }
+      return this.nodeChanged(selected);
+    } else {
+      this.vertexFolder.close();
+      return this.rollFolder.close();
+    }
   };
 
   GUIController.prototype.changeVertex = function() {
-    LW.edit.transformControl.update();
     LW.edit.selected.position.copy(this.vertexProxy);
     LW.edit.selected.point.copy(this.vertexProxy);
-    return LW.edit.changed();
+    LW.edit.changed(false);
+    return LW.edit.transformControl.update();
+  };
+
+  GUIController.prototype.changeRoll = function() {
+    LW.edit.selected.point.copy(this.rollProxy);
+    return LW.edit.changed(false);
   };
 
   GUIController.prototype.changeColor = function(key) {
@@ -187,8 +251,8 @@ LW.GUIController = (function() {
       this.oldCamRot || (this.oldCamRot = LW.renderer.defaultCamRot);
       LW.renderer.camera.position.copy(this.oldCamPos);
       LW.renderer.camera.rotation.copy(this.oldCamRot);
-      LW.renderer.scene.add(LW.edit);
-      return LW.edit.rebuild();
+      LW.edit.rebuild();
+      return LW.renderer.scene.add(LW.edit);
     }
   };
 
@@ -251,7 +315,7 @@ LW.GUIController = (function() {
     LW.model = track;
     this.modelProxy.fromJSON(track.toJSON());
     this.segmentProxy.fromJSON(track.toJSON());
-    this.updateFolder('viewFolder', false);
+    this.updateFolder(this.viewFolder, false);
     if ((_ref = LW.edit) != null) {
       _ref.rebuild();
     }
@@ -448,6 +512,33 @@ LW.Renderer = (function() {
   return Renderer;
 
 })();
+LW.RollCurve = (function() {
+  function RollCurve(points) {
+    this.points = points;
+    this.rebuild();
+  }
+
+  RollCurve.prototype.rebuild = function() {
+    return this.points.sort(function(a, b) {
+      return a.x - b.x;
+    });
+  };
+
+  RollCurve.prototype.getPoint = function(t) {
+    var a, b, c, d, intPoint, point, weight;
+    point = (this.points.length - 1) * t;
+    intPoint = Math.floor(point);
+    weight = point - intPoint;
+    a = intPoint === 0 ? intPoint : intPoint - 1;
+    b = intPoint;
+    c = intPoint > this.points.length - 2 ? this.points.length - 1 : intPoint + 1;
+    d = intPoint > this.points.length - 3 ? this.points.length - 1 : intPoint + 2;
+    return THREE.Curve.Utils.interpolate(this.points[a].y, this.points[b].y, this.points[c].y, this.points[d].y, weight);
+  };
+
+  return RollCurve;
+
+})();
 LW.Terrain = (function() {
   function Terrain(renderer) {
     var format, geo, groundMaterial, groundTexture, material, mesh, path, shader, textureCube, urls;
@@ -497,7 +588,7 @@ var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 LW.TrackMesh = (function(_super) {
-  var UP, uvgen, _binormal, _cross, _normal, _pos;
+  var uvgen, _binormal, _cross, _normal, _pos;
 
   __extends(TrackMesh, _super);
 
@@ -527,8 +618,6 @@ LW.TrackMesh = (function(_super) {
     TrackMesh.__super__.constructor.call(this);
     LW.mixin(this, options);
   }
-
-  UP = new THREE.Vector3(0, 1, 0);
 
   uvgen = THREE.ExtrudeGeometry.WorldUVGenerator;
 
@@ -576,7 +665,7 @@ LW.TrackMesh = (function(_super) {
       pos = this.model.spline.getPointAt(u);
       tangent = this.model.spline.getTangentAt(u).normalize();
       bank = THREE.Math.degToRad(this.model.getBankAt(u));
-      binormal.copy(UP).applyAxisAngle(tangent, bank);
+      binormal.copy(LW.UP).applyAxisAngle(tangent, bank);
       normal.crossVectors(tangent, binormal).normalize();
       binormal.crossVectors(normal, tangent).normalize();
       if (!lastSpinePos || lastSpinePos.distanceTo(pos) >= this.spineDivisionLength) {
@@ -880,14 +969,21 @@ LW.TrackModel = (function() {
 
   TrackModel.prototype.wireframeColor = '#0000ff';
 
-  function TrackModel(points) {
+  function TrackModel(points, proxy) {
     this.points = points;
+    this.proxy = proxy;
+    if (this.proxy) {
+      return;
+    }
     this.rollPoints = [new THREE.Vector2(0, 0), new THREE.Vector2(1, 0)];
     this.rebuild();
   }
 
   TrackModel.prototype.rebuild = function() {
     var i, knot, knots, p, _i, _len, _ref, _ref1;
+    if (this.proxy) {
+      return;
+    }
     if (!(((_ref = this.points) != null ? _ref.length : void 0) > 1)) {
       return;
     }
@@ -899,28 +995,36 @@ LW.TrackModel = (function() {
       knots.push(THREE.Math.clamp(knot, 0, 1));
     }
     this.spline = new THREE.NURBSCurve(3, knots, this.points);
-    return this.rollSpline = new THREE.SplineCurve(this.rollPoints);
+    this.rollSpline || (this.rollSpline = new LW.RollCurve(this.rollPoints));
+    return this.rollSpline.rebuild();
   };
 
   TrackModel.prototype.positionOnSpline = function(seekingPos) {
-    var currentPos, distance, i, totalLength, u, _i;
+    var bestDistance, currentPos, distance, i, totalLength, u, _i;
     totalLength = Math.ceil(this.spline.getLength()) * 10;
+    bestDistance = {
+      t: 0,
+      distance: 10
+    };
     for (i = _i = 0; 0 <= totalLength ? _i <= totalLength : _i >= totalLength; i = 0 <= totalLength ? ++_i : --_i) {
       u = i / totalLength;
       currentPos = this.spline.getPointAt(u);
       distance = currentPos.distanceTo(seekingPos);
-      if (currentPos.distanceTo(seekingPos) <= 5) {
-        return u;
+      if (distance < bestDistance.distance) {
+        bestDistance.t = u;
+        bestDistance.distance = distance;
       }
     }
+    return bestDistance.t;
   };
 
   TrackModel.prototype.addRollPoint = function(t, amount) {
-    return this.rollPoints.push(new THREE.Vector2(t, amount));
+    this.rollPoints.push(new THREE.Vector2(t, amount));
+    return this.rollSpline.rebuild();
   };
 
   TrackModel.prototype.getBankAt = function(t) {
-    return this.rollSpline.getPoint(t).y;
+    return this.rollSpline.getPoint(t);
   };
 
   TrackModel.prototype.toJSON = function() {
@@ -942,6 +1046,9 @@ LW.TrackModel = (function() {
   TrackModel.prototype.fromJSON = function(json) {
     var p;
     LW.mixin(this, json);
+    if (this.proxy) {
+      return;
+    }
     this.points = (function() {
       var _i, _len, _ref, _results;
       _ref = json.points;
@@ -972,7 +1079,7 @@ var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 LW.Train = (function(_super) {
-  var down, mat, up, zero;
+  var down, mat;
 
   __extends(Train, _super);
 
@@ -1049,16 +1156,12 @@ LW.Train = (function(_super) {
     return this.cars = [];
   };
 
-  up = new THREE.Vector3(0, 1, 0);
-
   down = new THREE.Vector3(0, -1, 0);
-
-  zero = new THREE.Vector3();
 
   mat = new THREE.Matrix4();
 
   Train.prototype.simulate = function(delta) {
-    var a, alpha, bank, binormal, car, deltaPoint, desiredDistance, i, lastPos, model, normal, pos, tangent, _i, _len, _ref;
+    var a, alpha, car, deltaPoint, desiredDistance, i, lastPos, model, pos, tangent, _i, _len, _ref;
     if (!this.shouldSimulate || !this.cars.length || !(model = this.track.model)) {
       return;
     }
@@ -1068,7 +1171,7 @@ LW.Train = (function(_super) {
       this.velocity = this.velocity + a * delta;
     }
     this.displacement = this.displacement + this.velocity * delta;
-    if (this.position === 0) {
+    if (this.displacement <= 0) {
       this.currentTime = 0;
     } else {
       this.currentTime = this.displacement / model.spline.getLength();
@@ -1099,23 +1202,14 @@ LW.Train = (function(_super) {
         pos = lastPos;
       }
       if (pos) {
+        tangent = LW.positionObjectOnSpline(car, model.spline, deltaPoint, null, this.carRot);
         lastPos = pos;
-        tangent = model.spline.getTangentAt(deltaPoint).normalize();
+        if (i === 0 && model.onRideCamera) {
+          LW.positionObjectOnSpline(LW.renderer.camera, model.spline, deltaPoint, this.track.onRideCameraOffset);
+        }
         if (i === 0) {
           this.lastTangent = tangent;
         }
-        bank = THREE.Math.degToRad(model.getBankAt(deltaPoint));
-        binormal = up.clone().applyAxisAngle(tangent, bank);
-        normal = tangent.clone().cross(binormal).normalize();
-        binormal = normal.clone().cross(tangent).normalize();
-        zero.set(0, 0, 0);
-        mat.set(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1);
-        if (i === 0 && model.onRideCamera) {
-          LW.renderer.camera.position.copy(pos).add(this.track.onRideCameraOffset.clone().applyMatrix4(mat));
-          LW.renderer.camera.rotation.setFromRotationMatrix(mat);
-        }
-        car.position.copy(pos).add(zero.applyMatrix4(mat));
-        car.rotation.setFromRotationMatrix(mat.multiply(this.carRot));
       }
     }
   };
@@ -1136,7 +1230,7 @@ SELECTED_COLOR = 0xffffff;
 
 NODE_GEO = new THREE.SphereGeometry(1);
 
-ROLL_NODE_GEO = new THREE.CylinderGeometry(1, 2, 0.5);
+ROLL_NODE_GEO = new THREE.CubeGeometry(2, 2, 2);
 
 MODES = {
   SELECT: 'select',
@@ -1175,20 +1269,26 @@ LW.EditTrack = (function(_super) {
     LW.renderer.domElement.addEventListener('mouseup', this.onMouseUp, false);
   }
 
-  EditTrack.prototype.changed = function() {
+  EditTrack.prototype.changed = function(fireEvent) {
     var _this = this;
     if (this.selected) {
-      this.selected.point.copy(this.selected.position);
+      if (this.selected.isVertex) {
+        this.selected.point.copy(this.selected.position);
+      } else {
+        this.selected.position.copy(this.model.spline.getPointAt(this.selected.point.x));
+      }
     }
     if (!this.rerenderTimeout) {
       this.rerenderTimeout = setTimeout(function() {
         var _ref;
         _this.rerenderTimeout = null;
-        _this.renderCurve();
+        _this.rerender();
         return (_ref = LW.track) != null ? _ref.rebuild() : void 0;
       }, 50);
     }
-    return this.fire('vertexChanged', this.selected);
+    if (fireEvent !== false) {
+      return this.fire('nodeChanged', this.selected);
+    }
   };
 
   EditTrack.prototype.pick = function(pos, objects, deep) {
@@ -1236,13 +1336,13 @@ LW.EditTrack = (function(_super) {
     if (this.mouseDown.distanceTo(this.mouseUp) === 0) {
       switch (this.mode) {
         case MODES.SELECT:
-          intersects = this.pick(this.mouseUp, this.controlPoints);
+          intersects = this.pick(this.mouseUp, this.nodes);
           this.selectNode((_ref = intersects[0]) != null ? _ref.object : void 0);
           break;
         case MODES.ADD_ROLL:
           intersects = this.pick(this.mouseUp, LW.track, true);
           if (point = (_ref1 = intersects[0]) != null ? _ref1.point : void 0) {
-            this.model.addRollPoint(this.model.positionOnSpline(point), Math.floor(Math.random() * 300));
+            this.model.addRollPoint(this.model.positionOnSpline(point), 0);
             this.rebuild();
             LW.track.rebuild();
           }
@@ -1252,32 +1352,46 @@ LW.EditTrack = (function(_super) {
   };
 
   EditTrack.prototype.selectNode = function(node) {
-    var _ref, _ref1, _ref2, _ref3;
+    var oldSelected, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
     if (this.selected === node) {
       return;
     }
+    oldSelected = this.selected;
     if ((_ref = this.selected) != null) {
-      _ref.material.color.setHex(CONTROL_COLOR);
+      _ref.material.color.setHex(this.selected.defaultColor);
+    }
+    if ((_ref1 = this.selected) != null) {
+      _ref1.defaultColor = null;
     }
     this.transformControl.detach();
     this.selected = node;
-    if ((_ref1 = LW.track) != null) {
-      _ref1.wireframe = !!node;
+    if ((_ref2 = LW.track) != null) {
+      _ref2.wireframe = !!node;
     }
-    this.changed();
+    if ((_ref3 = LW.track) != null) {
+      _ref3.rebuild();
+    }
     if (node) {
+      node.defaultColor || (node.defaultColor = node.material.color.getHex());
       node.material.color.setHex(SELECTED_COLOR);
-      this.transformControl.attach(node);
-      return (_ref2 = LW.train) != null ? _ref2.stop() : void 0;
+      if (node.isVertex) {
+        this.transformControl.attach(node);
+      }
+      if ((_ref4 = LW.train) != null) {
+        _ref4.stop();
+      }
     } else {
-      return (_ref3 = LW.train) != null ? _ref3.start() : void 0;
+      if ((_ref5 = LW.train) != null) {
+        _ref5.start();
+      }
     }
+    return this.fire('selectionChanged', node, oldSelected);
   };
 
   EditTrack.prototype.rebuild = function() {
-    var i, node, point, _i, _j, _len, _len1, _ref, _ref1;
+    var node, point, _i, _j, _len, _len1, _ref, _ref1;
     this.clear();
-    this.controlPoints = [];
+    this.nodes = [];
     if (this.model !== LW.model) {
       this.model = LW.model;
     }
@@ -1285,32 +1399,32 @@ LW.EditTrack = (function(_super) {
       return;
     }
     _ref = this.model.points;
-    for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-      point = _ref[i];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      point = _ref[_i];
       node = new THREE.Mesh(NODE_GEO, new THREE.MeshLambertMaterial({
         color: CONTROL_COLOR
       }));
-      node.position.copy(point);
       node.point = point;
+      node.isVertex = true;
       this.add(node);
-      this.controlPoints.push(node);
+      this.nodes.push(node);
     }
     _ref1 = this.model.rollPoints;
-    for (i = _j = 0, _len1 = _ref1.length; _j < _len1; i = ++_j) {
-      point = _ref1[i];
+    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+      point = _ref1[_j];
       node = new THREE.Mesh(ROLL_NODE_GEO, new THREE.MeshLambertMaterial({
         color: ROLL_NODE_COLOR
       }));
-      node.position.copy(this.model.spline.getPointAt(point.x));
       node.point = point;
+      node.isRoll = true;
       this.add(node);
-      this.controlPoints.push(node);
+      this.nodes.push(node);
     }
-    return this.renderCurve();
+    return this.rerender();
   };
 
-  EditTrack.prototype.renderCurve = function() {
-    var geo, mat, point, _i, _len, _ref;
+  EditTrack.prototype.rerender = function() {
+    var geo, mat, node, point, u, _i, _j, _len, _len1, _ref, _ref1;
     if (this.line) {
       this.remove(this.line);
     }
@@ -1329,6 +1443,16 @@ LW.EditTrack = (function(_super) {
     });
     this.line = new THREE.Line(geo, mat);
     this.add(this.line);
+    _ref1 = this.nodes;
+    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+      node = _ref1[_j];
+      if (node.isVertex) {
+        node.position.copy(node.point);
+      } else {
+        u = node.point.x;
+        LW.positionObjectOnSpline(node, this.model.spline, node.point.x);
+      }
+    }
   };
 
   return EditTrack;
