@@ -15,10 +15,10 @@ THREE.Mesh::constructor = THREE.Mesh
 THREE.CurvePath::constructor = THREE.CurvePath
 
 THREE.Object3D::clear = ->
+  child = @children[0]
+  while child
+    @remove(child)
     child = @children[0]
-    while child
-      @remove(child)
-      child = @children[0]
 
 window.LW =
   init: ->
@@ -45,5 +45,9 @@ window.LW =
       @edit?.transformControl?.update()
 
     renderer.render()
+
+  mixin: (context, mixin) ->
+    for own key, val of mixin
+      context[key] = val
 
 window.onload = -> LW.init()

@@ -17,8 +17,7 @@ class LW.TrackMesh extends THREE.Object3D
   constructor: (options) ->
     super()
 
-    for key, value of options
-      @[key] = value
+    LW.mixin(this, options)
 
   UP = new THREE.Vector3(0, 1, 0)
   uvgen = THREE.ExtrudeGeometry.WorldUVGenerator

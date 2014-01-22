@@ -5,11 +5,10 @@ class LW.Train extends THREE.Object3D
 
   numberOfCars: 1
 
-  constructor: (@track, options = {}) ->
+  constructor: (@track, options) ->
     super()
 
-    for own key, val of options
-      @[key] = val
+    LW.mixin(this, options)
 
     if track?.carModel
       loader = new THREE.ColladaLoader
