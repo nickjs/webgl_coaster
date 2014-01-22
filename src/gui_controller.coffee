@@ -194,13 +194,7 @@ class LW.GUIController
     option.selected = true
     @dropdown.appendChild(option)
 
+oldUpdateDisplay = dat.controllers.BooleanController::updateDisplay
 dat.controllers.BooleanController::updateDisplay = ->
   @__prev = @getValue()
-
-  if @__prev == true
-    @__checkbox.setAttribute('checked', 'checked')
-    @__checkbox.checked = true
-  else
-    @__checkbox.checked = false
-
-  return dat.controllers.BooleanController.superclass::updateDisplay.call(this)
+  return oldUpdateDisplay.call(this)
