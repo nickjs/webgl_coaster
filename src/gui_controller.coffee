@@ -9,9 +9,10 @@ class LW.GUIController
     @vertexFolder.add(@vertexProxy, 'z', -250, 250).onChange(@changeVertex)
     @vertexFolder.add(@vertexProxy, 'w', 0, Math.PI).name("weight").onChange(@changeVertex)
 
+    LW.edit.observe('vertexChanged', @vertexChanged)
+
     @viewFolder = @gui.addFolder("View Properties")
     @viewFolder.add(LW.renderer, 'useQuadView').name("quad view")
-    @viewFolder.add(LW.track, 'debugNormals').name("show normals")
     @viewFolder.add(LW.track, 'forceWireframe').name("force wireframe").onChange (value) ->
       if value
         LW.track?.wireframe = true
@@ -20,7 +21,7 @@ class LW.GUIController
 
       LW.track?.rebuild()
 
-    LW.edit.observe('vertexChanged', @vertexChanged)
+    @viewFolder.add(LW.track, 'debugNormals').name("show normals").onChange -> LW.track?.rebuild()
 
     @addSaveBar()
     @loadTracks()

@@ -57,14 +57,14 @@ class LW.TrackMesh extends THREE.Object3D
         @tieStep(pos, normal, binormal, spineSteps % 7 == 0)
         @spineStep(pos, normal, binormal)
 
+        if @debugNormals
+          @add(new THREE.ArrowHelper(normal, pos, 5, 0x00ff00))
+          @add(new THREE.ArrowHelper(binormal, pos, 5, 0x0000ff))
+
         spineSteps++
         lastSpinePos = pos
 
       @railStep(pos, normal, binormal)
-
-      if @debugNormals
-        @add(new THREE.ArrowHelper(normal, pos, 5, 0x00ff00))
-        @add(new THREE.ArrowHelper(binormal, pos, 5, 0x0000ff))
 
     @spineStep(pos, normal, binormal)
 
