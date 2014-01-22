@@ -1,10 +1,35 @@
 class LW.GUIController
   constructor: ->
     @gui = new dat.GUI()
-    @gui.addColor(color: '#ffffff', 'color')
+
+    context = this
+
+    @vertexProxy = new THREE.Vector3
+    @vertex = @gui.addFolder("Vertex Properties")
+    @vertex.add(@vertexProxy, 'x', -250, 250).onChange(-> context.changeVertex(false)).onFinishChange(-> context.changeVertex(true))
+    @vertex.add(@vertexProxy, 'y', 0, 500).onChange(-> context.changeVertex(false)).onFinishChange(-> context.changeVertex(true))
+    @vertex.add(@vertexProxy, 'z', -250, 250).onChange(-> context.changeVertex(false)).onFinishChange(-> context.changeVertex(true))
+
+    LW.edit.observe('vertexChanged', @vertexChanged.bind(context))
 
     @addSaveBar()
     @loadTracks()
+
+  updateFolder: (folderKey, openFolder) ->
+    controller.updateDisplay() for controller in @[folderKey].__controllers
+    @[folderKey][if openFolder then 'open' else 'close']()
+
+  vertexChanged: (vertex) ->
+    if vertex
+      @vertexProxy.copy(vertex.point)
+    else
+      @vertexProxy.set(0, 0, 0)
+
+    @updateFolder('vertex', !!vertex)
+
+  changeVertex: (isFinal) ->
+    LW.edit.selected.position.copy(@vertexProxy)
+    LW.edit.changed(isFinal)
 
   newTrack: ->
     @_addTrackToDropdown("Untitled")

@@ -25,19 +25,19 @@ class LW.EditTrack extends THREE.Object3D
     @transformControl.addEventListener 'move', =>
       @changed()
     @transformControl.addEventListener 'finalMove', =>
-      @rerenderTrack = true
-      @changed()
+      @changed(true)
 
     LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
 
-  changed: ->
+  changed: (forceRerender) ->
+    @rerenderTrack = true if forceRerender
+
     LW.train?.stop() if LW.train.shouldSimulate
 
     if @selected
-      @selected.point.x = @selected.position.x
-      @selected.point.y = @selected.position.y
-      @selected.point.z = @selected.position.z
+      @selected.point.copy(@selected.position)
+      @fire('vertexChanged', @selected)
 
     if !@rerenderTimeout
       @rerenderTimeout = setTimeout =>
@@ -94,13 +94,17 @@ class LW.EditTrack extends THREE.Object3D
     @isMouseDown = false
 
   selectNode: (node) ->
+    lastSelected = @selected
     @selected?.material.color.setHex(CONTROL_COLOR)
     @transformControl.detach()
 
     @selected = node
 
-    @selected?.material.color.setHex(SELECTED_COLOR)
-    @transformControl.attach(@selected) if @selected
+    if node
+      node.material.color.setHex(SELECTED_COLOR)
+      @transformControl.attach(node)
+
+    @fire('vertexChanged', node, lastSelected)
 
   rebuild: ->
     @clear()
