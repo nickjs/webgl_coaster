@@ -67,7 +67,7 @@ class LW.GUIController
     @loadTrack(track)
 
   saveTrack: ->
-    if not LW.spline.name
+    if not LW.model.name
       name = prompt("What do you want to call this track?")
       return if !name
 
@@ -76,25 +76,26 @@ class LW.GUIController
         if !confirm("A track with name #{name} already exists. Are you sure you want to overwrite it?")
           return @saveTrack()
 
-      LW.spline.name = name
+      LW.model.name = name
 
       tracks.push(name)
       localStorage.setItem('tracks', JSON.stringify(tracks))
 
       @_addTrackToDropdown(name)
 
-    localStorage.setItem("track.#{LW.spline.name}", JSON.stringify(LW.spline.toJSON()))
+    localStorage.setItem("track.#{LW.model.name}", JSON.stringify(LW.model.toJSON()))
 
   loadTrack: (track) ->
     if typeof track is 'string'
-      name = track
-      json = JSON.parse(localStorage.getItem("track.#{name}"))
-      track = LW.BezierPath.fromJSON(json)
-      track.name = name
+      json = JSON.parse(localStorage.getItem("track.#{track}"))
+
+      track = new LW.TrackModel
+      track.fromJSON(json)
 
     LW.model = track
     LW.edit?.rebuild()
     LW.track?.rebuild()
+    LW.train?.start()
 
   loadTracks: ->
     @dropdown.innerHTML = ''
@@ -108,11 +109,14 @@ class LW.GUIController
       else
         @newTrack()
 
-    catch
-        alert("Well, seems like I've gone and changed the track format again. Unfortunately I'll have to clear all your tracks now. Sorry mate!")
-        localStorage.clear()
+    catch e
+      console.log e
+      console.log e.stack
 
-        @loadTracks()
+      alert("Well, seems like I've gone and changed the track format again. Unfortunately I'll have to clear all your tracks now. Sorry mate!")
+      localStorage.clear()
+
+      @loadTracks()
 
   clearAllTracks: ->
     if confirm("This will remove all your tracks. Are you sure you wish to do this?")
