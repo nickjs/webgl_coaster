@@ -11,6 +11,7 @@ class LW.GUIController
     @vertexFolder.add(@vertexProxy, 'y', 0, 200).onChange(@changeVertex)
     @vertexFolder.add(@vertexProxy, 'z', -100, 100).onChange(@changeVertex)
     @vertexFolder.add(@vertexProxy, 'w', 0, 3.5).name("weight").onChange(@changeVertex)
+    @vertexFolder.__ul.classList.add('hidden')
 
     LW.edit.observe('vertexChanged', @vertexChanged)
     LW.edit.observe('selectionChanged', @selectionChanged)
@@ -19,6 +20,7 @@ class LW.GUIController
     @rollFolder = @gui.addFolder("Roll Properties")
     @rollFolder.add(@rollProxy, 'x', 0.01, 0.99).name("position").onChange(@changeRoll)
     @rollFolder.add(@rollProxy, 'y', -360, 360).name("amount").onChange(@changeRoll)
+    @rollFolder.__ul.classList.add('hidden')
 
     @segmentProxy = new LW.TrackModel(null, true)
     @styleFolder = @gui.addFolder("Style Properties")
