@@ -3,7 +3,15 @@ SELECTED_COLOR = 0xffffff
 
 NODE_GEO = new THREE.SphereGeometry(1)
 
+MODES = {
+  SELECT: 'select'
+  ADD_ROLL: 'add roll'
+}
+
 class LW.EditTrack extends THREE.Object3D
+  @MODES: MODES
+  mode: MODES.SELECT
+
   LW.mixin(@prototype, LW.Observable)
 
   constructor: (@spline) ->
@@ -72,7 +80,7 @@ class LW.EditTrack extends THREE.Object3D
     @mouseUp.x = event.clientX / window.innerWidth
     @mouseUp.y = event.clientY / window.innerHeight
 
-    if @mouseDown.distanceTo(@mouseUp) == 0
+    if @mode == MODES.SELECT && @mouseDown.distanceTo(@mouseUp) == 0
       intersects = @pick(@mouseUp, @controlPoints)
       @selectNode(intersects[0]?.object)
 

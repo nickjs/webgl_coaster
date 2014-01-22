@@ -6,6 +6,8 @@ class LW.GUIController
     @segmentProxy = new LW.TrackModel
     @vertexProxy = new THREE.Vector4
 
+    @gui.add(LW.edit, 'mode', (val for own key, val of LW.EditTrack.MODES)).name("tool")
+
     @vertexFolder = @gui.addFolder("Vertex Properties")
     @vertexFolder.add(@vertexProxy, 'x', -250, 250).onChange(@changeVertex)
     @vertexFolder.add(@vertexProxy, 'y', 0, 500).onChange(@changeVertex)
