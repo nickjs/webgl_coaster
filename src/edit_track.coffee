@@ -81,7 +81,8 @@ class LW.EditTrack extends THREE.Object3D
     @isMouseDown = false
 
   selectNode: (node) ->
-    lastSelected = @selected
+    return if @selected == node
+
     @selected?.material.color.setHex(CONTROL_COLOR)
     @transformControl.detach()
 
