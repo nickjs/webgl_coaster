@@ -173,10 +173,11 @@ class LW.GUIController
       console.log e
       console.log e.stack
 
-      alert("Well, seems like I've gone and changed the track format again. Unfortunately I'll have to clear all your tracks now. Sorry mate!")
-      localStorage.clear()
-
-      @loadTracks()
+      if confirm("Well, seems like I've gone and changed the track format again. Press OK to erase all your tracks and start over or Cancel to try reloading. Sorry mate!")
+        localStorage.clear()
+        @loadTracks()
+      else
+        window.location.reload()
 
   clearAllTracks: ->
     if confirm("This will remove all your tracks. Are you sure you wish to do this?")
