@@ -19,7 +19,6 @@ class LW.TrackMesh extends THREE.Object3D
 
     LW.mixin(this, options)
 
-  UP = new THREE.Vector3(0, 1, 0)
   uvgen = THREE.ExtrudeGeometry.WorldUVGenerator
 
   updateMaterials: ->
@@ -60,7 +59,7 @@ class LW.TrackMesh extends THREE.Object3D
       tangent = @model.spline.getTangentAt(u).normalize()
 
       bank = THREE.Math.degToRad(@model.getBankAt(u))
-      binormal.copy(UP).applyAxisAngle(tangent, bank)
+      binormal.copy(LW.UP).applyAxisAngle(tangent, bank)
 
       normal.crossVectors(tangent, binormal).normalize()
       binormal.crossVectors(normal, tangent).normalize()

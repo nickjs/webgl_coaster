@@ -57,7 +57,6 @@ class LW.Train extends THREE.Object3D
     @clear()
     @cars = []
 
-  up = new THREE.Vector3(0, 1, 0)
   down = new THREE.Vector3(0, -1, 0)
   mat = new THREE.Matrix4()
 
@@ -95,24 +94,14 @@ class LW.Train extends THREE.Object3D
       else
         pos = lastPos
 
+
       if pos
+        tangent = LW.positionObjectOnSpline(car, model.spline, deltaPoint, null, @carRot)
         lastPos = pos
-        tangent = model.spline.getTangentAt(deltaPoint).normalize()
-        @lastTangent = tangent if i == 0
-
-        bank = THREE.Math.degToRad(model.getBankAt(deltaPoint))
-        binormal = up.clone().applyAxisAngle(tangent, bank)
-
-        normal = tangent.clone().cross(binormal).normalize()
-        binormal = normal.clone().cross(tangent).normalize()
-
-        mat.set(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1)
 
         if i == 0 and model.onRideCamera
-          LW.renderer.camera.position.copy(pos).add(@track.onRideCameraOffset.clone().applyMatrix4(mat))
-          LW.renderer.camera.rotation.setFromRotationMatrix(mat)
+          LW.positionObjectOnSpline(LW.renderer.camera, model.spline, deltaPoint, @track.onRideCameraOffset)
 
-        car.position.copy(pos)
-        car.rotation.setFromRotationMatrix(mat.multiply(@carRot))
+        @lastTangent = tangent if i == 0
 
     return
