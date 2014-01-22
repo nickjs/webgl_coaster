@@ -47,7 +47,7 @@ class LW.EditTrack extends THREE.Object3D
       @rerenderTimeout = setTimeout =>
         @rerenderTimeout = null
 
-        @renderCurve()
+        @rerender() # things have only moved, we don't need a full rebuild
         LW.track?.rebuild()
       , 50
 
@@ -91,7 +91,7 @@ class LW.EditTrack extends THREE.Object3D
     if @mouseDown.distanceTo(@mouseUp) == 0
       switch @mode
         when MODES.SELECT
-          intersects = @pick(@mouseUp, @controlPoints)
+          intersects = @pick(@mouseUp, @nodes)
           @selectNode(intersects[0]?.object)
         when MODES.ADD_ROLL
           intersects = @pick(@mouseUp, LW.track, true)
@@ -130,32 +130,30 @@ class LW.EditTrack extends THREE.Object3D
 
   rebuild: ->
     @clear()
-    @controlPoints = []
+    @nodes = []
 
     @model = LW.model if @model != LW.model
     return if !@model or @model.onRideCamera
 
-    for point, i in @model.points
+    for point in @model.points
       node = new THREE.Mesh(NODE_GEO, new THREE.MeshLambertMaterial(color: CONTROL_COLOR))
-      node.position.copy(point)
       node.point = point
       node.isVertex = true
 
       @add(node)
-      @controlPoints.push(node)
+      @nodes.push(node)
 
-    for point, i in @model.rollPoints
+    for point in @model.rollPoints
       node = new THREE.Mesh(ROLL_NODE_GEO, new THREE.MeshLambertMaterial(color: ROLL_NODE_COLOR))
-      node.position.copy(@model.spline.getPointAt(point.x))
       node.point = point
       node.isRoll = true
 
       @add(node)
-      @controlPoints.push(node)
+      @nodes.push(node)
 
-    @renderCurve()
+    @rerender()
 
-  renderCurve: ->
+  rerender: ->
     @remove(@line) if @line
     return if @model.onRideCamera
 
@@ -166,5 +164,12 @@ class LW.EditTrack extends THREE.Object3D
     mat = new THREE.LineBasicMaterial(color: 0xff0000, linewidth: 2)
     @line = new THREE.Line(geo, mat)
     @add(@line)
+
+    for node in @nodes
+      if node.isVertex
+        node.position.copy(node.point)
+      else
+        u = node.point.x
+        LW.positionObjectOnSpline(node, @model.spline, node.point.x)
 
     return

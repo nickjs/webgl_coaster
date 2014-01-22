@@ -100,9 +100,10 @@ class LW.GUIController
 
       LW.renderer.camera.position.copy(@oldCamPos)
       LW.renderer.camera.rotation.copy(@oldCamRot)
+      LW.edit.rebuild()
+
       LW.renderer.scene.add(LW.edit)
 
-      LW.edit.rebuild()
 
   changeForceWireframe: (value) ->
     LW.model.forceWireframe = value
