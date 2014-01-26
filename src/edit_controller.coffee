@@ -17,6 +17,7 @@ class LW.EditController
     renderer.scene.add(@mesh)
 
     @selection = []
+    @transformControls = []
 
     @mouseDown = new THREE.Vector2
     @mouseUp = new THREE.Vector2
@@ -24,58 +25,52 @@ class LW.EditController
     @projector = new THREE.Projector
     @raycaster = new THREE.Raycaster
 
-    @transformControl = new THREE.TransformControls(renderer.camera, renderer.domElement)
-    renderer.scene.add(@transformControl)
-
-    @transformControl.addEventListener 'change', =>
-      @controls.enabled = @transformControl.axis == undefined
-    @transformControl.addEventListener 'move', =>
-      @changed()
-
     @controls = new THREE.EditorControls([renderer.topCamera, renderer.sideCamera, renderer.frontCamera, renderer.camera], renderer.domElement)
-    @controls.addEventListener 'change', =>
-      @mesh.transformControl?.update()
+    # @controls.addEventListener 'change', =>
+      # @mesh.transformControl?.update()
 
     LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
 
   setModel: (model) ->
+    @selectMesh(null, true)
+
     @model = model
+
     @mesh.setModel(model)
 
-  selectNode: (node) ->
-    return if @selected == node
-    oldSelected = @selected
+  selectMesh: (mesh, clearSelection) ->
+    return if @selection.indexOf(mesh) != -1
 
-    if oldSelected instanceof LW.Separator
-      oldSelected.wireframeColor?.setStyle(@model.wireframeColor)
-      line.geometry.colorsNeedUpdate = true for line in LW.track.meshes
-    else
-      oldSelected?.material.color.setHex(oldSelected.defaultColor)
-      oldSelected?.defaultColor = null
+    if clearSelection
+      while @selection.length
+        oldMesh = @selection.pop()
+        oldMesh.material.color.setHex(oldMesh.defaultColor)
+        oldMesh.defaultColor = null
 
-    @transformControl.detach()
+      for control in @transformControls
+        control.detach()
 
-    @selected = node
+    if mesh
+      @selection.push(mesh)
 
-    oldWireframe = LW.track?.wireframe
-    LW.track?.wireframe = !!node
-    LW.track?.rebuild() if oldWireframe != LW.track?.wireframe
+      mesh.defaultColor ||= mesh.material.color.getHex()
+      mesh.material.color.setHex(0xffffff)
 
-    if node instanceof LW.Separator
-      node.wireframeColor?.setHex(0xffffff)
-      line.geometry.colorsNeedUpdate = true for line in LW.track.meshes
-    else if node
-      node.defaultColor ||= node.material.color.getHex()
-      node.material.color.setHex(SELECTED_COLOR)
+      attached = false
+      for control in @transformControls
+        continue if control.object
+        control.attach(mesh)
+        attached = true
+        break
 
-      @transformControl.attach(node) if node.isVertex
+      if !attached
+        control = new THREE.TransformControls(LW.renderer.camera, LW.renderer.domElement)
+        control.attach(mesh)
+        LW.renderer.scene.add(control)
+        @transformControls.push(control)
 
-      LW.train?.stop()
-    else
-      LW.train?.start()
-
-    @fire('selectionChanged', node, oldSelected)
+    @fire('selectionChanged', mesh)
 
   changed: (fireEvent) ->
     if @selected
@@ -138,13 +133,14 @@ class LW.EditController
     if @mouseDown.distanceTo(@mouseUp) == 0
       switch @mode
         when MODES.SELECT
-          intersects = @pick(@mouseUp, @nodes.concat(LW.track.meshes))
+          intersects = @pick(@mouseUp, @mesh.nodeMeshes)
           if object = intersects[0]?.object
+            # FIXME
             if object.trackSegment
               t = @model.positionOnSpline(intersects[0].point)
               object = @model.getSegmentForPosition(t)
 
-          @selectNode(object)
+          @selectMesh(object, true)
 
         when MODES.ADD_ROLL
           intersects = @pick(@mouseUp, LW.track, true)
