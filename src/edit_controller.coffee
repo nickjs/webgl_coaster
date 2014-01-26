@@ -83,6 +83,8 @@ class LW.EditController
     @model.fire('nodeMoved', node)
     @fire('nodeMoved', node)
 
+    LW.track?.rebuild()
+
   pick: (pos, objects, deep) ->
     camera = @controls.camera
     {x, y} = pos

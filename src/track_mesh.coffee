@@ -208,13 +208,12 @@ class LW.TrackMesh extends THREE.Object3D
     normal = new THREE.Vector3
 
     separators = @model.separators
-    segment = 0
-    separator = separators[segment]
-    nextSeparator = separators[segment + 1]
+    segment = -1
+    separator = @model.defaultSeparator
+    nextSeparator = separators[0]
 
     @segmentWireframeColor = separator.wireframeColor = new THREE.Color(separator.wireframeColor || @model.wireframeColor)
     @segmentMeshColor = separator.meshColor = new THREE.Color(separator.spineColor || @model.spineColor)
-    console.log @segmentMeshColor
 
     for i in [0..totalLength]
       u = i / totalLength

@@ -79,6 +79,7 @@ class LW.TrackModel
     @rollSpline.rebuild()
 
   getBankAt: (t) ->
+    return 0
     return @rollSpline.getPoint(t)
 
   findTFromPoint: (seekingPos) ->
