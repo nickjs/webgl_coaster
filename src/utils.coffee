@@ -32,6 +32,14 @@ LW.Observable = {
 
     return this
 
+  forget: (key, callback) ->
+    callbacks = @_observers?[key]
+    index = callbacks?.indexOf(callback)
+    if index? && index != -1
+      callbacks.splice(index, 1)
+
+    return this
+
   fire: (key, value, oldValue) ->
     callbacks = @_observers?[key]
     if callbacks?.length

@@ -22,22 +22,14 @@ window.LW =
 
     terrain = new LW.Terrain(renderer)
 
-    @edit = new LW.EditTrack
-    renderer.scene.add(@edit)
-
     @track = new LW.BMInvertedTrack
     renderer.scene.add(@track)
 
-    @train = new LW.Train(@track, numberOfCars: 4)
-    @train.start()
-    renderer.scene.add(@train)
+    # @train = new LW.Train(@track, numberOfCars: 4)
+    # renderer.scene.add(@train)
 
+    @edit = new LW.EditController
     @gui = new LW.GUIController
-
-    controls = @controls = new THREE.EditorControls([renderer.topCamera, renderer.sideCamera, renderer.frontCamera, renderer.camera], renderer.domElement)
-    controls.center.copy(@edit.position)
-    controls.addEventListener 'change', =>
-      @edit?.transformControl?.update()
 
     renderer.render()
 

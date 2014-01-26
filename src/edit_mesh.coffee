@@ -1,220 +1,83 @@
-CONTROL_COLOR = 0x0000ee
+VERTEX_COLOR = 0x0000ee
 ROLL_NODE_COLOR = 0x00ff00
 STYLE_NODE_COLOR = 0x00ffff
 SELECTED_COLOR = 0xffffff
 
-NODE_GEO = new THREE.SphereGeometry(1)
+VERTEX_GEO = new THREE.SphereGeometry(1)
 ROLL_NODE_GEO = new THREE.CubeGeometry(2, 2, 2)
 STYLE_NODE_GEO = new THREE.CubeGeometry(3, 3, 1)
 
-MODES = {
-  SELECT: 'select'
-  ADD_ROLL: 'add roll'
-  ADD_STYLE: 'add style'
-}
-
-SEPARATORS = {
-  STYLE: 0
-  TYPE: 1
-}
-
 class LW.EditMesh extends THREE.Object3D
-  @MODES: MODES
-  mode: MODES.SELECT
-
-  LW.mixin(@prototype, LW.Observable)
-
-  constructor: (@spline) ->
+  constructor: ->
     super()
 
-    @mouseDown = new THREE.Vector2
-    @mouseUp = new THREE.Vector2
+    @nodeMeshes = []
 
-    @projector = new THREE.Projector
-    @raycaster = new THREE.Raycaster
+  setModel: (model) ->
+    oldModel = @model
 
-    @transformControl = new THREE.TransformControls(LW.renderer.camera, LW.renderer.domElement)
-    LW.renderer.scene.add(@transformControl)
+    if oldModel
+      oldModel.forget('nodeAdded', @addNode)
+      oldModel.forget('nodeMoved', @nodeMoved)
 
-    @transformControl.addEventListener 'change', =>
-      LW.controls?.enabled = @transformControl.axis == undefined
-    @transformControl.addEventListener 'move', =>
-      @changed()
+      @clear()
 
-    LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
-    LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
+      vertices = @polygonGeo.vertices
+      vertices.pop() while vertices.length > 0
 
-  changed: (fireEvent) ->
-    if @selected
-      if @selected.isVertex
-        @selected.point.copy(@selected.position)
-      else
-        @selected.position.copy(@model.spline.getPointAt(@selected.point.x))
+    @model = model
 
-    if !@rerenderTimeout
-      @rerenderTimeout = setTimeout =>
-        @rerenderTimeout = null
+    if model
+      model.observe('nodeAdded', @addNode)
+      model.observe('nodeMoved', @nodeMoved)
 
-        @rerender() # things have only moved, we don't need a full rebuild
-        LW.track?.rebuild()
-      , 50
+      nodes = @model.vertices.concat(@model.rollNodes, @model.separators)
+      @addNode(node, true) for node in nodes
+      @rebuildPolygonLine()
 
-    @fire('nodeChanged', @selected) if fireEvent != false
+  addNode: (node, skipRebuildLine) =>
+    return if node.isHidden
 
-  pick: (pos, objects, deep) ->
-    camera = LW.controls.camera
-    {x, y} = pos
+    if node instanceof THREE.Vector4
+      geo = VERTEX_GEO
+      color = VERTEX_COLOR
+      pos = node
+      isVertex = true
 
-    if LW.renderer.useQuadView
-      x -= 0.5 if x > 0.5
-      y -= 0.5 if y > 0.5
+      @rebuildPolygonLine() unless skipRebuildLine
 
-      vector = new THREE.Vector3(x * 4 - 1, -y * 4 + 1 , 0.5)
-    else
-      vector = new THREE.Vector3(x * 2 - 1, -y * 2 + 1, 0.5)
+    else if node instanceof LW.RollNode
+      geo = ROLL_NODE_GEO
+      color = ROLL_NODE_COLOR
+      # pos =
+      isRollNode = true
 
-    if camera instanceof THREE.PerspectiveCamera
-      @projector.unprojectVector(vector, camera)
-      @raycaster.set(camera.position, vector.sub(camera.position).normalize())
+    else if node instanceof LW.Separator
+      geo = STYLE_NODE_GEO
+      color = STYLE_NODE_COLOR
+      # pos =
+      isSeparator = true
 
-      if Array.isArray(objects)
-        return @raycaster.intersectObjects(objects, deep)
-      else
-        return @raycaster.intersectObject(objects, deep)
+    mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({color}))
+    mesh.position = pos
 
-    else
-      ray = @projector.pickingRay(vector, camera)
+    mesh.node = node
+    mesh.isVertex = isVertex
+    mesh.isRollNode = isRollNode
+    mesh.isSeparator = isSeparator
 
-      if Array.isArray(objects)
-        return ray.intersectObjects(objects, deep)
-      else
-        return ray.intersectObject(objects, deep)
+    @nodeMeshes.push(mesh)
+    @add(mesh)
 
-  onMouseDown: (event) =>
-    @mouseDown.x = event.clientX / window.innerWidth
-    @mouseDown.y = event.clientY / window.innerHeight
+  nodeMoved: =>
+    @polygonGeo.verticesNeedUpdate = true
 
-    @isMouseDown = true
+  rebuildPolygonLine: ->
+    @remove(@polygonLine) if @polygonLine
 
-  onMouseUp: (event) =>
-    return if !@isMouseDown
+    @polygonGeo = new THREE.Geometry
+    for vertex in @model.vertices
+      @polygonGeo.vertices.push(vertex)
 
-    @mouseUp.x = event.clientX / window.innerWidth
-    @mouseUp.y = event.clientY / window.innerHeight
-
-    if @mouseDown.distanceTo(@mouseUp) == 0
-      switch @mode
-        when MODES.SELECT
-          intersects = @pick(@mouseUp, @nodes.concat(LW.track.meshes))
-          if object = intersects[0]?.object
-            if object.trackSegment
-              t = @model.positionOnSpline(intersects[0].point)
-              object = @model.getSegmentForPosition(t)
-
-          @selectNode(object)
-
-        when MODES.ADD_ROLL
-          intersects = @pick(@mouseUp, LW.track, true)
-          if point = intersects[0]?.point
-            @model.addRollPoint(@model.positionOnSpline(point), 0)
-            @rebuild()
-            LW.track.rebuild()
-
-        when MODES.ADD_STYLE
-          intersects = @pick(@mouseUp, LW.track, true)
-          if point = intersects[0]?.point
-            @model.addSeparator(@model.positionOnSpline(point), SEPARATORS.STYLE)
-            @rebuild()
-            LW.track.rebuild()
-
-    @isMouseDown = false
-
-  selectNode: (node) ->
-    return if @selected == node
-    oldSelected = @selected
-
-    if oldSelected instanceof LW.Separator
-      oldSelected.wireframeColor?.setStyle(@model.wireframeColor)
-      line.geometry.colorsNeedUpdate = true for line in LW.track.meshes
-    else
-      oldSelected?.material.color.setHex(oldSelected.defaultColor)
-      oldSelected?.defaultColor = null
-
-    @transformControl.detach()
-
-    @selected = node
-
-    oldWireframe = LW.track?.wireframe
-    LW.track?.wireframe = !!node
-    LW.track?.rebuild() if oldWireframe != LW.track?.wireframe
-
-    if node instanceof LW.Separator
-      node.wireframeColor?.setHex(0xffffff)
-      line.geometry.colorsNeedUpdate = true for line in LW.track.meshes
-    else if node
-      node.defaultColor ||= node.material.color.getHex()
-      node.material.color.setHex(SELECTED_COLOR)
-
-      @transformControl.attach(node) if node.isVertex
-
-      LW.train?.stop()
-    else
-      LW.train?.start()
-
-    @fire('selectionChanged', node, oldSelected)
-
-  rebuild: ->
-    @clear()
-    @nodes = []
-
-    @model = LW.model if @model != LW.model
-    return if !@model or @model.onRideCamera
-
-    for point in @model.points
-      node = new THREE.Mesh(NODE_GEO, new THREE.MeshLambertMaterial(color: CONTROL_COLOR))
-      node.point = point
-      node.isVertex = true
-
-      @add(node)
-      @nodes.push(node)
-
-    for point in @model.rollPoints
-      continue if point.hidden
-      node = new THREE.Mesh(ROLL_NODE_GEO, new THREE.MeshLambertMaterial(color: ROLL_NODE_COLOR))
-      node.point = point
-      node.isRoll = true
-
-      @add(node)
-      @nodes.push(node)
-
-    for point in @model.separators
-      continue if point.hidden
-      node = new THREE.Mesh(STYLE_NODE_GEO, new THREE.MeshLambertMaterial(color: STYLE_NODE_COLOR))
-      node.point = point
-      node.isStyle = true
-
-      @add(node)
-      @nodes.push(node)
-
-    @rerender()
-
-  rerender: ->
-    @remove(@line) if @line
-    return if @model.onRideCamera
-
-    geo = new THREE.Geometry
-    for point in @model.points
-      geo.vertices.push(point)
-
-    mat = new THREE.LineBasicMaterial(color: 0xff0000, linewidth: 2)
-    @line = new THREE.Line(geo, mat)
-    @add(@line)
-
-    for node in @nodes
-      if node.isVertex
-        node.position.copy(node.point)
-      else
-        u = node.point.x
-        LW.positionObjectOnSpline(node, @model.spline, node.point.position)
-
-    return
+    @polygonLine = new THREE.Line(@polygonGeo, new THREE.LineBasicMaterial(color: 0x000000, linewidth: 2))
+    @add(@polygonLine)

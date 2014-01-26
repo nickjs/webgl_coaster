@@ -3,7 +3,7 @@ class LW.GUIController
     @modelProxy = new LW.TrackModel(null, true)
 
     @gui = new dat.GUI()
-    @gui.add(LW.edit, 'mode', (val for own key, val of LW.EditTrack.MODES)).name("tool")
+    @gui.add(LW.edit, 'mode', (val for own key, val of LW.EditController.MODES)).name("tool")
 
     @vertexProxy = new THREE.Vector4(50, 50, 50, 0.5)
     @vertexFolder = @gui.addFolder("Vertex Properties")
@@ -13,16 +13,16 @@ class LW.GUIController
     @vertexFolder.add(@vertexProxy, 'w', 0, 3.5).name("weight").onChange(@changeVertex)
     @vertexFolder.__ul.classList.add('hidden')
 
-    LW.edit.observe('nodeChanged', @nodeChanged)
-    LW.edit.observe('selectionChanged', @selectionChanged)
+    # LW.edit.observe('nodeChanged', @nodeChanged)
+    # LW.edit.observe('selectionChanged', @selectionChanged)
 
-    @rollProxy = new LW.RollPoint(0.05, 100)
+    @rollProxy = new LW.RollNode({position: 0.05, amount: 100})
     @rollFolder = @gui.addFolder("Roll Properties")
     @rollFolder.add(@rollProxy, 'position', 0.01, 0.99).onChange(@changeRoll)
     @rollFolder.add(@rollProxy, 'amount', -360, 360).onChange(@changeRoll)
     @rollFolder.__ul.classList.add('hidden')
 
-    @segmentProxy = new LW.TrackModel(null, true)
+    @segmentProxy = new LW.Separator()
     @styleFolder = @gui.addFolder("Style Properties")
     @styleFolder.addColor(@segmentProxy, 'spineColor').name("spine color").onChange(@changeColor('spine'))
     @styleFolder.addColor(@segmentProxy, 'tieColor').name("tie color").onChange(@changeColor('tie'))
@@ -35,7 +35,7 @@ class LW.GUIController
     @viewFolder.add(@modelProxy, 'onRideCamera').name("ride camera").onChange(@changeOnRideCamera)
     @viewFolder.add(@modelProxy, 'forceWireframe').name("force wireframe").onChange(@changeForceWireframe)
     @viewFolder.add(@modelProxy, 'debugNormals').name("show normals").onChange(@changeDebugNormals)
-    @viewFolder.add(LW.train.cameraHelper, 'visible').name("debug ride cam")
+    @viewFolder.add(LW.train.cameraHelper, 'visible').name("debug ride cam") if LW.train
 
     @addSaveBar()
     @loadTracks()
@@ -118,7 +118,7 @@ class LW.GUIController
   newTrack: ->
     @_addTrackToDropdown("Untitled")
 
-    track = new LW.TrackModel([
+    vertices = [
       new THREE.Vector4(-100, 20, 0, 1)
       new THREE.Vector4(-20, 20, 0, 1)
       new THREE.Vector4(20, 30, 0, 1)
@@ -126,8 +126,9 @@ class LW.GUIController
       new THREE.Vector4(100, 0, 0, 1)
       new THREE.Vector4(200, 0, 0, 1)
       new THREE.Vector4(250, 60, 0, 1)
-    ])
+    ]
 
+    track = new LW.TrackModel(vertices)
     @loadTrack(track)
 
   saveTrack: ->
@@ -162,7 +163,7 @@ class LW.GUIController
     @segmentProxy.fromJSON(track.toJSON())
     @updateFolder(@viewFolder, false)
 
-    LW.edit?.rebuild()
+    LW.edit.setModel(track)
     LW.track?.rebuild()
     LW.train?.start()
 
