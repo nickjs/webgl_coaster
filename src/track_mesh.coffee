@@ -19,18 +19,30 @@ class LW.TrackMesh extends THREE.Object3D
 
     LW.mixin(this, options)
 
+    @meshes = []
+
   uvgen = THREE.ExtrudeGeometry.WorldUVGenerator
 
   updateMaterials: ->
-    @wireframeMaterial ||= new THREE.LineBasicMaterial(color: 0x0000ff, linewidth: 2)
+    @wireframeMaterial ||= new THREE.LineBasicMaterial(color: 0xffffff, linewidth: 2, vertexColors: THREE.VertexColors)
     @spineMaterial ||= new THREE.MeshPhongMaterial(color: 0xff0000, ambient: 0x090909, specular: 0x333333, shininess: 30)
     @tieMaterial ||= @spineMaterial.clone()
     @railMaterial ||= @spineMaterial.clone()
 
-    @wireframeMaterial.color.setStyle(@model.wireframeColor)
+    # @wireframeMaterial.color.setStyle(@model.wireframeColor)
     @spineMaterial.color.setStyle(@model.spineColor)
     @tieMaterial.color.setStyle(@model.tieColor)
     @railMaterial.color.setStyle(@model.railColor)
+
+  add: (object) ->
+    @meshes.push(object)
+    object.trackSegment = true
+    super
+
+  remove: (object) ->
+    @meshes.splice(@meshes.indexOf(object), 1)
+    object.trackSegment = false
+    super
 
   rebuild: ->
     @clear()
@@ -52,8 +64,21 @@ class LW.TrackMesh extends THREE.Object3D
     binormal = new THREE.Vector3
     normal = new THREE.Vector3
 
+    separators = @model.separators
+    segment = 0
+    separator = separators[segment]
+    nextSeparator = separators[segment + 1]
+
+    @segmentWireframeColor = separator.wireframeColor = new THREE.Color(@model.wireframeColor)
+
     for i in [0..totalLength]
       u = i / totalLength
+
+      if nextSeparator && u >= nextSeparator.position
+        segment++
+        separator = nextSeparator
+        nextSeparator = separators[segment + 1]
+        @segmentWireframeColor = separator.wireframeColor = new THREE.Color(@model.wireframeColor)
 
       pos = @model.spline.getPointAt(u)
       tangent = @model.spline.getTangentAt(u).normalize()
@@ -107,7 +132,9 @@ class LW.TrackMesh extends THREE.Object3D
       if @wireframe
         distance = @railDistance
         distance = -distance if i % 2 == 0
+        oldLength = @railGeometries[i].vertices.length
         @_extrudeVertices([new THREE.Vector3(distance, 0)], @railGeometries[i].vertices, pos, normal, binormal)
+        @railGeometries[i].colors.push(@segmentWireframeColor)
       else
         grid = []
         xDistance = if i % 2 == 0 then @railDistance else -@railDistance
@@ -182,6 +209,7 @@ class LW.TrackMesh extends THREE.Object3D
   spineStep: (pos, normal, binormal) ->
     if @wireframe
       @_extrudeVertices(@wireframeSpine, @spineGeometry.vertices, pos, normal, binormal)
+      @spineGeometry.colors.push(@segmentWireframeColor)
     else
       return if !@spineShape
       @_extrudeVertices(@_spineVertices, @spineGeometry.vertices, pos, normal, binormal)
@@ -225,6 +253,7 @@ class LW.TrackMesh extends THREE.Object3D
   tieStep: (pos, normal, binormal, useExtended) ->
     if @wireframe
       @_extrudeVertices(@wireframeTies, @tieGeometry.vertices, pos, normal, binormal)
+      @tieGeometry.colors.push(@segmentWireframeColor)
     else
       return if !@tieShape
 

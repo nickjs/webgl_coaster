@@ -22,8 +22,8 @@ class LW.TrackModel
   constructor: (@points, @proxy) ->
     return if @proxy
 
-    @rollPoints = [new THREE.Vector2(0,0), new THREE.Vector2(1,0)]
-    @separators = []
+    @rollPoints = [new LW.RollPoint(position: 0, amount: 0, hidden: true), new LW.RollPoint(position: 1, amount: 0, hidden: true)]
+    @separators = [new LW.Separator(position: 0, mode: LW.Separator.MODE.TYPE, hidden: true)]
 
     @rebuild()
 
@@ -44,26 +44,34 @@ class LW.TrackModel
 
   positionOnSpline: (seekingPos) ->
     totalLength = Math.ceil(@spline.getLength()) * 10
-    bestDistance = {t: 0, distance: 10}
+    bestDistance = 10
+    bestT = 0
     for i in [0..totalLength]
       u = i / totalLength
       currentPos = @spline.getPointAt(u)
       distance = currentPos.distanceTo(seekingPos)
-      if distance < bestDistance.distance
-        bestDistance.t = u
-        bestDistance.distance = distance
+      if distance < bestDistance
+        bestT = u
+        bestDistance = distance
 
-    return bestDistance.t
+    return bestT
 
-  addRollPoint: (t, amount) ->
-    @rollPoints.push(new THREE.Vector2(t, amount))
+  getSegmentForPosition: (seekingPos) ->
+    for separator, i in @separators
+      if separator.position >= seekingPos
+        return @separators[i - 1]
+
+    return @separators[@separators.length - 1]
+
+  addRollPoint: (position, amount) ->
+    @rollPoints.push(new LW.RollPoint({position, amount}))
     @rollSpline.rebuild()
 
   getBankAt: (t) ->
     return @rollSpline.getPoint(t)
 
-  addSeparator: (t, mode) ->
-    @separators.push(new THREE.Vector2(t, mode))
+  addSeparator: (position, mode) ->
+    @separators.push(new LW.Separator({position, mode}))
     @separators.sort (a, b) -> a.x - b.x
 
   toJSON: ->
@@ -82,9 +90,49 @@ class LW.TrackModel
       new THREE.Vector4(p.x, p.y, p.z, p.w)
 
     @rollPoints = for p in json.rollPoints
-      new THREE.Vector2(p.x, p.y)
+      new LW.RollPoint(p)
 
     @separators = for p in json.separators
-      new THREE.Vector2(p.x, p.y)
+      new LW.Separator(p)
 
     @rebuild()
+
+class LW.RollPoint
+  position: 0
+  amount: 0
+  hidden: false
+
+  constructor: (options) ->
+    LW.mixin(this, options) if options
+
+  toJSON: ->
+    json = {}
+    for own key, value of this
+      json[key] = value
+    return json
+
+  copy: (other) ->
+    LW.mixin(this, other)
+
+class LW.Separator
+  @MODE = {
+    STYLE: 1
+    TYPE: 2
+  }
+
+  position: 0
+  mode: 0
+  segmentType: 'TrackSegment'
+  hidden: false
+
+  constructor: (options) ->
+    LW.mixin(this, options) if options
+
+  toJSON: ->
+    json = {}
+    for own key, value of this
+      json[key] = value
+    return json
+
+  copy: (other) ->
+    LW.mixin(this, other)

@@ -16,10 +16,10 @@ class LW.GUIController
     LW.edit.observe('nodeChanged', @nodeChanged)
     LW.edit.observe('selectionChanged', @selectionChanged)
 
-    @rollProxy = new THREE.Vector2(0.05, 100)
+    @rollProxy = new LW.RollPoint(0.05, 100)
     @rollFolder = @gui.addFolder("Roll Properties")
-    @rollFolder.add(@rollProxy, 'x', 0.01, 0.99).name("position").onChange(@changeRoll)
-    @rollFolder.add(@rollProxy, 'y', -360, 360).name("amount").onChange(@changeRoll)
+    @rollFolder.add(@rollProxy, 'position', 0.01, 0.99).onChange(@changeRoll)
+    @rollFolder.add(@rollProxy, 'amount', -360, 360).onChange(@changeRoll)
     @rollFolder.__ul.classList.add('hidden')
 
     @segmentProxy = new LW.TrackModel(null, true)
@@ -60,7 +60,10 @@ class LW.GUIController
         @rollFolder.open()
         @vertexFolder.close()
 
-      @nodeChanged(selected)
+      if selected instanceof THREE.Mesh
+        @nodeChanged(selected)
+      else
+        @styleFolder.open()
     else
       @vertexFolder.close()
       @rollFolder.close()

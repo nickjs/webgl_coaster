@@ -76,13 +76,19 @@ class LW.EditTrack extends THREE.Object3D
     if camera instanceof THREE.PerspectiveCamera
       @projector.unprojectVector(vector, camera)
       @raycaster.set(camera.position, vector.sub(camera.position).normalize())
+
       if Array.isArray(objects)
         return @raycaster.intersectObjects(objects, deep)
       else
         return @raycaster.intersectObject(objects, deep)
+
     else
       ray = @projector.pickingRay(vector, camera)
-      return ray.intersectObjects(objects)
+
+      if Array.isArray(objects)
+        return ray.intersectObjects(objects, deep)
+      else
+        return ray.intersectObject(objects, deep)
 
   onMouseDown: (event) =>
     @mouseDown.x = event.clientX / window.innerWidth
@@ -99,8 +105,13 @@ class LW.EditTrack extends THREE.Object3D
     if @mouseDown.distanceTo(@mouseUp) == 0
       switch @mode
         when MODES.SELECT
-          intersects = @pick(@mouseUp, @nodes)
-          @selectNode(intersects[0]?.object)
+          intersects = @pick(@mouseUp, @nodes.concat(LW.track.meshes))
+          if object = intersects[0]?.object
+            if object.trackSegment
+              t = @model.positionOnSpline(intersects[0].point)
+              object = @model.getSegmentForPosition(t)
+
+          @selectNode(object)
 
         when MODES.ADD_ROLL
           intersects = @pick(@mouseUp, LW.track, true)
@@ -122,17 +133,25 @@ class LW.EditTrack extends THREE.Object3D
     return if @selected == node
     oldSelected = @selected
 
-    @selected?.material.color.setHex(@selected.defaultColor)
-    @selected?.defaultColor = null
+    if oldSelected instanceof LW.Separator
+      oldSelected.wireframeColor?.setStyle(@model.wireframeColor)
+      line.geometry.colorsNeedUpdate = true for line in LW.track.meshes
+    else
+      oldSelected?.material.color.setHex(oldSelected.defaultColor)
+      oldSelected?.defaultColor = null
 
     @transformControl.detach()
 
     @selected = node
 
+    oldWireframe = LW.track?.wireframe
     LW.track?.wireframe = !!node
-    LW.track?.rebuild()
+    LW.track?.rebuild() if oldWireframe != LW.track?.wireframe
 
-    if node
+    if node instanceof LW.Separator
+      node.wireframeColor?.setHex(0xffffff)
+      line.geometry.colorsNeedUpdate = true for line in LW.track.meshes
+    else if node
       node.defaultColor ||= node.material.color.getHex()
       node.material.color.setHex(SELECTED_COLOR)
 
@@ -160,6 +179,7 @@ class LW.EditTrack extends THREE.Object3D
       @nodes.push(node)
 
     for point in @model.rollPoints
+      continue if point.hidden
       node = new THREE.Mesh(ROLL_NODE_GEO, new THREE.MeshLambertMaterial(color: ROLL_NODE_COLOR))
       node.point = point
       node.isRoll = true
@@ -168,6 +188,7 @@ class LW.EditTrack extends THREE.Object3D
       @nodes.push(node)
 
     for point in @model.separators
+      continue if point.hidden
       node = new THREE.Mesh(STYLE_NODE_GEO, new THREE.MeshLambertMaterial(color: STYLE_NODE_COLOR))
       node.point = point
       node.isStyle = true
@@ -194,6 +215,6 @@ class LW.EditTrack extends THREE.Object3D
         node.position.copy(node.point)
       else
         u = node.point.x
-        LW.positionObjectOnSpline(node, @model.spline, node.point.x)
+        LW.positionObjectOnSpline(node, @model.spline, node.point.position)
 
     return
