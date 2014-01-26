@@ -26,8 +26,10 @@ class LW.EditController
     @raycaster = new THREE.Raycaster
 
     @controls = new THREE.EditorControls([renderer.topCamera, renderer.sideCamera, renderer.frontCamera, renderer.camera], renderer.domElement)
-    # @controls.addEventListener 'change', =>
-      # @mesh.transformControl?.update()
+    @controls.addEventListener 'change', =>
+      for control in @transformControls
+        control.update() if control.object
+      return
 
     LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
@@ -47,9 +49,7 @@ class LW.EditController
         oldMesh = @selection.pop()
         oldMesh.material.color.setHex(oldMesh.defaultColor)
         oldMesh.defaultColor = null
-
-      for control in @transformControls
-        control.detach()
+        oldMesh.transformControl?.detach()
 
     if mesh
       @selection.push(mesh)
@@ -57,37 +57,31 @@ class LW.EditController
       mesh.defaultColor ||= mesh.material.color.getHex()
       mesh.material.color.setHex(0xffffff)
 
-      attached = false
-      for control in @transformControls
-        continue if control.object
-        control.attach(mesh)
-        attached = true
-        break
+      @attachTransformControl(mesh)
 
-      if !attached
-        control = new THREE.TransformControls(LW.renderer.camera, LW.renderer.domElement)
-        control.attach(mesh)
-        LW.renderer.scene.add(control)
-        @transformControls.push(control)
+    @fire('selectionChanged', mesh, @selection)
 
-    @fire('selectionChanged', mesh)
+  attachTransformControl: (object) ->
+    for control in @transformControls
+      if !control.object
+        return control.attach(mesh)
 
-  changed: (fireEvent) ->
-    if @selected
-      if @selected.isVertex
-        @selected.point.copy(@selected.position)
-      else
-        @selected.position.copy(@model.spline.getPointAt(@selected.point.x))
+    control = new THREE.TransformControls(LW.renderer.camera, LW.renderer.domElement)
+    LW.renderer.scene.add(control)
 
-    if !@rerenderTimeout
-      @rerenderTimeout = setTimeout =>
-        @rerenderTimeout = null
+    control.addEventListener 'change', =>
+      @controls.enabled = control.axis == undefined
+    control.addEventListener 'move', =>
+      @nodeMoved(control.object)
 
-        @rerender() # things have only moved, we don't need a full rebuild
-        LW.track?.rebuild()
-      , 50
+    control.attach(object)
+    object.transformControl = control
 
-    @fire('nodeChanged', @selected) if fireEvent != false
+    @transformControls.push(control)
+
+  nodeMoved: (node) ->
+    @model.fire('nodeMoved', node)
+    @fire('nodeMoved', node)
 
   pick: (pos, objects, deep) ->
     camera = @controls.camera

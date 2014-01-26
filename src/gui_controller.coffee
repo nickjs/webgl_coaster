@@ -13,8 +13,8 @@ class LW.GUIController
     @vertexFolder.add(@vertexProxy, 'w', 0, 3.5).name("weight").onChange(@changeVertex)
     @vertexFolder.__ul.classList.add('hidden')
 
-    # LW.edit.observe('nodeChanged', @nodeChanged)
-    # LW.edit.observe('selectionChanged', @selectionChanged)
+    LW.edit.observe('nodeMoved', @nodeMoved)
+    LW.edit.observe('selectionChanged', @selectionChanged)
 
     @rollProxy = new LW.RollNode({position: 0.05, amount: 100})
     @rollFolder = @gui.addFolder("Roll Properties")
@@ -43,37 +43,41 @@ class LW.GUIController
   updateFolder: (folder) ->
     controller.updateDisplay() for controller in folder.__controllers
 
-  nodeChanged: (node) =>
-    if node.isVertex
-      @vertexProxy.copy(node.point)
+  nodeMoved: (mesh) =>
+    return if @ignoreNodeMoved
+
+    if mesh.isVertex
+      @vertexProxy.copy(mesh.node)
       @updateFolder(@vertexFolder)
     else
-      @rollProxy.copy(node.point)
+      @rollProxy.copy(mesh.node.position)
       @updateFolder(@rollFolder)
 
-  selectionChanged: (selected) =>
-    if selected
+  selectionChanged: (@selected, selection) =>
+    if selection.length == 1
       if selected.isVertex
         @vertexFolder.open()
         @rollFolder.close()
-      else
+      else if selected.isRollNode || selected.isSeparator
         @rollFolder.open()
         @vertexFolder.close()
+        @styleFolder.open() if selected.isSeparator
 
-      if selected instanceof THREE.Mesh
-        @nodeChanged(selected)
-      else
-        @styleFolder.open()
+      if selected.node
+        @nodeMoved(selected)
+      # else
+        # @styleFolder.open()
     else
       @vertexFolder.close()
       @rollFolder.close()
 
   changeVertex: =>
-    LW.edit.selected.position.copy(@vertexProxy)
-    LW.edit.selected.point.copy(@vertexProxy)
-    LW.edit.changed(false)
+    @selected.node.copy(@vertexProxy)
+    @selected.transformControl.update()
 
-    LW.edit.transformControl.update()
+    @ignoreNodeMoved = true
+    LW.edit.nodeMoved()
+    @ignoreNodeMoved = false
 
   changeRoll: =>
     LW.edit.selected.point.copy(@rollProxy)

@@ -18,6 +18,12 @@ THREE.Vector4::copy = (v) ->
   if !@w?
     @w = 1
 
+THREE.Vector4::add = (v) ->
+  @x += v.x
+  @y += v.y
+  @z += v.z
+  @w += v.w if v.w?
+
 LW.mixin = (context, mixin) ->
   for own key, val of mixin
     context[key] = val
