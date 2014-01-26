@@ -212,7 +212,9 @@ class LW.TrackMesh extends THREE.Object3D
     separator = separators[segment]
     nextSeparator = separators[segment + 1]
 
-    @segmentWireframeColor = separator.wireframeColor = new THREE.Color(@model.wireframeColor)
+    @segmentWireframeColor = separator.wireframeColor = new THREE.Color(separator.wireframeColor || @model.wireframeColor)
+    @segmentMeshColor = separator.meshColor = new THREE.Color(separator.spineColor || @model.spineColor)
+    console.log @segmentMeshColor
 
     for i in [0..totalLength]
       u = i / totalLength
@@ -221,7 +223,8 @@ class LW.TrackMesh extends THREE.Object3D
         segment++
         separator = nextSeparator
         nextSeparator = separators[segment + 1]
-        @segmentWireframeColor = separator.wireframeColor = new THREE.Color(@model.wireframeColor)
+        @segmentWireframeColor = separator.wireframeColor = new THREE.Color(separator.wireframeColor || @model.wireframeColor)
+        @segmentMeshColor = separator.meshColor = new THREE.Color(separator.spineColor || @model.spineColor)
 
       pos = @model.spline.getPointAt(u)
       tangent = @model.spline.getTangentAt(u).normalize()
@@ -363,10 +366,6 @@ class LW.TrackMesh extends THREE.Object3D
     else
       @_joinFaces(@_spineVertices, @_spineFaces, @spineGeometry, spineSteps, 0, @spineGeometry.vertices.length - @_spineVertices.length)
 
-      for f in @spineGeometry.faces
-        f.color.setHex(Math.random() * 0xffffff)
-
-
       @spineGeometry.computeCentroids()
       @spineGeometry.computeFaceNormals()
 
@@ -456,14 +455,14 @@ class LW.TrackMesh extends THREE.Object3D
       a = face[if flipOutside then 2 else 0] + startOffset
       b = face[1] + startOffset
       c = face[if flipOutside then 0 else 2] + startOffset
-      target.faces.push(new THREE.Face3(a, b, c, null, null, null))
+      target.faces.push(new THREE.Face3(a, b, c, null, @segmentMeshColor, null))
       target.faceVertexUvs[0].push(uvgen.generateBottomUV(target, null, null, a, b, c))
 
       # Top
       a = face[if flipOutside then 0 else 2] + startOffset + endOffset
       b = face[1] + startOffset + endOffset
       c = face[if flipOutside then 2 else 0] + startOffset + endOffset
-      target.faces.push(new THREE.Face3(a, b, c, null, null, null))
+      target.faces.push(new THREE.Face3(a, b, c, null, @segmentMeshColor, null))
       target.faceVertexUvs[0].push(uvgen.generateTopUV(target, null, null, a, b, c))
 
     # Sides
@@ -481,8 +480,8 @@ class LW.TrackMesh extends THREE.Object3D
         c = k + slen2 + startOffset
         d = j + slen2 + startOffset
 
-        target.faces.push(new THREE.Face3(d, b, a, null, null, null))
-        target.faces.push(new THREE.Face3(d, c, b, null, null, null))
+        target.faces.push(new THREE.Face3(d, b, a, null, @segmentMeshColor, null))
+        target.faces.push(new THREE.Face3(d, c, b, null, @segmentMeshColor, null))
 
         uvs = uvgen.generateSideWallUV(target, null, null, null, a, b, c, d, s, totalSteps, j, k)
         target.faceVertexUvs[0].push([uvs[0], uvs[1], uvs[3]])

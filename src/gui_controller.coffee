@@ -81,8 +81,14 @@ class LW.GUIController
 
   changeColor: (key) ->
     return (value) ->
-      LW.model["#{key}Color"] = value
-      LW.track?.updateMaterials()
+      selected = LW.edit.selected
+      if selected instanceof LW.Separator
+        selected["#{key}Color"] = value
+        selected.meshColor.setStyle(value)
+        line.geometry.colorsNeedUpdate = true for line in LW.track.meshes
+      else
+        LW.model["#{key}Color"] = value
+        LW.track?.updateMaterials()
 
   changeShowFPS: (value) ->
     node = LW.renderer.stats.domElement
