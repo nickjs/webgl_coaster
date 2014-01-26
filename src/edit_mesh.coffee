@@ -18,7 +18,7 @@ SEPARATORS = {
   TYPE: 1
 }
 
-class LW.EditTrack extends THREE.Object3D
+class LW.EditMesh extends THREE.Object3D
   @MODES: MODES
   mode: MODES.SELECT
 
