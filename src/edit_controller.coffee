@@ -50,6 +50,7 @@ class LW.EditController
         oldMesh.material.color.setHex(oldMesh.defaultColor)
         oldMesh.defaultColor = null
         oldMesh.transformControl?.detach()
+        oldMesh.transformControl = null
 
     if mesh
       @selection.push(mesh)
@@ -61,10 +62,14 @@ class LW.EditController
 
     @fire('selectionChanged', mesh, @selection)
 
+    LW.track?.wireframe = !!mesh
+    LW.track?.rebuild()
+
   attachTransformControl: (object) ->
     for control in @transformControls
       if !control.object
-        return control.attach(mesh)
+        object.transformControl = control
+        return control.attach(object)
 
     control = new THREE.TransformControls(LW.renderer.camera, LW.renderer.domElement)
     LW.renderer.scene.add(control)
