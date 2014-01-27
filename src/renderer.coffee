@@ -93,7 +93,10 @@ class LW.Renderer
     else
       @renderer.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
 
-    @renderer.render(@scene, @camera)
+    mainCamera = LW.train?.camera if LW.model?.onRideCamera
+    mainCamera ||= @camera
+
+    @renderer.render(@scene, mainCamera)
 
     @stats.update()
 

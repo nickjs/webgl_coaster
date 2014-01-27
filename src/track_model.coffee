@@ -2,6 +2,9 @@ class LW.TrackModel
   name: ""
 
   points: null
+  rollPoints: null
+  separators: null
+
   spline: null
   rollSpline: null
   isConnected: false
@@ -20,6 +23,8 @@ class LW.TrackModel
     return if @proxy
 
     @rollPoints = [new THREE.Vector2(0,0), new THREE.Vector2(1,0)]
+    @separators = []
+
     @rebuild()
 
   rebuild: ->
@@ -57,12 +62,15 @@ class LW.TrackModel
   getBankAt: (t) ->
     return @rollSpline.getPoint(t)
 
+  addSeparator: (t, mode) ->
+    @separators.push(new THREE.Vector2(t, mode))
+    @separators.sort (a, b) -> a.x - b.x
+
   toJSON: ->
     return {
             @name, @isConnected,
-            @points, @rollPoints,
-            @onRideCamera,
-            @forceWireframe, @debugNormals,
+            @points, @rollPoints, @separators,
+            @onRideCamera, @forceWireframe, @debugNormals,
             @spineColor, @tieColor, @railColor, @wireframeColor
            }
 
@@ -74,6 +82,9 @@ class LW.TrackModel
       new THREE.Vector4(p.x, p.y, p.z, p.w)
 
     @rollPoints = for p in json.rollPoints
+      new THREE.Vector2(p.x, p.y)
+
+    @separators = for p in json.separators
       new THREE.Vector2(p.x, p.y)
 
     @rebuild()

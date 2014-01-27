@@ -35,6 +35,7 @@ class LW.GUIController
     @viewFolder.add(@modelProxy, 'onRideCamera').name("ride camera").onChange(@changeOnRideCamera)
     @viewFolder.add(@modelProxy, 'forceWireframe').name("force wireframe").onChange(@changeForceWireframe)
     @viewFolder.add(@modelProxy, 'debugNormals').name("show normals").onChange(@changeDebugNormals)
+    @viewFolder.add(LW.train.cameraHelper, 'visible').name("debug ride cam")
 
     @addSaveBar()
     @loadTracks()
@@ -87,23 +88,9 @@ class LW.GUIController
     else
       node.parentNode.removeChild(node)
 
-  changeOnRideCamera: (value) =>
+  changeOnRideCamera: (value) ->
     LW.model.onRideCamera = value
-
-    if value
-      @oldCamPos = LW.renderer.camera.position.clone()
-      @oldCamRot = LW.renderer.camera.rotation.clone()
-      LW.renderer.scene.remove(LW.edit)
-    else
-      @oldCamPos ||= LW.renderer.defaultCamPos
-      @oldCamRot ||= LW.renderer.defaultCamRot
-
-      LW.renderer.camera.position.copy(@oldCamPos)
-      LW.renderer.camera.rotation.copy(@oldCamRot)
-      LW.edit.rebuild()
-
-      LW.renderer.scene.add(LW.edit)
-
+    LW.edit.rebuild()
 
   changeForceWireframe: (value) ->
     LW.model.forceWireframe = value
@@ -186,10 +173,11 @@ class LW.GUIController
       console.log e
       console.log e.stack
 
-      alert("Well, seems like I've gone and changed the track format again. Unfortunately I'll have to clear all your tracks now. Sorry mate!")
-      localStorage.clear()
-
-      @loadTracks()
+      if confirm("Well, seems like I've gone and changed the track format again. Press OK to erase all your tracks and start over or Cancel to try reloading. Sorry mate!")
+        localStorage.clear()
+        @loadTracks()
+      else
+        window.location.reload()
 
   clearAllTracks: ->
     if confirm("This will remove all your tracks. Are you sure you wish to do this?")

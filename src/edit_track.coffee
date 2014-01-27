@@ -1,13 +1,21 @@
 CONTROL_COLOR = 0x0000ee
 ROLL_NODE_COLOR = 0x00ff00
+STYLE_NODE_COLOR = 0x00ffff
 SELECTED_COLOR = 0xffffff
 
 NODE_GEO = new THREE.SphereGeometry(1)
 ROLL_NODE_GEO = new THREE.CubeGeometry(2, 2, 2)
+STYLE_NODE_GEO = new THREE.CubeGeometry(3, 3, 1)
 
 MODES = {
   SELECT: 'select'
   ADD_ROLL: 'add roll'
+  ADD_STYLE: 'add style'
+}
+
+SEPARATORS = {
+  STYLE: 0
+  TYPE: 1
 }
 
 class LW.EditTrack extends THREE.Object3D
@@ -93,10 +101,18 @@ class LW.EditTrack extends THREE.Object3D
         when MODES.SELECT
           intersects = @pick(@mouseUp, @nodes)
           @selectNode(intersects[0]?.object)
+
         when MODES.ADD_ROLL
           intersects = @pick(@mouseUp, LW.track, true)
           if point = intersects[0]?.point
             @model.addRollPoint(@model.positionOnSpline(point), 0)
+            @rebuild()
+            LW.track.rebuild()
+
+        when MODES.ADD_STYLE
+          intersects = @pick(@mouseUp, LW.track, true)
+          if point = intersects[0]?.point
+            @model.addSeparator(@model.positionOnSpline(point), SEPARATORS.STYLE)
             @rebuild()
             LW.track.rebuild()
 
@@ -147,6 +163,14 @@ class LW.EditTrack extends THREE.Object3D
       node = new THREE.Mesh(ROLL_NODE_GEO, new THREE.MeshLambertMaterial(color: ROLL_NODE_COLOR))
       node.point = point
       node.isRoll = true
+
+      @add(node)
+      @nodes.push(node)
+
+    for point in @model.separators
+      node = new THREE.Mesh(STYLE_NODE_GEO, new THREE.MeshLambertMaterial(color: STYLE_NODE_COLOR))
+      node.point = point
+      node.isStyle = true
 
       @add(node)
       @nodes.push(node)
