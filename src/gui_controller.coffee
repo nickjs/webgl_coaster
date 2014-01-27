@@ -50,7 +50,7 @@ class LW.GUIController
       @vertexProxy.copy(mesh.node)
       @updateFolder(@vertexFolder)
     else
-      @rollProxy.copy(mesh.node.position)
+      @rollProxy.copy(mesh.node)
       @updateFolder(@rollFolder)
 
   selectionChanged: (@selected, selection) =>
@@ -65,8 +65,6 @@ class LW.GUIController
 
       if selected.node
         @nodeMoved(selected)
-      # else
-        # @styleFolder.open()
     else
       @vertexFolder.close()
       @rollFolder.close()
@@ -76,12 +74,15 @@ class LW.GUIController
     @selected.transformControl.update()
 
     @ignoreNodeMoved = true
-    LW.edit.nodeMoved()
+    LW.edit.nodeMoved(@selected)
     @ignoreNodeMoved = false
 
   changeRoll: =>
-    LW.edit.selected.point.copy(@rollProxy)
-    LW.edit.changed(false)
+    @selected.node.copy(@rollProxy)
+
+    @ignoreNodeMoved = true
+    LW.edit.nodeMoved(@selected)
+    @ignoreNodeMoved = false
 
   changeColor: (key) ->
     return (value) ->

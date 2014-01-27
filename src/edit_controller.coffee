@@ -58,7 +58,7 @@ class LW.EditController
       mesh.defaultColor ||= mesh.material.color.getHex()
       mesh.material.color.setHex(0xffffff)
 
-      @attachTransformControl(mesh)
+      @attachTransformControl(mesh) if mesh.isVertex
 
     @fire('selectionChanged', mesh, @selection)
 

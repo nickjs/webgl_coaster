@@ -71,8 +71,11 @@ class LW.EditMesh extends THREE.Object3D
     @nodeMeshes.push(mesh)
     @add(mesh)
 
-  nodeMoved: =>
-    @polygonGeo.verticesNeedUpdate = true
+  nodeMoved: (mesh) =>
+    if mesh.isVertex
+      @polygonGeo.verticesNeedUpdate = true
+    else
+      LW.positionObjectOnSpline(mesh, @model.spline, mesh.node.position)
 
   rebuildPolygonLine: ->
     @remove(@polygonLine) if @polygonLine
