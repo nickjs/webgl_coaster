@@ -103,13 +103,17 @@ class LW.TrackModel
 
     return @defaultSeparator
 
-  addRollPoint: (position, amount) ->
-    @rollNodes.push(new LW.RollNode({position, amount}))
+  addRollNode: (position, amount) ->
+    rollNode = new LW.RollNode({position, amount})
+    @rollNodes.push(rollNode)
     @rollNodes.sort (a, b) -> a.position - b.position
+    return rollNode
 
   addSeparator: (position, mode) ->
-    @separators.push(new LW.Separator({position, mode}))
+    separator = new LW.Separator({position, mode})
+    @separators.push(separator)
     @separators.sort (a, b) -> a.position - b.position
+    return separator
 
   toJSON: ->
     return {

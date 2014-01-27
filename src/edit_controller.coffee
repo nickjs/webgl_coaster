@@ -146,15 +146,15 @@ class LW.EditController
         when MODES.ADD_ROLL
           intersects = @pick(@mouseUp, LW.track, true)
           if point = intersects[0]?.point
-            @model.addRollPoint(@model.positionOnSpline(point), 0)
-            @rebuild()
+            node = @model.addRollNode(@model.findTFromPoint(point), 0)
+            @model.fire('nodeAdded', node)
             LW.track.rebuild()
 
         when MODES.ADD_STYLE
           intersects = @pick(@mouseUp, LW.track, true)
           if point = intersects[0]?.point
-            @model.addSeparator(@model.positionOnSpline(point), SEPARATORS.STYLE)
-            @rebuild()
+            node = @model.addSeparator(@model.findTFromPoint(point), LW.Separator.MODE.STYLE)
+            @model.fire('nodeAdded', node)
             LW.track.rebuild()
 
     @isMouseDown = false

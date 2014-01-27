@@ -49,17 +49,19 @@ class LW.EditMesh extends THREE.Object3D
     else if node instanceof LW.RollNode
       geo = ROLL_NODE_GEO
       color = ROLL_NODE_COLOR
-      # pos =
       isRollNode = true
 
     else if node instanceof LW.Separator
       geo = STYLE_NODE_GEO
       color = STYLE_NODE_COLOR
-      # pos =
       isSeparator = true
 
     mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({color}))
-    mesh.position = pos
+
+    if pos
+      mesh.position = pos
+    else
+      LW.positionObjectOnSpline(mesh, @model.spline, node.position)
 
     mesh.node = node
     mesh.isVertex = isVertex
