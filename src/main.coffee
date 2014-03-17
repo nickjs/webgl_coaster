@@ -7,9 +7,7 @@
 #= require terrain
 #= require track_mesh
 #= require track_model
-#= require train
 
-#= require edit_track
 #= require bm_sitdown_track
 #= require bm_inverted_track
 
@@ -39,15 +37,8 @@ window.LW =
 
     terrain = new LW.Terrain(renderer)
 
-    @edit = new LW.EditTrack
-    renderer.scene.add(@edit)
-
     @track = new LW.BMInvertedTrack
     renderer.scene.add(@track)
-
-    @train = new LW.Train(@track, numberOfCars: 4)
-    @train.start()
-    renderer.scene.add(@train)
 
     @gui = new LW.GUIController
 
@@ -91,5 +82,3 @@ LW.positionObjectOnSpline = (object, spline, u, offset, offsetRotation) ->
 
   object.rotation.setFromRotationMatrix(matrix)
   return tangent
-
-window.onload = -> LW.init()
