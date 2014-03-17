@@ -21,8 +21,8 @@ class LW.Renderer
     @domElement = @renderer.domElement
     container.appendChild(@domElement)
 
-    @stats = new Stats
-    container.appendChild(@stats.domElement) if @showFPS
+    @stats = new Stats if Stats?
+    container.appendChild(@stats.domElement) if @stats && @showFPS
 
     @scene = new THREE.Scene
     @clock = new THREE.Clock
@@ -98,6 +98,6 @@ class LW.Renderer
 
     @renderer.render(@scene, mainCamera)
 
-    @stats.update()
+    @stats?.update()
 
     requestAnimationFrame(@render)
