@@ -1,15 +1,15 @@
 #= require_self
-#= require observable
+#= require ./observable
 
-#= require gui_controller
-#= require renderer
-#= require roll_curve
-#= require terrain
-#= require track_mesh
-#= require track_model
+#= require ./gui_controller
+#= require ./renderer
+#= require ./roll_curve
+#= require ./terrain
+#= require ./track_mesh
+#= require ./track_model
 
-#= require bm_sitdown_track
-#= require bm_inverted_track
+#= require ./bm_sitdown_track
+#= require ./bm_inverted_track
 
 # Some THREE objects don't create their prototype constructor chains correctly
 THREE.Mesh::constructor = THREE.Mesh
