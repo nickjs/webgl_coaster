@@ -3,7 +3,7 @@ class LW.Terrain
     geo = new THREE.PlaneGeometry(1000, 1000, 125, 125)
 
     groundMaterial = new THREE.MeshPhongMaterial(color: 0xffffff, specular: 0x111111)
-    groundTexture = THREE.ImageUtils.loadTexture "resources/textures/grass.jpg", undefined, ->
+    groundTexture = THREE.ImageUtils.loadTexture "/resources/textures/grass.jpg", undefined, ->
       groundMaterial.map = groundTexture
       groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping
       groundTexture.repeat.set(25, 25)
@@ -17,7 +17,7 @@ class LW.Terrain
 
     # Skybox
 
-    path = "resources/textures/skybox/"
+    path = "/resources/textures/skybox/"
     format = '.jpg'
     urls = [
       path + 'px' + format, path + 'nx' + format

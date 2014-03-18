@@ -12,7 +12,7 @@ class LW.Train extends THREE.Object3D
 
     if track?.carModel
       loader = new THREE.ColladaLoader
-      loader.load "resources/models/#{track.carModel}", (result) =>
+      loader.load "/resources/models/#{track.carModel}", (result) =>
         @carProto = result.scene.children[0]
         @carProto.scale.copy(track.carScale)
         @carRot = new THREE.Matrix4().makeRotationFromEuler(track.carRotation, 'XYZ')
