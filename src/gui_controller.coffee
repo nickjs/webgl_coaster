@@ -2,45 +2,49 @@ class LW.GUIController
   constructor: ->
     @modelProxy = new LW.TrackModel(null, true)
 
-    @gui = new dat.GUI()
-    @gui.add(LW.edit, 'mode', (val for own key, val of LW.EditTrack.MODES)).name("tool")
-
     @vertexProxy = new THREE.Vector4(50, 50, 50, 0.5)
-    @vertexFolder = @gui.addFolder("Vertex Properties")
-    @vertexFolder.add(@vertexProxy, 'x', -100, 100).onChange(@changeVertex)
-    @vertexFolder.add(@vertexProxy, 'y', 0, 200).onChange(@changeVertex)
-    @vertexFolder.add(@vertexProxy, 'z', -100, 100).onChange(@changeVertex)
-    @vertexFolder.add(@vertexProxy, 'w', 0, 3.5).name("weight").onChange(@changeVertex)
-    @vertexFolder.__ul.classList.add('hidden')
-
-    LW.edit.observe('nodeChanged', @nodeChanged)
-    LW.edit.observe('selectionChanged', @selectionChanged)
-
     @rollProxy = new THREE.Vector2(0.05, 100)
-    @rollFolder = @gui.addFolder("Roll Properties")
-    @rollFolder.add(@rollProxy, 'x', 0.01, 0.99).name("position").onChange(@changeRoll)
-    @rollFolder.add(@rollProxy, 'y', -360, 360).name("amount").onChange(@changeRoll)
-    @rollFolder.__ul.classList.add('hidden')
-
     @segmentProxy = new LW.TrackModel(null, true)
-    @styleFolder = @gui.addFolder("Style Properties")
-    @styleFolder.addColor(@segmentProxy, 'spineColor').name("spine color").onChange(@changeColor('spine'))
-    @styleFolder.addColor(@segmentProxy, 'tieColor').name("tie color").onChange(@changeColor('tie'))
-    @styleFolder.addColor(@segmentProxy, 'railColor').name("rail color").onChange(@changeColor('rail'))
-    @styleFolder.addColor(@segmentProxy, 'wireframeColor').name("wireframe color").onChange(@changeColor('wireframe'))
 
-    @viewFolder = @gui.addFolder("View Properties")
-    @viewFolder.add(LW.renderer, 'showFPS').name("show FPS").onChange(@changeShowFPS)
-    @viewFolder.add(LW.renderer, 'useQuadView').name("quad view")
-    @viewFolder.add(@modelProxy, 'onRideCamera').name("ride camera").onChange(@changeOnRideCamera)
-    @viewFolder.add(@modelProxy, 'forceWireframe').name("force wireframe").onChange(@changeForceWireframe)
-    @viewFolder.add(@modelProxy, 'debugNormals').name("show normals").onChange(@changeDebugNormals)
-    @viewFolder.add(LW.train.cameraHelper, 'visible').name("debug ride cam")
+    @gui = new dat.GUI()
 
-    @addSaveBar()
-    @loadTracks()
+    if LW.edit
+      @gui.add(LW.edit, 'mode', (val for own key, val of LW.EditTrack.MODES)).name("tool")
+
+      @vertexFolder = @gui.addFolder("Vertex Properties")
+      @vertexFolder.add(@vertexProxy, 'x', -100, 100).onChange(@changeVertex)
+      @vertexFolder.add(@vertexProxy, 'y', 0, 200).onChange(@changeVertex)
+      @vertexFolder.add(@vertexProxy, 'z', -100, 100).onChange(@changeVertex)
+      @vertexFolder.add(@vertexProxy, 'w', 0, 3.5).name("weight").onChange(@changeVertex)
+      @vertexFolder.__ul.classList.add('hidden')
+
+      LW.edit.observe('nodeChanged', @nodeChanged)
+      LW.edit.observe('selectionChanged', @selectionChanged)
+
+      @rollFolder = @gui.addFolder("Roll Properties")
+      @rollFolder.add(@rollProxy, 'x', 0.01, 0.99).name("position").onChange(@changeRoll)
+      @rollFolder.add(@rollProxy, 'y', -360, 360).name("amount").onChange(@changeRoll)
+      @rollFolder.__ul.classList.add('hidden')
+
+      @styleFolder = @gui.addFolder("Style Properties")
+      @styleFolder.addColor(@segmentProxy, 'spineColor').name("spine color").onChange(@changeColor('spine'))
+      @styleFolder.addColor(@segmentProxy, 'tieColor').name("tie color").onChange(@changeColor('tie'))
+      @styleFolder.addColor(@segmentProxy, 'railColor').name("rail color").onChange(@changeColor('rail'))
+      @styleFolder.addColor(@segmentProxy, 'wireframeColor').name("wireframe color").onChange(@changeColor('wireframe'))
+
+      @viewFolder = @gui.addFolder("View Properties")
+      @viewFolder.add(LW.renderer, 'showFPS').name("show FPS").onChange(@changeShowFPS)
+      @viewFolder.add(LW.renderer, 'useQuadView').name("quad view")
+      @viewFolder.add(@modelProxy, 'onRideCamera').name("ride camera").onChange(@changeOnRideCamera)
+      @viewFolder.add(@modelProxy, 'forceWireframe').name("force wireframe").onChange(@changeForceWireframe)
+      @viewFolder.add(@modelProxy, 'debugNormals').name("show normals").onChange(@changeDebugNormals)
+      @viewFolder.add(LW.train.cameraHelper, 'visible').name("debug ride cam")
+
+      @addSaveBar()
+      @loadTracks()
 
   updateFolder: (folder) ->
+    return if not folder
     controller.updateDisplay() for controller in folder.__controllers
 
   nodeChanged: (node) =>
@@ -219,6 +223,8 @@ class LW.GUIController
     saveRow.appendChild(gears)
 
   _addTrackToDropdown: (name) ->
+    return if not @dropdown
+
     option = document.createElement('option')
     option.innerHTML = name
     option.value = name
