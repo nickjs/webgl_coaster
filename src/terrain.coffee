@@ -1,6 +1,6 @@
 class LW.Terrain
   constructor: (renderer) ->
-    geo = new THREE.PlaneGeometry(1000, 1000, 125, 125)
+    geo = new THREE.PlaneGeometry(10000, 10000, 125, 125)
 
     groundMaterial = new THREE.MeshPhongMaterial(color: 0xffffff, specular: 0x111111)
     groundTexture = THREE.ImageUtils.loadTexture "/resources/textures/grass.jpg", undefined, ->
