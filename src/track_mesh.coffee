@@ -46,7 +46,7 @@ class LW.TrackMesh extends THREE.Object3D
     @prepareTies()
     @prepareSpine()
 
-    totalLength = Math.ceil(@model.spline.getLength()) * 10
+    totalLength = Math.ceil(@model.spline.getLength())
     spineSteps = 0
 
     binormal = new THREE.Vector3
