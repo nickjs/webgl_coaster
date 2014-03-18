@@ -32,8 +32,8 @@ THREE.Vector4::copy = (v) ->
     @w = 1
 
 window.LW =
-  init: ->
-    renderer = @renderer = new LW.Renderer(document.body)
+  init: (container = document.body) ->
+    renderer = @renderer = new LW.Renderer(container)
 
     terrain = new LW.Terrain(renderer)
 
