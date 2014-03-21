@@ -44,10 +44,6 @@ class LW.TrackModel
 
   onRideCamera: false
 
-  defaultRollNode: new LW.RollNode(
-    position: null
-  )
-
   defaultSeparator: new LW.Separator(
     position: null
   )
@@ -58,7 +54,11 @@ class LW.TrackModel
     return if @proxy
 
     @vertices ||= []
-    @rollNodes = []
+    @rollNodes = [
+      new LW.RollNode(isHidden: true),
+      new LW.RollNode(position: 1, isHidden: true)
+    ]
+
     @separators = []
 
     @rebuild()
@@ -79,7 +79,6 @@ class LW.TrackModel
     @rollSpline.rebuild()
 
   getBankAt: (t) ->
-    return 0
     return @rollSpline.getPoint(t)
 
   findTFromPoint: (seekingPos) ->
