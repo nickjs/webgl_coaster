@@ -9,6 +9,7 @@ class LW.GUIController
     @gui = new dat.GUI()
 
     if LW.edit
+      @addSaveBar()
       @gui.add(LW.edit, 'mode', (val for own key, val of LW.EditController.MODES)).name("tool")
 
       @vertexFolder = @gui.addFolder("Vertex Properties")
@@ -32,15 +33,14 @@ class LW.GUIController
       @styleFolder.addColor(@segmentProxy, 'railColor').name("rail color").onChange(@changeColor('rail'))
       @styleFolder.addColor(@segmentProxy, 'wireframeColor').name("wireframe color").onChange(@changeColor('wireframe'))
 
-      @viewFolder = @gui.addFolder("View Properties")
-      @viewFolder.add(LW.renderer, 'showFPS').name("show FPS").onChange(@changeShowFPS)
-      @viewFolder.add(LW.renderer, 'useQuadView').name("quad view")
-      @viewFolder.add(@modelProxy, 'onRideCamera').name("ride camera").onChange(@changeOnRideCamera)
-      @viewFolder.add(@modelProxy, 'forceWireframe').name("force wireframe").onChange(@changeForceWireframe)
-      @viewFolder.add(@modelProxy, 'debugNormals').name("show normals").onChange(@changeDebugNormals)
-      @viewFolder.add(LW.train.cameraHelper, 'visible').name("debug ride cam") if LW.train
+    @viewFolder = @gui.addFolder("View Properties")
+    @viewFolder.add(LW.renderer, 'showFPS').name("show FPS").onChange(@changeShowFPS)
+    @viewFolder.add(LW.renderer, 'useQuadView').name("quad view")
+    @viewFolder.add(@modelProxy, 'forceWireframe').name("force wireframe").onChange(@changeForceWireframe)
+    @viewFolder.add(@modelProxy, 'debugNormals').name("show normals").onChange(@changeDebugNormals)
+    @viewFolder.add(LW.train.cameraHelper, 'visible').name("debug ride cam") if LW.train
 
-      @addSaveBar()
+    @gui.add(@modelProxy, 'onRideCamera').name("ride it!").onChange(@changeOnRideCamera)
 
   updateFolder: (folder) ->
     return if not folder
