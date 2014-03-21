@@ -58,6 +58,9 @@ window.LW =
 
     renderer.render()
 
+  kill: ->
+    @renderer.kill()
+
   mixin: (context, mixin) ->
     for own key, val of mixin
       context[key] = val
