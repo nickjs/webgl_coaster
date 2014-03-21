@@ -71,6 +71,8 @@ class LW.Renderer
     sideLight.position.set(0, 0, 1)
     @scene.add(sideLight)
 
+    window.addEventListener('resize', @onResize, false)
+
   render: =>
     return if @killed
 
@@ -103,6 +105,15 @@ class LW.Renderer
     @stats?.update()
 
     requestAnimationFrame(@render)
+
+  onResize: =>
+    SCREEN_WIDTH = window.innerWidth * @renderer.devicePixelRatio
+    SCREEN_HEIGHT = window.innerHeight * @renderer.devicePixelRatio
+
+    @renderer.setSize(window.innerWidth, window.innerHeight)
+
+    @camera.aspect = SCREEN_WIDTH / SCREEN_HEIGHT
+    @camera.updateProjectionMatrix()
 
   kill: ->
     @renderer = null
