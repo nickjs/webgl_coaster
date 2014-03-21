@@ -1,75 +1,124 @@
+class LW.TrackNode
+  position: 0
+  isHidden: false
+
+  constructor: (options) ->
+    LW.mixin(this, options) if options
+
+  toJSON: ->
+    return LW.mixin({}, this)
+
+  fromJSON: (json) ->
+    LW.mixin(this, json)
+
+  copy: (other) ->
+    LW.mixin(this, other)
+
+class LW.RollNode extends LW.TrackNode
+  amount: 0
+
+class LW.Separator extends LW.TrackNode
+  @MODE = {
+    STYLE: 1
+    TYPE: 2
+  }
+
+  mode: 0
+  type: 'TrackSegment'
+
+  spineColor: '#ffffff'
+  tieColor: '#ffffff'
+  railColor: '#ffffff'
+  wireframeColor: '#0000ff'
+
 class LW.TrackModel
   name: ""
 
-  points: null
-  rollPoints: null
+  vertices: null
+  rollNodes: null
   separators: null
 
-  spline: null
-  rollSpline: null
   isConnected: false
-
-  onRideCamera: false
-
   forceWireframe: false
   debugNormals: false
 
-  spineColor: '#ff0000'
-  tieColor: '#ff0000'
-  railColor: '#ff0000'
-  wireframeColor: '#0000ff'
+  onRideCamera: false
 
-  constructor: (@points, @proxy) ->
+  defaultRollNode: new LW.RollNode(
+    position: null
+  )
+
+  defaultSeparator: new LW.Separator(
+    position: null
+  )
+
+  LW.mixin(@prototype, LW.Observable)
+
+  constructor: (@vertices, @proxy) ->
     return if @proxy
 
-    @rollPoints = [new THREE.Vector2(0,0), new THREE.Vector2(1,0)]
+    @vertices ||= []
+    @rollNodes = []
     @separators = []
 
     @rebuild()
 
   rebuild: ->
     return if @proxy
-    return unless @points?.length > 1
 
     knots = [0,0,0,0]
 
-    for p, i in @points
-      knot = (i + 1) / (@points.length - 3)
+    denominator = @vertices.length - 3
+    for i in [1..@vertices.length]
+      knot = i / denominator
       knots.push(THREE.Math.clamp(knot, 0, 1))
 
-    @spline = new THREE.NURBSCurve(3, knots, @points)
+    @spline = new THREE.NURBSCurve(3, knots, @vertices)
 
-    @rollSpline ||= new LW.RollCurve(@rollPoints)
+    @rollSpline ||= new LW.RollCurve(@rollNodes)
     @rollSpline.rebuild()
 
-  positionOnSpline: (seekingPos) ->
+  getBankAt: (t) ->
+    return 0
+    return @rollSpline.getPoint(t)
+
+  findTFromPoint: (seekingPos) ->
     totalLength = Math.ceil(@spline.getLength()) * 10
-    bestDistance = {t: 0, distance: 10}
+    bestDistance = 10
+    bestT = 0
     for i in [0..totalLength]
       u = i / totalLength
       currentPos = @spline.getPointAt(u)
       distance = currentPos.distanceTo(seekingPos)
-      if distance < bestDistance.distance
-        bestDistance.t = u
-        bestDistance.distance = distance
+      if distance < bestDistance
+        bestT = u
+        bestDistance = distance
 
-    return bestDistance.t
+    return bestT
 
-  addRollPoint: (t, amount) ->
-    @rollPoints.push(new THREE.Vector2(t, amount))
-    @rollSpline.rebuild()
+  findSeparatorFromT: (seekingT) ->
+    for separator in @separators
+      if seekingT <= separator.position
+        return separator
 
-  getBankAt: (t) ->
-    return @rollSpline.getPoint(t)
+    return @defaultSeparator
 
-  addSeparator: (t, mode) ->
-    @separators.push(new THREE.Vector2(t, mode))
-    @separators.sort (a, b) -> a.x - b.x
+  addRollNode: (position, amount) ->
+    rollNode = new LW.RollNode({position, amount})
+    @rollNodes.push(rollNode)
+    @rollNodes.sort (a, b) -> a.position - b.position
+    return rollNode
+
+  addSeparator: (position, mode) ->
+    separator = new LW.Separator({position, mode})
+    @separators.push(separator)
+    @separators.sort (a, b) -> a.position - b.position
+    return separator
 
   toJSON: ->
     return {
             @name, @isConnected,
-            @points, @rollPoints, @separators,
+            @vertices, @rollNodes, @separators,
             @onRideCamera, @forceWireframe, @debugNormals,
             @spineColor, @tieColor, @railColor, @wireframeColor
            }
@@ -78,13 +127,14 @@ class LW.TrackModel
     LW.mixin(this, json)
     return if @proxy
 
-    @points = for p in json.points
-      new THREE.Vector4(p.x, p.y, p.z, p.w)
+    @vertices = for v in json.vertices
+      new THREE.Vector4(v.x, v.y, v.z, v.w)
 
-    @rollPoints = for p in json.rollPoints
-      new THREE.Vector2(p.x, p.y)
+    @rollNodes = for node in json.rollNodes
+      new LW.RollNode(node)
 
-    @separators = for p in json.separators
-      new THREE.Vector2(p.x, p.y)
+    @separators = for separator in json.separators
+      new LW.Separator(separator)
 
     @rebuild()
+    return this

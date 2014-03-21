@@ -3,7 +3,7 @@ class LW.RollCurve
     @rebuild()
 
   rebuild: ->
-    @points.sort (a, b) -> a.x - b.x
+    @points.sort (a, b) -> a.position - b.position
 
   getPoint: (t) ->
     point = (@points.length - 1) * t
@@ -15,4 +15,4 @@ class LW.RollCurve
     c = if intPoint > @points.length - 2 then @points.length - 1 else intPoint + 1
     d = if intPoint > @points.length - 3 then @points.length - 1 else intPoint + 2
 
-    return THREE.Curve.Utils.interpolate(@points[a].y, @points[b].y, @points[c].y, @points[d].y, weight)
+    return THREE.Curve.Utils.interpolate(@points[a].amount, @points[b].amount, @points[c].amount, @points[d].amount, weight)
