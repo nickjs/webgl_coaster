@@ -45,9 +45,7 @@ window.LW =
     @gui = new LW.GUIController
 
     controls = @controls = new THREE.EditorControls([renderer.topCamera, renderer.sideCamera, renderer.frontCamera, renderer.camera], renderer.domElement)
-    controls.center.copy(@edit.position)
-    controls.addEventListener 'change', =>
-      @edit?.transformControl?.update()
+    controls.center.copy(@track.position)
 
     renderer.render()
 
