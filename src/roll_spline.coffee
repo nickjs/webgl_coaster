@@ -1,4 +1,4 @@
-class LW.RollCurve
+class LW.RollSpline
   constructor: (@points) ->
     @rebuild()
 

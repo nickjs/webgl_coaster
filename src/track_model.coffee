@@ -75,7 +75,7 @@ class LW.TrackModel
 
     @spline = new THREE.NURBSCurve(3, knots, @vertices)
 
-    @rollSpline ||= new LW.RollCurve(@rollNodes)
+    @rollSpline ||= new LW.RollSpline(@rollNodes)
     @rollSpline.rebuild()
 
   getBankAt: (t) ->

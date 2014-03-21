@@ -2,7 +2,7 @@
 #= require utils
 
 #= require track_model
-#= require roll_curve
+#= require roll_spline
 
 #= require renderer
 #= require terrain
