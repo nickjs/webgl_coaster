@@ -25,8 +25,8 @@ class LW.BezierSpline extends THREE.CurvePath
 
       leftCP = p1.position
       rightCP = p2.position
-      leftHandle = p1.right.clone().add(leftCP)
-      rightHandle = p2.left.clone().add(rightCP)
+      leftHandle = p1.right
+      rightHandle = p2.left
 
       curve = new THREE.CubicBezierCurve3(leftCP, leftHandle, rightHandle, rightCP)
       curve.p1 = p1

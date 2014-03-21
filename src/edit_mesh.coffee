@@ -38,10 +38,10 @@ class LW.EditMesh extends THREE.Object3D
   addNode: (node, skipRebuildLine) =>
     return if node.isHidden
 
-    if node instanceof THREE.Vector4
+    if node instanceof THREE.Vector4 || node instanceof LW.BezierPoint
       geo = VERTEX_GEO
       color = VERTEX_COLOR
-      pos = node
+      pos = node.position || node
       isVertex = true
 
       @rebuildPolygonLine() unless skipRebuildLine

@@ -7,9 +7,9 @@ LW.setModel = (@model) ->
 LW.TrackModel.fromNltrackJSON = (json) ->
   points = for p in json.bezier.beziers
     new LW.BezierPoint(
-      p.pos_x, p.pos_y, p.pos_z
-      p.cp1_x, p.cp1_y, p.cp1_z
-      p.cp2_x, p.cp2_y, p.cp2_z
+      p.pos_x * 5, p.pos_y * 5, p.pos_z * 5,
+      p.cp1_x * 5, p.cp1_y * 5, p.cp1_z * 5,
+      p.cp2_x * 5, p.cp2_y * 5, p.cp2_z * 5,
     )
 
   track = new LW.TrackModel(points, LW.BezierSpline)
