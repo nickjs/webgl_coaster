@@ -108,7 +108,6 @@ class LW.GUIController
 
   changeOnRideCamera: (value) ->
     LW.model.onRideCamera = value
-    LW.edit.rebuild()
 
   changeForceWireframe: (value) ->
     LW.model.forceWireframe = value
