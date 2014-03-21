@@ -11,7 +11,7 @@
 #= require ./bm_sitdown_track
 #= require ./bm_inverted_track
 
-#= require track_loader
+#= require ./track_loader
 
 # Some THREE objects don't create their prototype constructor chains correctly
 THREE.Mesh::constructor = THREE.Mesh
