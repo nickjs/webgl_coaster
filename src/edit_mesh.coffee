@@ -13,7 +13,7 @@ class LW.EditMesh extends THREE.Object3D
 
     @nodeMeshes = []
 
-  setModel: (model) ->
+  modelChanged: (model) ->
     oldModel = @model
 
     if oldModel

@@ -1,3 +1,9 @@
+LW.setModel = (@model) ->
+  @gui?.modelChanged(model)
+  @edit?.modelChanged(model)
+  @track?.rebuild()
+  @train?.start()
+
 LW.TrackModel.fromNltrackJSON = (json) ->
   points = for p in json.bezier.beziers
     new THREE.Vector4(p.pos_x * 5, p.pos_y * 5, p.pos_z * 5, 1)

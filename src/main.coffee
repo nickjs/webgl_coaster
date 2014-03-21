@@ -33,6 +33,8 @@ window.LW =
     @edit = new LW.EditController
     @gui = new LW.GUIController
 
+    @gui.loadTracks(true)
+
     renderer.render()
 
   kill: ->

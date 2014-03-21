@@ -41,11 +41,15 @@ class LW.GUIController
       @viewFolder.add(LW.train.cameraHelper, 'visible').name("debug ride cam") if LW.train
 
       @addSaveBar()
-      @loadTracks()
 
   updateFolder: (folder) ->
     return if not folder
     controller.updateDisplay() for controller in folder.__controllers
+
+  modelChanged: (track) ->
+    @modelProxy.fromJSON(track.toJSON())
+    @segmentProxy.fromJSON(track.toJSON())
+    @updateFolder(@viewFolder, false)
 
   nodeMoved: (mesh) =>
     return if @ignoreNodeMoved
@@ -165,17 +169,9 @@ class LW.GUIController
       track = new LW.TrackModel
       track.fromJSON(json)
 
-    LW.model = track
+    LW.setModel(track)
 
-    @modelProxy.fromJSON(track.toJSON())
-    @segmentProxy.fromJSON(track.toJSON())
-    @updateFolder(@viewFolder, false)
-
-    LW.edit.setModel(track)
-    LW.track?.rebuild()
-    LW.train?.start()
-
-  loadTracks: ->
+  loadTracks: (autoload) ->
     @dropdown.innerHTML = ''
 
     try
@@ -183,9 +179,9 @@ class LW.GUIController
       if tracks?.length
         for track in tracks
           @_addTrackToDropdown(track)
-        @loadTrack(track)
+        @loadTrack(track) if autoload
       else
-        @newTrack()
+        @newTrack() if autoload
 
     catch e
       console.log e
@@ -200,7 +196,7 @@ class LW.GUIController
   clearAllTracks: ->
     if confirm("This will remove all your tracks. Are you sure you wish to do this?")
       localStorage.clear()
-      @loadTracks()
+      @loadTracks(true)
 
   addSaveBar: ->
     saveRow = document.createElement('li')

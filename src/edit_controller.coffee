@@ -34,12 +34,12 @@ class LW.EditController
     LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)
 
-  setModel: (model) ->
+  modelChanged: (model) ->
     @selectMesh(null, true)
 
     @model = model
 
-    @mesh.setModel(model)
+    @mesh.modelChanged(model)
 
   selectMesh: (mesh, clearSelection) ->
     return if @selection.indexOf(mesh) != -1
