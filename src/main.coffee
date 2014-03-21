@@ -29,10 +29,8 @@ window.LW =
     @track = new LW.BMInvertedTrack
     renderer.scene.add(@track)
 
-    # @train = new LW.Train(@track, numberOfCars: 4)
-    # renderer.scene.add(@train)
+    @controls = new THREE.EditorControls([renderer.topCamera, renderer.sideCamera, renderer.frontCamera, renderer.camera], renderer.domElement)
 
-    @edit = new LW.EditController
     @gui = new LW.GUIController
 
     renderer.render()
