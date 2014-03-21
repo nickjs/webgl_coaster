@@ -64,6 +64,11 @@ class LW.BezierSpline extends THREE.CurvePath
         leftBank = curve.p1?.bank || 0
         rightBank = curve.p2?.bank || 0
 
+        if leftBank < -100 && rightBank > 100
+          rightBank = -360 + rightBank
+        else if leftBank > 100 && rightBank < -100
+          rightBank = 360 + rightBank
+
         return THREE.Curve.Utils.interpolate(leftBank, leftBank, rightBank, rightBank, u)
 
       i++
