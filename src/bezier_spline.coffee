@@ -61,8 +61,15 @@ class LW.BezierSpline extends THREE.CurvePath
         curve = @curves[i]
         u = 1 - diff / curve.getLength()
 
-        leftBank = curve.p1?.bank || 0
-        rightBank = curve.p2?.bank || 0
+        if curve.p1?.relativeRoll
+          leftBank = (lastBank || 0) + curve.p1
+        else
+          leftBank = curve.p1?.bank || 0
+
+        if curve.p2?.relativeRoll
+          rightBank = (curve.p1?.bank || 0) + curve.p2.bank
+        else
+          rightBank = curve.p2?.bank || 0
 
         if leftBank < -100 && rightBank > 100
           rightBank = -360 + rightBank
@@ -89,8 +96,7 @@ class LW.BezierPoint
     @left = new THREE.Vector3(lx, ly, lz)
     @right = new THREE.Vector3(rx, ry, rz)
 
-  setBank: (amount) ->
-    @bank = amount
+  setBank: (@bank, @continuesRoll, @relativeRoll) ->
     return this
 
   setSegmentType: (type) ->
