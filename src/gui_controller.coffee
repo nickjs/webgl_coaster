@@ -3,13 +3,13 @@ class LW.GUIController
     @modelProxy = new LW.TrackModel(null, true)
 
     @vertexProxy = new THREE.Vector4(50, 50, 50, 0.5)
-    @rollProxy = new THREE.Vector2(0.05, 100)
-    @segmentProxy = new LW.TrackModel(null, true)
+    @rollProxy = new LW.RollNode(position: 0.05, amount: 100)
+    @segmentProxy = new LW.Separator()
 
     @gui = new dat.GUI()
 
     if LW.edit
-      @gui.add(LW.edit, 'mode', (val for own key, val of LW.EditTrack.MODES)).name("tool")
+      @gui.add(LW.edit, 'mode', (val for own key, val of LW.EditController.MODES)).name("tool")
 
       @vertexFolder = @gui.addFolder("Vertex Properties")
       @vertexFolder.add(@vertexProxy, 'x', -100, 100).onChange(@changeVertex)
@@ -22,8 +22,8 @@ class LW.GUIController
       LW.edit.observe('selectionChanged', @selectionChanged)
 
       @rollFolder = @gui.addFolder("Roll Properties")
-      @rollFolder.add(@rollProxy, 'x', 0.01, 0.99).name("position").onChange(@changeRoll)
-      @rollFolder.add(@rollProxy, 'y', -360, 360).name("amount").onChange(@changeRoll)
+      @rollFolder.add(@rollProxy, 'position', 0.01, 0.99).name("position").onChange(@changeRoll)
+      @rollFolder.add(@rollProxy, 'amount', -360, 360).name("amount").onChange(@changeRoll)
       @rollFolder.__ul.classList.add('hidden')
 
       @styleFolder = @gui.addFolder("Style Properties")
