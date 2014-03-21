@@ -72,6 +72,8 @@ class LW.Renderer
     @scene.add(sideLight)
 
   render: =>
+    return if @killed
+
     LW.train?.simulate(@clock.getDelta())
 
     SCREEN_WIDTH = window.innerWidth * @renderer.devicePixelRatio
@@ -101,3 +103,7 @@ class LW.Renderer
     @stats?.update()
 
     requestAnimationFrame(@render)
+
+  kill: ->
+    @renderer = null
+    @killed = true
