@@ -112,8 +112,11 @@ class LW.Renderer
 
     @renderer.setSize(window.innerWidth, window.innerHeight)
 
-    @camera.aspect = SCREEN_WIDTH / SCREEN_HEIGHT
-    @camera.updateProjectionMatrix()
+    for camera in [@camera, @topCamera, @sideCamera, @frontCamera, LW.train?.camera]
+      continue if not camera
+
+      camera.aspect = SCREEN_WIDTH / SCREEN_HEIGHT
+      camera.updateProjectionMatrix()
 
   kill: ->
     @renderer = null

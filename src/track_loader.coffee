@@ -1,9 +1,3 @@
-LW.setModel = (@model) ->
-  @gui?.modelChanged(model)
-  @edit?.modelChanged(model)
-  @track?.rebuild()
-  @train?.start()
-
 LW.TrackModel.fromNltrackJSON = (json) ->
   points = []
 
@@ -18,6 +12,8 @@ LW.TrackModel.fromNltrackJSON = (json) ->
     points.push(point)
 
   track = new LW.TrackModel(points, LW.BezierSpline)
+  track.trackStyle = json.track.style
+  track.carsPerTrain = json.track.num_cars
 
   keys =
     spine_color: "spineColor"

@@ -1,5 +1,5 @@
 class LW.Terrain
-  constructor: (renderer) ->
+  constructor: ->
     geo = new THREE.PlaneGeometry(9000, 9000, 125, 125)
 
     groundMaterial = new THREE.MeshPhongMaterial(color: 0xffffff, specular: 0x111111)
@@ -13,7 +13,8 @@ class LW.Terrain
       @ground.position.y -= 10
       @ground.rotation.x = -Math.PI / 2
       @ground.receiveShadow = true
-      renderer.scene.add(@ground)
+
+      LW.renderer.scene.add(@ground)
 
     # Skybox
 
@@ -39,6 +40,4 @@ class LW.Terrain
     })
 
     mesh = new THREE.Mesh(new THREE.CubeGeometry(10000, 10000, 10000), material)
-    renderer.scene.add(mesh)
-
-  render: ->
+    LW.renderer.scene.add(mesh)

@@ -33,6 +33,8 @@ class LW.Separator extends LW.TrackNode
 
 class LW.TrackModel
   name: ""
+  trackStyle: 0
+  carsPerTrain: 4
 
   vertices: null
   rollNodes: null
@@ -128,3 +130,10 @@ class LW.TrackModel
 
     @rebuild()
     return this
+
+  @classForTrackStyle: (style) ->
+    styles = {
+      4: LW.BMInvertedTrack
+    }
+
+    return styles[style] || LW.BMTrack

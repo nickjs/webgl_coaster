@@ -22,18 +22,37 @@
 
 window.LW =
   init: (container = document.body) ->
-    renderer = @renderer = new LW.Renderer(container)
+    @renderer = new LW.Renderer(container)
 
-    terrain = new LW.Terrain(renderer)
+    @terrain = new LW.Terrain
 
-    @track = new LW.BMInvertedTrack
-    renderer.scene.add(@track)
-
-    @controls = new THREE.EditorControls([renderer.topCamera, renderer.sideCamera, renderer.frontCamera, renderer.camera], renderer.domElement)
+    @controls = new THREE.EditorControls([@renderer.topCamera, @renderer.sideCamera, @renderer.frontCamera, @renderer.camera], @renderer.domElement)
 
     @gui = new LW.GUIController
 
-    renderer.render()
+    @renderer.render()
+
+  getTrain: ->
+    if !@train
+      @train = new LW.Train(@track, numberOfCars: @model.carsPerTrain)
+      @renderer.scene.add(@train)
+
+    return @train
+
+  setModel: (@model) ->
+    @renderer.scene.remove(@track) if @track
+
+    if @train
+      @train.stop()
+      @renderer.scene.remove(@train)
+      @train = null
+
+    klass = LW.TrackModel.classForTrackStyle(model.trackStyle)
+    @track = new klass
+    @renderer.scene.add(@track)
+
+    @gui?.modelChanged(model)
+    @edit?.modelChanged(model)
 
   kill: ->
     @renderer.kill()
