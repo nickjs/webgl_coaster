@@ -39,6 +39,12 @@ window.LW =
 
     renderer.render()
 
+  setModel: (@model) ->
+    @gui?.modelChanged(model)
+    @edit?.modelChanged(model)
+    @track?.rebuild()
+    @train?.start()
+
   kill: ->
     @renderer.kill()
 

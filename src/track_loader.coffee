@@ -1,9 +1,3 @@
-LW.setModel = (@model) ->
-  @gui?.modelChanged(model)
-  @edit?.modelChanged(model)
-  @track?.rebuild()
-  @train?.start()
-
 LW.TrackModel.fromNltrackJSON = (json) ->
   points = []
 
