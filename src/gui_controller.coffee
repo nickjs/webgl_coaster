@@ -1,15 +1,15 @@
 class LW.GUIController
   constructor: ->
-    @modelProxy = new LW.TrackModel(null, true)
+    @modelProxy = new LW.TrackModel(null, null, true)
 
     @vertexProxy = new THREE.Vector4(50, 50, 50, 0.5)
-    @rollProxy = new THREE.Vector2(0.05, 100)
-    @segmentProxy = new LW.TrackModel(null, true)
+    @rollProxy = new LW.RollNode(position: 0.05, amount: 100)
+    @segmentProxy = new LW.Separator()
 
     @gui = new dat.GUI()
 
     if LW.edit
-      @gui.add(LW.edit, 'mode', (val for own key, val of LW.EditTrack.MODES)).name("tool")
+      @gui.add(LW.edit, 'mode', (val for own key, val of LW.EditController.MODES)).name("tool")
 
       @vertexFolder = @gui.addFolder("Vertex Properties")
       @vertexFolder.add(@vertexProxy, 'x', -100, 100).onChange(@changeVertex)
@@ -18,12 +18,12 @@ class LW.GUIController
       @vertexFolder.add(@vertexProxy, 'w', 0, 3.5).name("weight").onChange(@changeVertex)
       @vertexFolder.__ul.classList.add('hidden')
 
-      LW.edit.observe('nodeChanged', @nodeChanged)
+      LW.edit.observe('nodeMoved', @nodeMoved)
       LW.edit.observe('selectionChanged', @selectionChanged)
 
       @rollFolder = @gui.addFolder("Roll Properties")
-      @rollFolder.add(@rollProxy, 'x', 0.01, 0.99).name("position").onChange(@changeRoll)
-      @rollFolder.add(@rollProxy, 'y', -360, 360).name("amount").onChange(@changeRoll)
+      @rollFolder.add(@rollProxy, 'position', 0.01, 0.99).name("position").onChange(@changeRoll)
+      @rollFolder.add(@rollProxy, 'amount', -360, 360).name("amount").onChange(@changeRoll)
       @rollFolder.__ul.classList.add('hidden')
 
       @styleFolder = @gui.addFolder("Style Properties")
@@ -38,52 +38,70 @@ class LW.GUIController
       @viewFolder.add(@modelProxy, 'onRideCamera').name("ride camera").onChange(@changeOnRideCamera)
       @viewFolder.add(@modelProxy, 'forceWireframe').name("force wireframe").onChange(@changeForceWireframe)
       @viewFolder.add(@modelProxy, 'debugNormals').name("show normals").onChange(@changeDebugNormals)
-      @viewFolder.add(LW.train.cameraHelper, 'visible').name("debug ride cam")
+      @viewFolder.add(LW.train.cameraHelper, 'visible').name("debug ride cam") if LW.train
 
       @addSaveBar()
-      @loadTracks()
 
   updateFolder: (folder) ->
     return if not folder
     controller.updateDisplay() for controller in folder.__controllers
 
-  nodeChanged: (node) =>
-    if node.isVertex
-      @vertexProxy.copy(node.point)
+  modelChanged: (track) ->
+    @modelProxy.fromJSON(track.toJSON())
+    @segmentProxy.fromJSON(track.toJSON())
+    @updateFolder(@viewFolder, false)
+
+  nodeMoved: (mesh) =>
+    return if @ignoreNodeMoved
+
+    if mesh.isVertex
+      @vertexProxy.copy(mesh.node)
       @updateFolder(@vertexFolder)
     else
-      @rollProxy.copy(node.point)
+      @rollProxy.copy(mesh.node)
       @updateFolder(@rollFolder)
 
-  selectionChanged: (selected) =>
-    if selected
+  selectionChanged: (@selected, selection) =>
+    if selection.length == 1
       if selected.isVertex
         @vertexFolder.open()
         @rollFolder.close()
-      else
+      else if selected.isRollNode || selected.isSeparator
         @rollFolder.open()
         @vertexFolder.close()
+        @styleFolder.open() if selected.isSeparator
 
-      @nodeChanged(selected)
+      if selected.node
+        @nodeMoved(selected)
     else
       @vertexFolder.close()
       @rollFolder.close()
 
   changeVertex: =>
-    LW.edit.selected.position.copy(@vertexProxy)
-    LW.edit.selected.point.copy(@vertexProxy)
-    LW.edit.changed(false)
+    @selected.node.copy(@vertexProxy)
+    @selected.transformControl.update()
 
-    LW.edit.transformControl.update()
+    @ignoreNodeMoved = true
+    LW.edit.nodeMoved(@selected)
+    @ignoreNodeMoved = false
 
   changeRoll: =>
-    LW.edit.selected.point.copy(@rollProxy)
-    LW.edit.changed(false)
+    @selected.node.copy(@rollProxy)
+
+    @ignoreNodeMoved = true
+    LW.edit.nodeMoved(@selected)
+    @ignoreNodeMoved = false
 
   changeColor: (key) ->
     return (value) ->
-      LW.model["#{key}Color"] = value
-      LW.track?.updateMaterials()
+      selected = LW.edit.selected
+      if selected instanceof LW.Separator
+        selected["#{key}Color"] = value
+        selected.meshColor.setStyle(value)
+        line.geometry.colorsNeedUpdate = true for line in LW.track.meshes
+      else
+        LW.model["#{key}Color"] = value
+        LW.track?.updateMaterials()
 
   changeShowFPS: (value) ->
     node = LW.renderer.stats.domElement
@@ -94,7 +112,6 @@ class LW.GUIController
 
   changeOnRideCamera: (value) ->
     LW.model.onRideCamera = value
-    LW.edit.rebuild()
 
   changeForceWireframe: (value) ->
     LW.model.forceWireframe = value
@@ -113,7 +130,7 @@ class LW.GUIController
   newTrack: ->
     @_addTrackToDropdown("Untitled")
 
-    track = new LW.TrackModel([
+    vertices = [
       new THREE.Vector4(-100, 20, 0, 1)
       new THREE.Vector4(-20, 20, 0, 1)
       new THREE.Vector4(20, 30, 0, 1)
@@ -121,8 +138,9 @@ class LW.GUIController
       new THREE.Vector4(100, 0, 0, 1)
       new THREE.Vector4(200, 0, 0, 1)
       new THREE.Vector4(250, 60, 0, 1)
-    ])
+    ]
 
+    track = new LW.TrackModel(vertices, LW.NurbsSpline)
     @loadTrack(track)
 
   saveTrack: ->
@@ -151,17 +169,9 @@ class LW.GUIController
       track = new LW.TrackModel
       track.fromJSON(json)
 
-    LW.model = track
+    LW.setModel(track)
 
-    @modelProxy.fromJSON(track.toJSON())
-    @segmentProxy.fromJSON(track.toJSON())
-    @updateFolder(@viewFolder, false)
-
-    LW.edit?.rebuild()
-    LW.track?.rebuild()
-    LW.train?.start()
-
-  loadTracks: ->
+  loadTracks: (autoload) ->
     @dropdown.innerHTML = ''
 
     try
@@ -169,9 +179,9 @@ class LW.GUIController
       if tracks?.length
         for track in tracks
           @_addTrackToDropdown(track)
-        @loadTrack(track)
+        @loadTrack(track) if autoload
       else
-        @newTrack()
+        @newTrack() if autoload
 
     catch e
       console.log e
@@ -186,7 +196,7 @@ class LW.GUIController
   clearAllTracks: ->
     if confirm("This will remove all your tracks. Are you sure you wish to do this?")
       localStorage.clear()
-      @loadTracks()
+      @loadTracks(true)
 
   addSaveBar: ->
     saveRow = document.createElement('li')
