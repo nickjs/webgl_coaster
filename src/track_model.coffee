@@ -50,7 +50,7 @@ class LW.TrackModel
 
   LW.mixin(@prototype, LW.Observable)
 
-  constructor: (@vertices, @proxy) ->
+  constructor: (@vertices, @splineClass, @proxy) ->
     return if @proxy
 
     @vertices ||= []
@@ -61,21 +61,15 @@ class LW.TrackModel
 
     @separators = []
 
+    @spline = new splineClass(@vertices)
+    @rollSpline = new LW.RollSpline(@rollNodes)
+
     @rebuild()
 
   rebuild: ->
     return if @proxy
 
-    knots = [0,0,0,0]
-
-    denominator = @vertices.length - 3
-    for i in [1..@vertices.length]
-      knot = i / denominator
-      knots.push(THREE.Math.clamp(knot, 0, 1))
-
-    @spline = new THREE.NURBSCurve(3, knots, @vertices)
-
-    @rollSpline ||= new LW.RollSpline(@rollNodes)
+    @spline.rebuild()
     @rollSpline.rebuild()
 
   getBankAt: (t) ->

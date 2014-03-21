@@ -1,8 +1,10 @@
 #= require_self
 #= require utils
 
-#= require track_model
+#= require bezier_spline
+#= require nurbs_spline
 #= require roll_spline
+#= require track_model
 
 #= require renderer
 #= require terrain

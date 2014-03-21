@@ -1,6 +1,6 @@
 class LW.GUIController
   constructor: ->
-    @modelProxy = new LW.TrackModel(null, true)
+    @modelProxy = new LW.TrackModel(null, null, true)
 
     @vertexProxy = new THREE.Vector4(50, 50, 50, 0.5)
     @rollProxy = new LW.RollNode(position: 0.05, amount: 100)
@@ -140,7 +140,7 @@ class LW.GUIController
       new THREE.Vector4(250, 60, 0, 1)
     ]
 
-    track = new LW.TrackModel(vertices)
+    track = new LW.TrackModel(vertices, LW.NurbsSpline)
     @loadTrack(track)
 
   saveTrack: ->
