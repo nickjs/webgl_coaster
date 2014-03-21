@@ -45,14 +45,21 @@ class LW.BMTrack extends LW.TrackMesh
   tieDepth: 0.4
 
   railRadius: radius
-  railDistance: offsetX - radius
+  railDistance: railDistance = offsetX - radius
 
-  constructor: ->
-    super
+  offsetY = boxSize - 3 - padding
 
-    @spineMaterial = new THREE.MeshPhongMaterial(color: 0xff0000, ambient: 0x090909, specular: 0x333333, shininess: 30)
-    @tieMaterial = @spineMaterial.clone()
-    @railMaterial = @spineMaterial.clone()
+  wireframeSpine: [new THREE.Vector3(0, offsetY)]
+  wireframeTies: [
+    new THREE.Vector3(railDistance, 0)
+    new THREE.Vector3(boxSize, offsetY)
 
-    @materials = [@spineMaterial, @tieMaterial, @railMaterial]
+    new THREE.Vector3(boxSize, offsetY) # line pieces
+    new THREE.Vector3(-boxSize, offsetY)
 
+    new THREE.Vector3(-boxSize, offsetY)
+    new THREE.Vector3(-railDistance, 0)
+  ]
+
+  carDistance: 20
+  onRideCameraOffset: new THREE.Vector3(2, 5, -5)
