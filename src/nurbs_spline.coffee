@@ -1,4 +1,4 @@
-class LW.NurbsSpline extends THREE.Curve
+class LW.NurbsSpline extends THREE.NURBSCurve
   constructor: (@vertices) ->
 
   rebuild: ->
@@ -9,7 +9,4 @@ class LW.NurbsSpline extends THREE.Curve
       knot = i / denominator
       knots.push(THREE.Math.clamp(knot, 0, 1))
 
-    @curve = new THREE.NURBSCurve(3, knots, @vertices)
-
-  getPoint: (t) ->
-    @curve.getPoint(t)
+    THREE.NURBSCurve.call(this, 3, knots, @vertices)
