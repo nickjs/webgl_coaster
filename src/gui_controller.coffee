@@ -111,6 +111,7 @@ class LW.GUIController
       node.parentNode.removeChild(node)
 
   changeOnRideCamera: (value) ->
+    LW.getTrain().start() if value
     LW.model.onRideCamera = value
 
   changeForceWireframe: (value) ->

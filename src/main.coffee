@@ -33,18 +33,24 @@ window.LW =
 
     @renderer.render()
 
+  getTrain: ->
+    if !@train
+      @train = new LW.Train(@track, numberOfCars: @model.carsPerTrain)
+      @renderer.scene.add(@train)
+
+    return @train
+
   setModel: (@model) ->
     @renderer.scene.remove(@track) if @track
 
-    @train?.stop()
-    @renderer.scene.remove(@train) if @train
+    if @train
+      @train.stop()
+      @renderer.scene.remove(@train)
+      @train = null
 
     klass = LW.TrackModel.classForTrackStyle(model.trackStyle)
     @track = new klass
     @renderer.scene.add(@track)
-
-    @train = new LW.Train(@track, numberOfCars: model.carsPerTrain)
-    @renderer.scene.add(@train)
 
     @gui?.modelChanged(model)
     @edit?.modelChanged(model)
