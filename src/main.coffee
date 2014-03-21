@@ -53,6 +53,7 @@ window.LW =
 
     @gui?.modelChanged(model)
     @edit?.modelChanged(model)
+    @track?.rebuild()
 
   kill: ->
     @renderer.kill()
