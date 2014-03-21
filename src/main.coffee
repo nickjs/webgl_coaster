@@ -8,8 +8,11 @@
 
 #= require ./renderer
 #= require ./terrain
+#= require ./train
 #= require ./track_mesh
+#= require ./edit_mesh
 
+#= require ./edit_controller
 #= require ./gui_controller
 
 #= require ./bm_sitdown_track
