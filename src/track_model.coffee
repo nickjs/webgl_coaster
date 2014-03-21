@@ -61,19 +61,16 @@ class LW.TrackModel
 
     @separators = []
 
-    @spline = new splineClass(@vertices)
-    @rollSpline = new LW.RollSpline(@rollNodes)
+    @spline = new splineClass(@vertices, @rollNodes)
 
     @rebuild()
 
   rebuild: ->
     return if @proxy
-
     @spline.rebuild()
-    @rollSpline.rebuild()
 
   getBankAt: (t) ->
-    return @rollSpline.getPoint(t)
+    return @spline.getBankAt(t)
 
   findTFromPoint: (seekingPos) ->
     totalLength = Math.ceil(@spline.getLength()) * 10
@@ -99,7 +96,7 @@ class LW.TrackModel
   addRollNode: (position, amount) ->
     rollNode = new LW.RollNode({position, amount})
     @rollNodes.push(rollNode)
-    @rollNodes.sort (a, b) -> a.position - b.position
+    @spline.rollSpline.rebuild()
     return rollNode
 
   addSeparator: (position, mode) ->
