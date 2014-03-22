@@ -239,6 +239,7 @@ class LW.TrackMesh extends THREE.Object3D
         @spineStep(pos, normal, binormal)
 
         if @model.debugNormals
+          @add(new THREE.ArrowHelper(tangent, pos, 5, 0xff0000))
           @add(new THREE.ArrowHelper(normal, pos, 5, 0x00ff00))
           @add(new THREE.ArrowHelper(binormal, pos, 5, 0x0000ff))
 
