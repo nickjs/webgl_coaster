@@ -172,10 +172,10 @@ class LW.TrackMesh extends THREE.Object3D
     @tieMaterial ||= @spineMaterial.clone()
     @railMaterial ||= @spineMaterial.clone()
 
-    # @wireframeMaterial.color.setStyle(@model.wireframeColor)
-    # @spineMaterial.color.setStyle(@model.spineColor)
-    # @tieMaterial.color.setStyle(@model.tieColor)
-    # @railMaterial.color.setStyle(@model.railColor)
+    @wireframeMaterial.color.setStyle(@model.wireframeColor)
+    @spineMaterial.color.setStyle(@model.spineColor)
+    @tieMaterial.color.setStyle(@model.tieColor)
+    @railMaterial.color.setStyle(@model.railColor)
 
   add: (object) ->
     @meshes.push(object)
