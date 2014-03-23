@@ -25,11 +25,10 @@ class LW.EditController
     @projector = new THREE.Projector
     @raycaster = new THREE.Raycaster
 
-    @controls = new THREE.EditorControls([renderer.topCamera, renderer.sideCamera, renderer.frontCamera, renderer.camera], renderer.domElement)
-    @controls.addEventListener 'change', =>
-      for control in @transformControls
-        control.update() if control.object
-      return
+    # LW.controls.addEventListener 'change', =>
+    #   for control in @transformControls
+    #     control.update() if control.object
+    #   return
 
     LW.renderer.domElement.addEventListener('mousedown', @onMouseDown, false)
     LW.renderer.domElement.addEventListener('mouseup', @onMouseUp, false)

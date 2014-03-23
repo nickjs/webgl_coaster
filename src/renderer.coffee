@@ -40,17 +40,14 @@ class LW.Renderer
     @topCamera.zoom = zoom
     @topCamera.up = new THREE.Vector3(0, 0, -1)
     @topCamera.lookAt(new THREE.Vector3(0, -1, 0))
-    @scene.add(@topCamera)
 
     @frontCamera = new THREE.OrthographicCamera(-x, x, y, -y, -5000, 10000)
     @frontCamera.zoom = zoom
     @frontCamera.lookAt(new THREE.Vector3(0, 0, -1))
-    @scene.add(@frontCamera)
 
     @sideCamera = new THREE.OrthographicCamera(-x, x, y, -y, -5000, 10000)
     @sideCamera.zoom = zoom
     @sideCamera.lookAt(new THREE.Vector3(1, 0, 0))
-    @scene.add(@sideCamera)
 
     @light = new THREE.DirectionalLight(0xffffff, 0.8)
     @light.position.set(0, 1000, 0)
@@ -100,8 +97,9 @@ class LW.Renderer
     mainCamera = LW.train?.camera if LW.model?.onRideCamera
     mainCamera ||= @camera
 
-    @renderer.render(@scene, mainCamera)
+    LW.controls?.update?(@clock.getDelta())
 
+    @renderer.render(@scene, mainCamera)
     @stats?.update()
 
     requestAnimationFrame(@render)

@@ -6,6 +6,7 @@
 #= require ./roll_spline
 #= require ./track_model
 
+#= require ./controls
 #= require ./renderer
 #= require ./terrain
 #= require ./train
@@ -24,10 +25,9 @@
 window.LW =
   init: (container = document.body) ->
     @renderer = new LW.Renderer(container)
+    @controls = new LW.Controls([@renderer.topCamera, @renderer.sideCamera, @renderer.frontCamera, @renderer.camera], @renderer.domElement)
 
     @terrain = new LW.Terrain
-
-    @controls = new THREE.EditorControls([@renderer.topCamera, @renderer.sideCamera, @renderer.frontCamera, @renderer.camera], @renderer.domElement)
 
     @gui = new LW.GUIController
 
