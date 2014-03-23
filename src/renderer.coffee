@@ -2,7 +2,7 @@ class LW.Renderer
   showFPS: true
   useQuadView: false
 
-  defaultCamPos: new THREE.Vector3(0, 0, 60)
+  defaultCamPos: new THREE.Vector3(0, 20, 60)
   defaultCamRot: new THREE.Euler(0, 0, 0, 'XYZ')
 
   constructor: (container) ->
