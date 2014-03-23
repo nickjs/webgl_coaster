@@ -40,6 +40,11 @@ class LW.TrackModel
   rollNodes: null
   separators: null
 
+  foundationNodes: null
+  freeNodes: null
+  trackConnectionNodes: null
+  supportTubes: null
+
   isConnected: false
   forceWireframe: false
   debugNormals: false
@@ -62,6 +67,11 @@ class LW.TrackModel
     ]
 
     @separators = []
+
+    @foundationNodes = []
+    @freeNodes = []
+    @trackConnectionNodes = []
+    @supportTubes = []
 
     @spline = new splineClass(@vertices, @rollNodes)
 

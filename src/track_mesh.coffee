@@ -172,10 +172,10 @@ class LW.TrackMesh extends THREE.Object3D
     @tieMaterial ||= @spineMaterial.clone()
     @railMaterial ||= @spineMaterial.clone()
 
-    # @wireframeMaterial.color.setStyle(@model.wireframeColor)
-    # @spineMaterial.color.setStyle(@model.spineColor)
-    # @tieMaterial.color.setStyle(@model.tieColor)
-    # @railMaterial.color.setStyle(@model.railColor)
+    @wireframeMaterial.color.setStyle(@model.wireframeColor)
+    @spineMaterial.color.setStyle(@model.spineColor)
+    @tieMaterial.color.setStyle(@model.tieColor)
+    @railMaterial.color.setStyle(@model.railColor)
 
   add: (object) ->
     @meshes.push(object)
@@ -196,6 +196,8 @@ class LW.TrackMesh extends THREE.Object3D
     @wireframe = true if @model.forceWireframe
 
     @updateMaterials()
+
+    @renderSupports()
 
     @prepareRails()
     @prepareTies()
@@ -239,6 +241,7 @@ class LW.TrackMesh extends THREE.Object3D
         @spineStep(pos, normal, binormal)
 
         if @model.debugNormals
+          @add(new THREE.ArrowHelper(tangent, pos, 5, 0xff0000))
           @add(new THREE.ArrowHelper(normal, pos, 5, 0x00ff00))
           @add(new THREE.ArrowHelper(binormal, pos, 5, 0x0000ff))
 
@@ -427,6 +430,39 @@ class LW.TrackMesh extends THREE.Object3D
       @tieMesh.castShadow = true
 
     @add(@tieMesh)
+
+  ###
+  # Supports
+  ###
+
+  renderSupports: ->
+    size = 7
+    geo = new THREE.CubeGeometry(size, 20, size)
+    mat = new THREE.MeshLambertMaterial(color: 0xcccccc)
+    for node in @model.foundationNodes
+      mesh = new THREE.Mesh(geo, mat)
+      mesh.position = node.position
+      @add(mesh)
+
+    orientation = new THREE.Matrix4
+    offsetRotation = new THREE.Matrix4
+    offsetPosition = new THREE.Matrix4
+
+    for tube in @model.supportTubes
+      radius = tube.type + 1
+      height = tube.node1.position.distanceTo(tube.node2.position)
+      geo = new THREE.CylinderGeometry(radius, radius, height)
+      mat = new THREE.MeshLambertMaterial(color: 0xffffff)
+
+      position = tube.node2.position.clone().add(tube.node1.position).divideScalar(2)
+      orientation.lookAt(tube.node1.position, tube.node2.position, LW.UP)
+      offsetRotation.makeRotationX(Math.PI / 2)
+      orientation.multiply(offsetRotation)
+      geo.applyMatrix(orientation)
+
+      mesh = new THREE.Mesh(geo, mat)
+      mesh.position = position
+      @add(mesh)
 
   ###
   # Helpers
