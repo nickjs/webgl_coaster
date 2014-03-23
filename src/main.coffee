@@ -9,6 +9,7 @@
 #= require renderer
 #= require terrain
 #= require train
+#= require supports
 #= require track_mesh
 #= require edit_mesh
 
