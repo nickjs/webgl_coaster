@@ -12,6 +12,9 @@ LW.TrackModel.fromNltrackJSON = (json) ->
     points.push(point)
 
   track = new LW.TrackModel(points, LW.BezierSpline)
+  track.spline.isConnected = true
+  track.spline.rebuild()
+
   track.trackStyle = json.track.style
   track.carsPerTrain = json.track.num_cars
 
