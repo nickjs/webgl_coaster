@@ -75,8 +75,6 @@ class LW.TrackModel
 
     @spline = new splineClass(@vertices, @rollNodes)
 
-    @rebuild()
-
   rebuild: ->
     return if @proxy
     @spline.rebuild()
