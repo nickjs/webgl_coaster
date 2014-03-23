@@ -197,6 +197,8 @@ class LW.TrackMesh extends THREE.Object3D
 
     @updateMaterials()
 
+    @renderSupports()
+
     @prepareRails()
     @prepareTies()
     @prepareSpine()
@@ -428,6 +430,39 @@ class LW.TrackMesh extends THREE.Object3D
       @tieMesh.castShadow = true
 
     @add(@tieMesh)
+
+  ###
+  # Supports
+  ###
+
+  renderSupports: ->
+    size = 7
+    geo = new THREE.CubeGeometry(size, 20, size)
+    mat = new THREE.MeshLambertMaterial(color: 0xcccccc)
+    for node in @model.foundationNodes
+      mesh = new THREE.Mesh(geo, mat)
+      mesh.position = node.position
+      @add(mesh)
+
+    orientation = new THREE.Matrix4
+    offsetRotation = new THREE.Matrix4
+    offsetPosition = new THREE.Matrix4
+
+    for tube in @model.supportTubes
+      radius = tube.type + 1
+      height = tube.node1.position.distanceTo(tube.node2.position)
+      geo = new THREE.CylinderGeometry(radius, radius, height)
+      mat = new THREE.MeshLambertMaterial(color: 0xffffff)
+
+      position = tube.node2.position.clone().add(tube.node1.position).divideScalar(2)
+      orientation.lookAt(tube.node1.position, tube.node2.position, LW.UP)
+      offsetRotation.makeRotationX(Math.PI / 2)
+      orientation.multiply(offsetRotation)
+      geo.applyMatrix(orientation)
+
+      mesh = new THREE.Mesh(geo, mat)
+      mesh.position = position
+      @add(mesh)
 
   ###
   # Helpers
