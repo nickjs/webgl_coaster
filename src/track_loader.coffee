@@ -18,13 +18,27 @@ LW.TrackModel.fromNltrackJSON = (json) ->
   track.trackStyle = json.track.style
   track.carsPerTrain = json.track.num_cars
 
-  keys =
-    spine_color: "spineColor"
-    crosstie_color: "tieColor"
-    rail_color: "railColor"
+  applyColors = (source, target) ->
+    keys =
+      spine_color: "spineColor"
+      crosstie_color: "tieColor"
+      rail_color: "railColor"
 
-  for nlKey, lwKey of keys
-    color = json.track[nlKey]
-    track[lwKey] = "rgb(#{color.r}, #{color.g}, #{color.b})"
+    for nlKey, lwKey of keys
+      color = source[nlKey]
+      target[lwKey] = "rgb(#{color.r}, #{color.g}, #{color.b})"
+
+    return
+
+  applyColors(json.track, track)
+
+  types = ['TrackSegment', 'StationSegment', 'LiftSegment', 'TransportSegment', 'BreakSegment']
+
+  for s, i in json.segments.segments
+    sep = new LW.Separator
+    sep.position = track.findTFromPoint(track.vertices[i].position)
+    sep.type = types[s.type]
+    applyColors(s, sep) if s.individual_track_color
+    track.separators.push(sep)
 
   return track
