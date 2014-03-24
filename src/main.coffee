@@ -27,7 +27,8 @@ window.LW =
     @renderer = new LW.Renderer(container)
     @controls = new LW.Controls([@renderer.topCamera, @renderer.sideCamera, @renderer.frontCamera, @renderer.camera], @renderer.domElement)
 
-    @terrain = new LW.Terrain
+    @terrain = new LW.TerrainMesh
+    @renderer.scene.add(@terrain)
 
     @gui = new LW.GUIController
 
@@ -55,6 +56,7 @@ window.LW =
     @gui?.modelChanged(model)
     @edit?.modelChanged(model)
     @track?.rebuild()
+    @terrain?.rebuild()
 
   kill: ->
     @renderer.kill()

@@ -29,6 +29,7 @@ class LW.Separator extends LW.TrackNode
   spineColor: '#ffffff'
   tieColor: '#ffffff'
   railColor: '#ffffff'
+  supportColor: '#ffffff'
   wireframeColor: '#0000ff'
 
 class LW.TrackModel
@@ -55,6 +56,8 @@ class LW.TrackModel
     position: null
   )
 
+  terrain: null
+
   LW.mixin(@prototype, LW.Observable)
 
   constructor: (@vertices, @splineClass, @proxy) ->
@@ -75,6 +78,8 @@ class LW.TrackModel
 
     @spline = new splineClass(@vertices, @rollNodes)
 
+    @terrain = new LW.TerrainModel
+
   rebuild: ->
     return if @proxy
     @spline.rebuild()
@@ -83,7 +88,7 @@ class LW.TrackModel
     return @spline.getBankAt(t)
 
   findTFromPoint: (seekingPos) ->
-    totalLength = Math.ceil(@spline.getLength()) * 10
+    totalLength = Math.ceil(@spline.getLength())
     bestDistance = 10
     bestT = 0
     for i in [0..totalLength]

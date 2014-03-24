@@ -26,10 +26,12 @@ LW.TrackModel.fromNltrackJSON = (json) ->
       spine_color: "spineColor"
       crosstie_color: "tieColor"
       rail_color: "railColor"
+      supports_color: "supportColor"
 
     for nlKey, lwKey of keys
       color = source[nlKey]
-      target[lwKey] = "rgb(#{color.r}, #{color.g}, #{color.b})"
+      if color
+        target[lwKey] = "rgb(#{color.r}, #{color.g}, #{color.b})"
 
     return
 
@@ -84,5 +86,17 @@ LW.TrackModel.fromNltrackJSON = (json) ->
 
     tube = new LW.SupportTube(node1, node2, tube.tube_type)
     track.supportTubes.push(tube)
+
+  if heights = json.tera?.heights
+    track.terrain.groundSegmentsX = height = json.tera.size_x
+    track.terrain.groundSegmentsZ = width = json.tera.size_z
+    track.terrain.groundWidth = json.tera.size_x * json.tera.scale_x * 5
+    track.terrain.groundHeight = json.tera.size_z * json.tera.scale_z * 5
+
+    heightMap = track.terrain.heightMap = new Float32Array(width * height)
+
+    for z in [0...height - 1]
+      for x in [0...width - 1]
+        heightMap[x + z * width] = heights[z][x] * 5
 
   return track
