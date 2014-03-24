@@ -26,10 +26,12 @@ LW.TrackModel.fromNltrackJSON = (json) ->
       spine_color: "spineColor"
       crosstie_color: "tieColor"
       rail_color: "railColor"
+      supports_color: "supportColor"
 
     for nlKey, lwKey of keys
       color = source[nlKey]
-      target[lwKey] = "rgb(#{color.r}, #{color.g}, #{color.b})"
+      if color
+        target[lwKey] = "rgb(#{color.r}, #{color.g}, #{color.b})"
 
     return
 

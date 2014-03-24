@@ -29,6 +29,7 @@ class LW.Separator extends LW.TrackNode
   spineColor: '#ffffff'
   tieColor: '#ffffff'
   railColor: '#ffffff'
+  supportColor: '#ffffff'
   wireframeColor: '#0000ff'
 
 class LW.TrackModel
