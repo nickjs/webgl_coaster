@@ -4,8 +4,10 @@ class LW.Controls
   lookSpeed: 0.01
 
   constructor: (@cameras, @domElement) ->
+    @camera = @cameras[@cameras.length - 1]
+
     @pitchObject = new THREE.Object3D
-    @pitchObject.add(@cameras[@cameras.length - 1])
+    @pitchObject.add(@camera)
 
     @yawObject = new THREE.Object3D
     @yawObject.add(@pitchObject)
@@ -68,6 +70,7 @@ class LW.Controls
   onClick: (e) =>
     @domElement.requestPointerLock ||= @domElement.requestPointerLock || @domElement.mozRequestPointerLock || @domElement.webkitRequestPointerLock
     @domElement.requestPointerLock()
+    e.preventDefault()
 
   onPointerLockChange: (e) =>
     @enabled = document.pointerLockElement == @domElement || document.mozPointerLockElement == @domElement || document.webkitPointerLockElement == @domElement

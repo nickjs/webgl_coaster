@@ -74,7 +74,7 @@ class LW.EditController
     LW.renderer.scene.add(control)
 
     control.addEventListener 'change', =>
-      @controls.enabled = control.axis == undefined
+      LW.controls.enabled = control.axis == undefined
     control.addEventListener 'move', =>
       @nodeMoved(control.object)
 
@@ -90,7 +90,7 @@ class LW.EditController
     LW.track?.rebuild()
 
   pick: (pos, objects, deep) ->
-    camera = @controls.camera
+    camera = LW.controls.camera
     {x, y} = pos
 
     if LW.renderer.useQuadView
