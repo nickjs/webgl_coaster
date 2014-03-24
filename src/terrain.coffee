@@ -1,23 +1,33 @@
-class LW.Terrain
-  constructor: ->
-    geo = new THREE.PlaneGeometry(9000, 9000, 125, 125)
+class LW.TerrainModel
+  groundWidth: 9000
+  groundHeight: 9000
+  groundSegmentsX: 128
+  groundSegmentsZ: 128
 
-    groundMaterial = new THREE.MeshPhongMaterial(color: 0xffffff, specular: 0x111111)
-    groundTexture = THREE.ImageUtils.loadTexture "resources/textures/grass.jpg", undefined, ->
-      groundMaterial.map = groundTexture
+  heightMap: null
+
+  constructor: (options) ->
+    @heightMap = []
+    LW.mixin(this, options)
+
+class LW.TerrainMesh extends THREE.Object3D
+  constructor: ->
+    super()
+    @loadTextures()
+
+  loadTextures: ->
+    # Ground
+    @groundMaterial ||= new THREE.MeshPhongMaterial(color: 0xffffff, specular: 0x111111)
+
+    groundTexture = THREE.ImageUtils.loadTexture "resources/textures/grass.jpg", undefined, =>
       groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping
       groundTexture.repeat.set(25, 25)
-      groundTexture.anisotropy = 16;
-
-      @ground = new THREE.Mesh(geo, groundMaterial)
-      @ground.rotation.x = -Math.PI / 2
-      @ground.receiveShadow = true
-
-      LW.renderer.scene.add(@ground)
+      groundTexture.anisotropy = 16
+      @groundMaterial.map = groundTexture
+      @rebuild()
 
     # Skybox
-
-    path = "resources/textures/skybox/"
+    path = 'resources/textures/skybox/'
     format = '.jpg'
     urls = [
       path + 'px' + format, path + 'nx' + format
@@ -26,17 +36,37 @@ class LW.Terrain
     ]
 
     textureCube = THREE.ImageUtils.loadTextureCube(urls, new THREE.CubeRefractionMapping())
-    material = new THREE.MeshBasicMaterial(color: 0xffffff, envMap: textureCube, refractionRatio: 0.95)
 
     shader = THREE.ShaderLib["cube"]
     shader.uniforms["tCube"].value = textureCube
 
-    material = new THREE.ShaderMaterial({
+    @skyMaterial = new THREE.ShaderMaterial({
       fragmentShader: shader.fragmentShader
       vertexShader: shader.vertexShader
       uniforms: shader.uniforms
       side: THREE.BackSide
     })
 
-    mesh = new THREE.Mesh(new THREE.CubeGeometry(10000, 10000, 10000), material)
-    LW.renderer.scene.add(mesh)
+  rebuild: ->
+    @clear()
+
+    return if !@groundMaterial.map
+
+    @model = LW.model if @model != LW.model
+    return if !@model
+
+    terrain = @model.terrain
+
+    @groundGeo = new THREE.PlaneGeometry(terrain.groundWidth, terrain.groundHeight, terrain.groundSegmentsX - 1, terrain.groundSegmentsZ - 1)
+    @groundGeo.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2))
+
+    if terrain.heightMap?.length
+      for height, i in terrain.heightMap
+        @groundGeo.vertices[i].y = height
+
+    @ground = new THREE.Mesh(@groundGeo, @groundMaterial)
+    @ground.receiveShadow = true
+    @add(@ground)
+
+    @sky = new THREE.Mesh(new THREE.CubeGeometry(10000, 10000, 10000), @skyMaterial)
+    @add(@sky)

@@ -56,6 +56,8 @@ class LW.TrackModel
     position: null
   )
 
+  terrain: null
+
   LW.mixin(@prototype, LW.Observable)
 
   constructor: (@vertices, @splineClass, @proxy) ->
@@ -75,6 +77,8 @@ class LW.TrackModel
     @supportTubes = []
 
     @spline = new splineClass(@vertices, @rollNodes)
+
+    @terrain = new LW.TerrainModel
 
   rebuild: ->
     return if @proxy
