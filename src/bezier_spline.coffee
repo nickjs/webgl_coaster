@@ -61,22 +61,17 @@ class LW.BezierSpline extends THREE.CurvePath
         curve = @curves[i]
         u = 1 - diff / curve.getLength()
 
-        if curve.p1?.relativeRoll
-          leftBank = (lastBank || 0) + curve.p1
-        else
-          leftBank = curve.p1?.bank || 0
+        p0 = @curves[i - 1]?.p1?.bank
+        p1 = curve.p1?.bank
+        p2 = curve.p2?.bank
 
-        if curve.p2?.relativeRoll
-          rightBank = (curve.p1?.bank || 0) + curve.p2.bank
-        else
-          rightBank = curve.p2?.bank || 0
+        if p0?
+          if p0 >= 180 && p1 >= 180 && p2 <= 180
+            p2 = 360 + p2
+          else if p0 <= -180 && p1 <= -180 && p2 >= -180
+            p2 = -360 + p2
 
-        if leftBank < -100 && rightBank > 100
-          rightBank = -360 + rightBank
-        else if leftBank > 100 && rightBank < -100
-          rightBank = 360 + rightBank
-
-        return THREE.Curve.Utils.interpolate(leftBank, leftBank, rightBank, rightBank, u)
+        return THREE.Curve.Utils.interpolate(p1, p1, p2, p2, u)
 
       i++
 
