@@ -40,6 +40,7 @@ class LW.GUIController
     @viewFolder.add(@modelProxy, 'debugNormals').name("show normals").onChange(@changeDebugNormals)
     @viewFolder.add(LW.train.cameraHelper, 'visible').name("debug ride cam") if LW.train
 
+    @gui.add(this, 'renderTerrain')
     @gui.add(@modelProxy, 'onRideCamera').name("ride it!").onChange(@changeOnRideCamera)
 
   updateFolder: (folder) ->
@@ -127,6 +128,10 @@ class LW.GUIController
   changeDebugNormals: (value) ->
     LW.model.debugNormals = value
     LW.track?.rebuild()
+
+  renderTerrain: ->
+    LW.terrain.useHeightMap = true
+    LW.terrain.rebuild()
 
   newTrack: ->
     @_addTrackToDropdown("Untitled")

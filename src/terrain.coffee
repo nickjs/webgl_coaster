@@ -11,6 +11,8 @@ class LW.TerrainModel
     LW.mixin(this, options)
 
 class LW.TerrainMesh extends THREE.Object3D
+  useHeightMap: false
+
   constructor: ->
     super()
     @loadTextures()
@@ -60,9 +62,10 @@ class LW.TerrainMesh extends THREE.Object3D
     @groundGeo = new THREE.PlaneGeometry(terrain.groundWidth, terrain.groundHeight, terrain.groundSegmentsX - 1, terrain.groundSegmentsZ - 1)
     @groundGeo.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2))
 
-    if terrain.heightMap?.length
-      for height, i in terrain.heightMap
-        @groundGeo.vertices[i].y = height
+    if @useHeightMap
+      if terrain.heightMap?.length
+        for height, i in terrain.heightMap
+          @groundGeo.vertices[i].y = height
 
     @ground = new THREE.Mesh(@groundGeo, @groundMaterial)
     @ground.receiveShadow = true
