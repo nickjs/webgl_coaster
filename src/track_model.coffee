@@ -83,7 +83,7 @@ class LW.TrackModel
     return @spline.getBankAt(t)
 
   findTFromPoint: (seekingPos) ->
-    totalLength = Math.ceil(@spline.getLength()) * 10
+    totalLength = Math.ceil(@spline.getLength())
     bestDistance = 10
     bestT = 0
     for i in [0..totalLength]
