@@ -75,9 +75,9 @@ class LW.Controls
   onPointerLockChange: (e) =>
     @enabled = document.pointerLockElement == @domElement || document.mozPointerLockElement == @domElement || document.webkitPointerLockElement == @domElement
     if @enabled
-      document.removeEventListener('click', @onClick)
+      @domElement.removeEventListener('click', @onClick)
     else
-      document.addEventListener('click', @onClick)
+      @domElement.addEventListener('click', @onClick)
 
   update: (delta) ->
     return if !@enabled
