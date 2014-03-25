@@ -56,6 +56,7 @@ LW.Observable = {
 }
 
 LW.UP = new THREE.Vector3(0, 1, 0)
+LW.DOWN = new THREE.Vector3(0, -1, 0)
 normal = new THREE.Vector3
 binormal = new THREE.Vector3
 appliedOffset = new THREE.Vector3
