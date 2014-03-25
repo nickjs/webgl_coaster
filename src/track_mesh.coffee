@@ -439,11 +439,17 @@ class LW.TrackMesh extends THREE.Object3D
 
   renderSupports: ->
     size = 7
-    geo = new THREE.CubeGeometry(size, 20, size)
+    geo = new THREE.CubeGeometry(size, 10, size)
     mat = new THREE.MeshLambertMaterial(color: 0xcccccc)
     for node in @model.foundationNodes
       mesh = new THREE.Mesh(geo, mat)
       mesh.position = node.position
+
+      mesh.position.y = 1000
+      ray = new THREE.Raycaster(mesh.position, LW.DOWN, 1, 2000)
+      point = ray.intersectObject(LW.terrain.ground)[0]
+      mesh.position.y = point.point.y - 2 if point?.point.y
+
       @add(mesh)
 
     orientation = new THREE.Matrix4
