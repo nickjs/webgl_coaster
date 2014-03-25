@@ -23,8 +23,13 @@ class LW.TerrainMesh extends THREE.Object3D
       groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping
       groundTexture.repeat.set(25, 25)
       groundTexture.anisotropy = 16
+
       @groundMaterial.map = groundTexture
-      @rebuild()
+      @groundMaterial.needsUpdate = true
+
+      if @ground
+        @groundGeo.buffersNeedUpdate = true
+        @groundGeo.uvsNeedUpdate = true
 
     # Skybox
     path = 'resources/textures/skybox/'
@@ -49,8 +54,6 @@ class LW.TerrainMesh extends THREE.Object3D
 
   rebuild: ->
     @clear()
-
-    return if !@groundMaterial.map
 
     @model = LW.model if @model != LW.model
     return if !@model

@@ -58,8 +58,8 @@ window.LW =
 
     @gui?.modelChanged(model)
     @edit?.modelChanged(model)
-    @track?.rebuild()
     @terrain?.rebuild()
+    @track?.rebuild()
 
   kill: ->
     @renderer.kill()
