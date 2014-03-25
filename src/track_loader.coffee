@@ -47,8 +47,10 @@ LW.TrackModel.fromNltrackJSON = (json) ->
     track.separators.push(sep)
 
   for fund in json.fund.nodes
-    node = new LW.FoundationNode(fund.pos_x * SCALE, -3, fund.pos_z * SCALE)
+    node = new LW.FoundationNode(fund.pos_x * SCALE, fund.pos_y * SCALE, fund.pos_z * SCALE)
     track.foundationNodes.push(node)
+
+  prefabSupports = []
 
   for segment, i in json.rasc.segments
     for rasc in segment.rascs
@@ -56,6 +58,14 @@ LW.TrackModel.fromNltrackJSON = (json) ->
       node = new LW.TrackConnectionNode(point.x, point.y, point.z)
       node.segment = i
       track.trackConnectionNodes.push(node)
+
+      switch rasc.type
+        when 2
+          fund = new LW.FoundationNode(point.x, point.y, point.z)
+          prefabSupports.push(fund)
+
+          tube = new LW.SupportTube(node, fund, 1)
+          prefabSupports.push(tube)
 
   for fren in json.fren.nodes
     node = new LW.FreeNode(fren.pos_x * SCALE, fren.pos_y * SCALE, fren.pos_z * SCALE)
@@ -86,6 +96,16 @@ LW.TrackModel.fromNltrackJSON = (json) ->
 
     tube = new LW.SupportTube(node1, node2, tube.tube_type)
     track.supportTubes.push(tube)
+
+  for support in prefabSupports
+    if support instanceof LW.SupportTube
+      track.supportTubes.push(support)
+    else if support instanceof LW.FreeNode
+      track.freeNodes.push(support)
+    else if support instanceof LW.TrackConnectionNode
+      track.trackConnectionNodes.push(support)
+    else if support instanceof LW.FoundationNode
+      track.foundationNodes.push(support)
 
   if heights = json.tera?.heights
     track.terrain.groundSegmentsX = height = json.tera.size_x
