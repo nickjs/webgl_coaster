@@ -43,6 +43,7 @@ LW.TrackModel.fromNltrackJSON = (json) ->
     sep = new LW.Separator
     sep.position = track.findTFromPoint(track.vertices[i].position)
     sep.type = types[s.type]
+    sep.settings = s.settings
     applyColors(s, sep) if s.individual_track_color
     track.separators.push(sep)
 

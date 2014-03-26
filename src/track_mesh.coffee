@@ -168,13 +168,14 @@ class LW.TrackMesh extends THREE.Object3D
 
   updateMaterials: ->
     @wireframeMaterial ||= new THREE.LineBasicMaterial(color: 0xffffff, linewidth: 2, vertexColors: THREE.VertexColors)
-    @spineMaterial ||= new THREE.MeshLambertMaterial(color: 0xffffff, vertexColors: THREE.FaceColors)
+    @spineMaterial ||= new THREE.MeshPhongMaterial(color: 0xffffff, shininess: 40, vertexColors: THREE.FaceColors)
     @tieMaterial ||= @spineMaterial.clone()
     @railMaterial ||= @spineMaterial.clone()
     @supportMaterial ||= @spineMaterial.clone()
 
     @wireframeMaterial.color.setStyle(@model.wireframeColor)
     @spineMaterial.color.setStyle(@model.spineColor)
+    @spineMaterial.specular.setStyle(@model.spineColor)
     @tieMaterial.color.setStyle(@model.tieColor)
     @railMaterial.color.setStyle(@model.railColor)
     @supportMaterial.color.setStyle(@model.supportColor)
@@ -198,8 +199,6 @@ class LW.TrackMesh extends THREE.Object3D
     @wireframe = true if @model.forceWireframe
 
     @updateMaterials()
-
-    @renderSupports()
 
     @prepareRails()
     @prepareTies()
@@ -257,6 +256,8 @@ class LW.TrackMesh extends THREE.Object3D
     @finalizeRails(totalLength)
     @finalizeTies(spineSteps)
     @finalizeSpine(spineSteps)
+
+    @renderSupports()
 
   ###
   # Rail Drawing
@@ -438,43 +439,72 @@ class LW.TrackMesh extends THREE.Object3D
   ###
 
   renderSupports: ->
-    size = 7
-    geo = new THREE.CubeGeometry(size, 10, size)
-    mat = new THREE.MeshLambertMaterial(color: 0xcccccc)
-    for node in @model.foundationNodes
-      mesh = new THREE.Mesh(geo, mat)
-      mesh.position = node.position
+    footerTexture = THREE.ImageUtils.loadTexture "/resources/textures/footer.jpg", undefined, =>
+      footerBump = THREE.ImageUtils.loadTexture "/resources/textures/footer-bump.png", undefined, =>
 
-      mesh.position.y = 1000
-      ray = new THREE.Raycaster(mesh.position, LW.DOWN, 1, 2000)
-      point = ray.intersectObject(LW.terrain.ground)[0]
-      mesh.position.y = point.point.y - 2 if point?.point.y
+        footerTexture.anisotropy = 4
+        footerBump.anisotropy = 4
+        footerMaterial = new THREE.MeshPhongMaterial(color: 0xffffff, specular: 0x111111, map: footerTexture, bumpMap: footerBump, bumpScale: 20, metal: true)
 
-      @add(mesh)
+        size = 7
+        geo = new THREE.CubeGeometry(size, LW.FoundationNode::height, size)
+        # mat = new THREE.MeshLambertMaterial(color: 0xcccccc)
+        for node in @model.foundationNodes
+          mesh = new THREE.Mesh(geo, footerMaterial)
 
-    orientation = new THREE.Matrix4
-    offsetRotation = new THREE.Matrix4
-    offsetPosition = new THREE.Matrix4
+          node.position.y = 1000
+          ray = new THREE.Raycaster(node.position, LW.DOWN, 1, 2000)
+          point = ray.intersectObject(LW.terrain.ground)[0]
+          node.position.y = point.point.y - node.offsetHeight + 1.5
 
-    for tube in @model.supportTubes
-      height = tube.node1.position.distanceTo(tube.node2.position)
+          mesh.position = node.position
+          @add(mesh)
 
-      if tube.type <= 2
-        radius = (tube.type + 1) * 0.75
-        geo = new THREE.CylinderGeometry(radius, radius, height)
-      else
-        radius = (tube.type - 2) * 0.75
-        geo = new THREE.CubeGeometry(radius, height, radius)
+        orientation = new THREE.Matrix4
+        offsetRotation = new THREE.Matrix4
+        offsetPosition = new THREE.Matrix4
+        p1 = new THREE.Vector3
+        p2 = new THREE.Vector3
+        delta = new THREE.Vector3
 
-      position = tube.node2.position.clone().add(tube.node1.position).divideScalar(2)
-      orientation.lookAt(tube.node1.position, tube.node2.position, LW.UP)
-      offsetRotation.makeRotationX(Math.PI / 2)
-      orientation.multiply(offsetRotation)
-      geo.applyMatrix(orientation)
+        for tube in @model.supportTubes
+          p1.copy(tube.node1.position)
+          p2.copy(tube.node2.position)
 
-      mesh = new THREE.Mesh(geo, @supportMaterial)
-      mesh.position = position
-      @add(mesh)
+          if tube.node1 instanceof LW.TrackConnectionNode
+            delta.subVectors(p1, p2).normalize()
+            ray = new THREE.Raycaster(p2, delta, 1, 1000)
+            point = ray.intersectObject(@spineMesh)[0]
+            p1.copy(point.point) if point?.point
+          else
+            p1.y += tube.node1.offsetHeight
+
+          if tube.node2 instanceof LW.TrackConnectionNode
+            delta.subVectors(p2, p1).normalize()
+            ray = new THREE.Raycaster(p1, delta, 1, 1000)
+            point = ray.intersectObject(@spineMesh)[0]
+            p2.copy(point.point) if point?.point
+          else
+            p2.y += tube.node2.offsetHeight
+
+          height = p1.distanceTo(p2)
+          continue if height < 0.5
+
+          if tube.isBox
+            geo = new THREE.CubeGeometry(tube.size, height, tube.size)
+          else
+            geo = new THREE.CylinderGeometry(tube.size, tube.size, height)
+
+          position = p2.clone().add(p1).divideScalar(2)
+          orientation.lookAt(p1, p2, LW.UP)
+          offsetRotation.makeRotationX(Math.PI / 2)
+          orientation.multiply(offsetRotation)
+          geo.applyMatrix(orientation)
+
+          mesh = new THREE.Mesh(geo, @supportMaterial)
+          mesh.position = position
+          mesh.castShadow = true
+          @add(mesh)
 
   ###
   # Helpers

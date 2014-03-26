@@ -49,31 +49,33 @@ class LW.Renderer
     @sideCamera.zoom = zoom
     @sideCamera.lookAt(new THREE.Vector3(1, 0, 0))
 
-    @light = new THREE.DirectionalLight(0xffffff, 0.8)
-    @light.position.set(0, 1000, 0)
-    @light.castShadow = true
-    @light.shadowMapWidth = 4096
-    @light.shadowMapHeight = 4096
-    @scene.add(@light)
+    hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.6)
+    hemiLight.color.setHSL(0.58, 0.1, 0.7)
+    hemiLight.groundColor.setHSL(0.24, 0.1, 0.7)
+    hemiLight.position.set(0, 1000, 0)
+    @scene.add(hemiLight)
 
-    @bottomLight = new THREE.DirectionalLight(0xffffff, 0.5)
-    @bottomLight.position.set(0, -1, 0)
-    @scene.add(@bottomLight)
+    dirLight = new THREE.DirectionalLight(0xffffff, 0.8)
+    dirLight.position.set(-1000, 1000, 1000)
+    dirLight.shadowCameraVisible = true
+    dirLight.castShadow = true
+    dirLight.shadowMapWidth = 4096
+    dirLight.shadowMapHeight = 4096
+    @scene.add(dirLight)
 
-    sideLight = new THREE.DirectionalLight(0xffffff, 0.3)
-    sideLight.position.set(0, 0, -1)
-    @scene.add(sideLight)
-
-    sideLight = new THREE.DirectionalLight(0xffffff, 0.3)
-    sideLight.position.set(0, 0, 1)
-    @scene.add(sideLight)
+    d = 2000
+    dirLight.shadowCameraLeft = -d
+    dirLight.shadowCameraRight = d
+    dirLight.shadowCameraTop = d
+    dirLight.shadowCameraBottom = -d
 
     window.addEventListener('resize', @onResize, false)
 
   render: =>
     return if @killed
+    delta = @clock.getDelta()
 
-    LW.train?.simulate(@clock.getDelta())
+    LW.train?.simulate(delta)
 
     SCREEN_WIDTH = window.innerWidth * @renderer.devicePixelRatio
     SCREEN_HEIGHT = window.innerHeight * @renderer.devicePixelRatio
@@ -97,7 +99,7 @@ class LW.Renderer
     mainCamera = LW.train?.camera if LW.model?.onRideCamera
     mainCamera ||= @camera
 
-    LW.controls?.update?(@clock.getDelta())
+    LW.controls?.update?(delta)
 
     @renderer.render(@scene, mainCamera)
     @stats?.update()

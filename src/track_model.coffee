@@ -23,6 +23,14 @@ class LW.Separator extends LW.TrackNode
     TYPE: 2
   }
 
+  @TYPE = {
+    TRACK: 'TrackSegment'
+    STATION: 'StationSegment'
+    LIFT: 'LiftSegment'
+    TRANSPORT: 'TransportSegment'
+    BREAK: 'BreakSegment'
+  }
+
   mode: 0
   type: 'TrackSegment'
 
