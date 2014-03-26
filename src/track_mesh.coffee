@@ -168,13 +168,14 @@ class LW.TrackMesh extends THREE.Object3D
 
   updateMaterials: ->
     @wireframeMaterial ||= new THREE.LineBasicMaterial(color: 0xffffff, linewidth: 2, vertexColors: THREE.VertexColors)
-    @spineMaterial ||= new THREE.MeshLambertMaterial(color: 0xffffff, vertexColors: THREE.FaceColors)
+    @spineMaterial ||= new THREE.MeshPhongMaterial(color: 0xffffff, shininess: 40, vertexColors: THREE.FaceColors)
     @tieMaterial ||= @spineMaterial.clone()
     @railMaterial ||= @spineMaterial.clone()
     @supportMaterial ||= @spineMaterial.clone()
 
     @wireframeMaterial.color.setStyle(@model.wireframeColor)
     @spineMaterial.color.setStyle(@model.spineColor)
+    @spineMaterial.specular.setStyle(@model.spineColor)
     @tieMaterial.color.setStyle(@model.tieColor)
     @railMaterial.color.setStyle(@model.railColor)
     @supportMaterial.color.setStyle(@model.supportColor)
