@@ -72,8 +72,9 @@ class LW.Renderer
 
   render: =>
     return if @killed
+    delta = @clock.getDelta()
 
-    LW.train?.simulate(@clock.getDelta())
+    LW.train?.simulate(delta)
 
     SCREEN_WIDTH = window.innerWidth * @renderer.devicePixelRatio
     SCREEN_HEIGHT = window.innerHeight * @renderer.devicePixelRatio
@@ -97,7 +98,7 @@ class LW.Renderer
     mainCamera = LW.train?.camera if LW.model?.onRideCamera
     mainCamera ||= @camera
 
-    LW.controls?.update?(@clock.getDelta())
+    LW.controls?.update?(delta)
 
     @renderer.render(@scene, mainCamera)
     @stats?.update()
