@@ -70,6 +70,10 @@ class LW.Train extends THREE.Object3D
   simulate: (delta) ->
     return if !@shouldSimulate or !@cars.length or !(model = @track.model)
 
+    separator = model.findSeparatorFromT(@currentTime)
+    if separator.type == LW.Separator.TYPE.LIFT
+      @velocity = Math.max(@velocity, separator.settings.lift_speed * 10)
+
     if @lastTangent
       alpha = down.angleTo(@lastTangent)
       a = 29.43 * Math.cos(alpha)
