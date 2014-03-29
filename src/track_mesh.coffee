@@ -439,8 +439,8 @@ class LW.TrackMesh extends THREE.Object3D
   ###
 
   renderSupports: ->
-    footerTexture = THREE.ImageUtils.loadTexture "/resources/textures/footer.jpg", undefined, =>
-      footerBump = THREE.ImageUtils.loadTexture "/resources/textures/footer-bump.png", undefined, =>
+    footerTexture = THREE.ImageUtils.loadTexture "resources/textures/footer.jpg", undefined, =>
+      footerBump = THREE.ImageUtils.loadTexture "resources/textures/footer-bump.png", undefined, =>
 
         footerTexture.anisotropy = 4
         footerBump.anisotropy = 4
@@ -448,7 +448,7 @@ class LW.TrackMesh extends THREE.Object3D
 
         size = 7
         geo = new THREE.CubeGeometry(size, LW.FoundationNode::height, size)
-        # mat = new THREE.MeshLambertMaterial(color: 0xcccccc)
+
         for node in @model.foundationNodes
           mesh = new THREE.Mesh(geo, footerMaterial)
 
