@@ -22,6 +22,8 @@
 
 #= require ./track_loader
 
+window.BASE_URL ?= "/resources"
+
 window.LW =
   init: (container = document.body) ->
     @renderer = new LW.Renderer(container)

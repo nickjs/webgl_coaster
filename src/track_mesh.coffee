@@ -481,7 +481,7 @@ class LW.TrackMesh extends THREE.Object3D
     @extraGeometry.computeFaceNormals()
 
     @liftMaterial = new THREE.MeshLambertMaterial(color: 0xffffff)
-    texture1 = THREE.ImageUtils.loadTexture "resources/textures/chain.png", undefined, =>
+    texture1 = THREE.ImageUtils.loadTexture "#{BASE_URL}/textures/chain.png", undefined, =>
       texture1.wrapT = THREE.RepeatWrapping
       texture1.offset.setX(0.5)
       @liftMaterial.map = texture1
@@ -507,8 +507,8 @@ class LW.TrackMesh extends THREE.Object3D
   ###
 
   renderSupports: ->
-    footerTexture = THREE.ImageUtils.loadTexture "resources/textures/footer.jpg", undefined, =>
-      footerBump = THREE.ImageUtils.loadTexture "resources/textures/footer-bump.png", undefined, =>
+    footerTexture = THREE.ImageUtils.loadTexture "#{BASE_URL}/textures/footer.jpg", undefined, =>
+      footerBump = THREE.ImageUtils.loadTexture "#{BASE_URL}/textures/footer-bump.png", undefined, =>
 
         footerTexture.anisotropy = 4
         footerBump.anisotropy = 4

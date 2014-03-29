@@ -19,7 +19,7 @@ class LW.TerrainMesh extends THREE.Object3D
     @loadTextures()
 
   buildWater: (width, height) ->
-    waterNormals = THREE.ImageUtils.loadTexture "resources/textures/waternormals.jpg"
+    waterNormals = THREE.ImageUtils.loadTexture "#{BASE_URL}/textures/waternormals.jpg"
     waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping
 
     @water = new THREE.Water(LW.renderer.renderer, LW.renderer.camera, LW.renderer.scene, {
@@ -42,7 +42,7 @@ class LW.TerrainMesh extends THREE.Object3D
     # Ground
     @groundMaterial ||= new THREE.MeshPhongMaterial(color: 0xffffff, specular: 0x111111)
 
-    groundTexture = THREE.ImageUtils.loadTexture "/resources/textures/grass.jpg", undefined, =>
+    groundTexture = THREE.ImageUtils.loadTexture "#{BASE_URL}/textures/grass.jpg", undefined, =>
       groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping
       groundTexture.repeat.set(25, 25)
       groundTexture.anisotropy = 16
@@ -55,7 +55,7 @@ class LW.TerrainMesh extends THREE.Object3D
         @groundGeo.uvsNeedUpdate = true
 
     # Skybox
-    path = '/resources/textures/skybox/'
+    path = "#{BASE_URL}/textures/skybox/"
     format = '.jpg'
     urls = [
       path + 'px' + format, path + 'nx' + format
