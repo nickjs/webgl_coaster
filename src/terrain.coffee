@@ -6,6 +6,9 @@ class LW.TerrainModel
 
   heightMap: null
 
+  useWater: false
+  waterLevel: 0.0
+
   constructor: (options) ->
     @heightMap = []
     LW.mixin(this, options)
@@ -14,6 +17,26 @@ class LW.TerrainMesh extends THREE.Object3D
   constructor: ->
     super()
     @loadTextures()
+
+  buildWater: (width, height) ->
+    waterNormals = THREE.ImageUtils.loadTexture "resources/textures/waternormals.jpg"
+    waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping
+
+    @water = new THREE.Water(LW.renderer.renderer, LW.renderer.camera, LW.renderer.scene, {
+      textureWidth: 512
+      textureHeight: 512
+      waterNormals: waterNormals
+      alpha: 0.99
+      sunDirection: LW.renderer.dirLight.position.normalize()
+      sunColor: 0xffffff
+      waterColor: 0x001e0f
+      distortionScale: 50.0
+    })
+
+    @waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height, 5, 5), @water.material)
+    @waterMesh.add(@water)
+    @waterMesh.rotation.x = -Math.PI / 2
+    LW.renderer.scene.add(@waterMesh)
 
   loadTextures: ->
     # Ground
@@ -73,3 +96,11 @@ class LW.TerrainMesh extends THREE.Object3D
 
     @sky = new THREE.Mesh(new THREE.CubeGeometry(10000, 10000, 10000), @skyMaterial)
     @add(@sky)
+
+    if terrain.useWater
+      @buildWater(terrain.groundWidth, terrain.groundHeight)
+      @waterMesh.position.y += terrain.waterLevel if terrain.waterLevel?
+
+  update: (delta) ->
+    @water?.material.uniforms.time.value += 0.5 / 60.0
+    @water?.render()

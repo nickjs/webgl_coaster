@@ -74,6 +74,11 @@ class LW.Train extends THREE.Object3D
     if separator.type == LW.Separator.TYPE.LIFT
       @velocity = Math.max(@velocity, separator.settings.lift_speed * 10)
 
+      # chain animation
+      LW.track.liftMaterial.map.offset.y -= 0.4
+      for gear in LW.track.gears
+        gear.rotation.x -= 0.1
+
     if @lastTangent
       alpha = down.angleTo(@lastTangent)
       a = 29.43 * Math.cos(alpha)
