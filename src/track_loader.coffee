@@ -120,4 +120,8 @@ LW.TrackModel.fromNltrackJSON = (json) ->
       for x in [0...width - 1]
         heightMap[x + z * width] = heights[z][x] * 5
 
+  if json.tera?.enable_water
+    track.terrain.useWater = true
+    track.terrain.waterLevel = json.tera.sea_level
+
   return track

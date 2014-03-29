@@ -55,19 +55,19 @@ class LW.Renderer
     hemiLight.position.set(0, 1000, 0)
     @scene.add(hemiLight)
 
-    dirLight = new THREE.DirectionalLight(0xffffff, 0.8)
-    dirLight.position.set(-1000, 1000, 1000)
-    dirLight.shadowCameraVisible = true
-    dirLight.castShadow = true
-    dirLight.shadowMapWidth = 4096
-    dirLight.shadowMapHeight = 4096
-    @scene.add(dirLight)
+    @dirLight = new THREE.DirectionalLight(0xffffff, 0.8)
+    @dirLight.position.set(-1000, 1000, 1000)
+    # @dirLight.shadowCameraVisible = true
+    @dirLight.castShadow = true
+    @dirLight.shadowMapWidth = 4096
+    @dirLight.shadowMapHeight = 4096
+    @scene.add(@dirLight)
 
     d = 2000
-    dirLight.shadowCameraLeft = -d
-    dirLight.shadowCameraRight = d
-    dirLight.shadowCameraTop = d
-    dirLight.shadowCameraBottom = -d
+    @dirLight.shadowCameraLeft = -d
+    @dirLight.shadowCameraRight = d
+    @dirLight.shadowCameraTop = d
+    @dirLight.shadowCameraBottom = -d
 
     window.addEventListener('resize', @onResize, false)
 
@@ -100,6 +100,7 @@ class LW.Renderer
     mainCamera ||= @camera
 
     LW.controls?.update?(delta)
+    LW.terrain?.update?(delta)
 
     @renderer.render(@scene, mainCamera)
     @stats?.update()
