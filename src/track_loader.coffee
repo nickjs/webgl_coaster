@@ -61,12 +61,46 @@ LW.TrackModel.fromNltrackJSON = (json) ->
       track.trackConnectionNodes.push(node)
 
       switch rasc.type
-        when 2
+        when 2 # simple
           fund = new LW.FoundationNode(point.x, point.y, point.z)
           prefabSupports.push(fund)
 
-          tube = new LW.SupportTube(node, fund, 1)
+          type = if point.y < 25
+            2
+          else if point.y < 75
+            0
+          else
+            1
+
+          tube = new LW.SupportTube(node, fund, type)
           prefabSupports.push(tube)
+
+        when 5, 7 # double, 90 degree
+          free = new LW.FreeNode(point.x, point.y - point.y * 0.2, point.z)
+          prefabSupports.push(fund)
+
+          fund1 = new LW.FoundationNode(point.x, point.y, point.z)
+          prefabSupports.push(fund1)
+
+          tangent = track.spline.curves[i].getTangentAt(rasc.pos)
+          tangent.cross(LW.UP).multiplyScalar(point.y * 0.25)
+
+          tangent.negate() if rasc.type == 7
+          tangent.add(point)
+
+          fund2 = new LW.FoundationNode(tangent.x, point.y, tangent.z)
+          prefabSupports.push(fund2)
+
+          type = if point.y < 25
+            2
+          else if point.y < 75
+            0
+          else
+            1
+
+          prefabSupports.push(new LW.SupportTube(free, node, type))
+          prefabSupports.push(new LW.SupportTube(free, fund1, type))
+          prefabSupports.push(new LW.SupportTube(free, fund2, type))
 
   for fren in json.fren.nodes
     node = new LW.FreeNode(fren.pos_x * SCALE, fren.pos_y * SCALE, fren.pos_z * SCALE)
