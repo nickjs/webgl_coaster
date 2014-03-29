@@ -435,6 +435,74 @@ class LW.TrackMesh extends THREE.Object3D
     @add(@tieMesh)
 
   ###
+  # Extras
+  ###
+
+  prepareExtras: ->
+    @extraGeometry = new THREE.Geometry
+
+    if @liftShape
+      @_liftVertices = @liftShape.extractPoints(1).shape
+      @_liftFaces = THREE.Shape.Utils.triangulateShape(@_liftVertices, [])
+
+  liftSteps = 0
+  extrasStep: (pos, normal, binormal, segmentType) ->
+    if segmentType == LW.Separator.TYPE.LIFT
+      @_extrudeVertices(@_liftVertices, @extraGeometry.vertices, pos, normal, binormal)
+      liftSteps++
+
+  finalizeExtras: (totalLength) ->
+    # Sides
+    return if liftSteps < 3
+    vertices = @_liftVertices
+    target = @extraGeometry
+    i = vertices.length
+    while --i >= 0
+      j = i
+      k = i - 1
+      k = vertices.length - 1 if k < 0
+
+      for s in [0..liftSteps - 3]
+        slen1 = vertices.length * s
+        slen2 = vertices.length * (s + 1)
+        a = j + slen1
+        b = k + slen1
+        c = k + slen2
+        d = j + slen2
+
+        target.faces.push(new THREE.Face3(a, b, d, null, null, null))
+        target.faces.push(new THREE.Face3(b, c, d, null, null, null))
+
+        uvs = uvgen.generateSideWallUV(target, null, null, null, a, b, c, d, s, liftSteps - 2, j, k)
+        target.faceVertexUvs[0].push([uvs[0], uvs[1], uvs[3]])
+        target.faceVertexUvs[0].push([uvs[1], uvs[2], uvs[3]])
+
+    @extraGeometry.computeCentroids()
+    @extraGeometry.computeFaceNormals()
+
+    @liftMaterial = new THREE.MeshLambertMaterial(color: 0xffffff)
+    texture1 = THREE.ImageUtils.loadTexture "resources/textures/chain.png", undefined, =>
+      texture1.wrapT = THREE.RepeatWrapping
+      texture1.offset.setX(0.5)
+      @liftMaterial.map = texture1
+
+      @extraMesh = new THREE.Mesh(@extraGeometry, @liftMaterial)
+      @add(@extraMesh)
+
+    mat = new THREE.MeshLambertMaterial(color: 0x444444)
+    @gears = []
+
+    gearMesh = new THREE.Mesh(@gearGeometry, mat)
+    gearMesh.position = @extraGeometry.vertices[0].clone().sub(@gearOffset)
+    @gears.push(gearMesh)
+    @add(gearMesh)
+
+    gearMesh = new THREE.Mesh(@gearGeometry, mat)
+    gearMesh.position = @extraGeometry.vertices[@extraGeometry.vertices.length - 3].clone().sub(@gearOffset)
+    @gears.push(gearMesh)
+    @add(gearMesh)
+
+  ###
   # Supports
   ###
 

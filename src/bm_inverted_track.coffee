@@ -49,6 +49,19 @@ class LW.BMInvertedTrack extends LW.TrackMesh
 
   offsetY = -boxSize + 3 + padding
 
+  liftShape = new THREE.Shape
+  liftShape.moveTo(0.7, 0)
+  liftShape.lineTo(0.7, 0.3)
+  liftShape.lineTo(-0.7, 0.3)
+  liftShape.lineTo(-0.7, 0)
+  liftShape: liftShape
+
+  gearGeometry = new THREE.CylinderGeometry(3, 3, 1.35)
+  gearGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(Math.PI / 2))
+  gearGeometry: gearGeometry
+
+  gearOffset: new THREE.Vector3(-0.7, -2.65, 0)
+
   wireframeSpine: [new THREE.Vector3(0, offsetY)]
   wireframeTies: [
     new THREE.Vector3(railDistance, 0)
