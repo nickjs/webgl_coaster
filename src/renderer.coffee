@@ -9,7 +9,6 @@ class LW.Renderer
     @renderer = new THREE.WebGLRenderer(antialias: true)
     @renderer.setSize(window.innerWidth, window.innerHeight)
     @renderer.setClearColor(0xf0f0f0)
-    @renderer.autoClear = false
 
     @renderer.gammaInput = true
     @renderer.gammaOutput = true
@@ -77,12 +76,10 @@ class LW.Renderer
 
     LW.train?.simulate(delta)
 
-    SCREEN_WIDTH = window.innerWidth * @renderer.devicePixelRatio
-    SCREEN_HEIGHT = window.innerHeight * @renderer.devicePixelRatio
-
-    @renderer.clear()
-
     if @useQuadView
+      SCREEN_WIDTH = window.innerWidth
+      SCREEN_HEIGHT = window.innerHeight
+
       @renderer.setViewport(1, 0.5 * SCREEN_HEIGHT + 1, 0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2)
       @renderer.render(@scene, @topCamera)
 
@@ -93,8 +90,6 @@ class LW.Renderer
       @renderer.render(@scene, @frontCamera)
 
       @renderer.setViewport(0.5 * SCREEN_WIDTH + 1, 1,   0.5 * SCREEN_WIDTH - 2, 0.5 * SCREEN_HEIGHT - 2)
-    else
-      @renderer.setViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
 
     mainCamera = LW.train?.camera if LW.model?.onRideCamera
     mainCamera ||= @camera
