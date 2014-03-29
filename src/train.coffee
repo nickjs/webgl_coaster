@@ -67,7 +67,7 @@ class LW.Train extends THREE.Object3D
   down = new THREE.Vector3(0, -1, 0)
   mat = new THREE.Matrix4()
 
-  simulate: (delta) ->
+  update: (delta) ->
     return if !@shouldSimulate or !@cars.length or !(model = @track.model)
 
     separator = model.findSeparatorFromT(@currentTime)
