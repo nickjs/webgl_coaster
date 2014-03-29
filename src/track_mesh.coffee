@@ -203,6 +203,7 @@ class LW.TrackMesh extends THREE.Object3D
     @prepareRails()
     @prepareTies()
     @prepareSpine()
+    @prepareExtras()
 
     totalLength = Math.ceil(@model.spline.getLength())
     spineSteps = 0
@@ -250,12 +251,14 @@ class LW.TrackMesh extends THREE.Object3D
         lastSpinePos = pos
 
       @railStep(pos, normal, binormal)
+      @extrasStep(pos, normal, binormal, separator.type)
 
     @spineStep(pos, normal, binormal)
 
     @finalizeRails(totalLength)
     @finalizeTies(spineSteps)
     @finalizeSpine(spineSteps)
+    @finalizeExtras(totalLength)
 
     @renderSupports()
 
