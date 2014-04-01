@@ -151,6 +151,8 @@ class LW.TrackMesh extends THREE.Object3D
       for i in [0..@numberOfRails - 1]
         @_railGrids.push([])
 
+  _pos = new THREE.Vector3
+
   railStep: (pos, normal, binormal) ->
     return if !@numberOfRails
 
