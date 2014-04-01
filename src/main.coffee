@@ -19,6 +19,7 @@
 
 #= require ./bm_sitdown_track
 #= require ./bm_inverted_track
+#= require ./intamin_track
 
 #= require ./track_loader
 
@@ -51,8 +52,7 @@ window.LW =
       @renderer.scene.remove(@train)
       @train = null
 
-    klass = LW.TrackModel.classForTrackStyle(model.trackStyle)
-    @track = new klass
+    @track = new model.trackStyle
     @renderer.scene.add(@track)
 
     @gui?.modelChanged(model)

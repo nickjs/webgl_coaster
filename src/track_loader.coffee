@@ -1,3 +1,10 @@
+TRACK_STYLES = {
+  4: LW.BMInvertedTrack
+  5: LW.IntaminTrack
+}
+
+SEGMENT_TYPES = ['TrackSegment', 'StationSegment', 'LiftSegment', 'TransportSegment', 'BrakeSegment']
+
 LW.TrackModel.fromNltrackJSON = (json) ->
   SCALE = 5
   points = []
@@ -9,7 +16,9 @@ LW.TrackModel.fromNltrackJSON = (json) ->
       p.cp2_x * SCALE, p.cp2_y * SCALE, p.cp2_z * SCALE,
     )
 
-    point.setBank(-THREE.Math.radToDeg(p.roll), p.continues_roll, p.relative_roll)
+    # bank = -THREE.Math.radToDeg(p.roll)
+    bank = -p.roll.toFixed(6)
+    point.setBank(bank, p.continues_roll, p.relative_roll)
     points.push(point)
 
   track = new LW.TrackModel(points, LW.BezierSpline)
@@ -18,7 +27,7 @@ LW.TrackModel.fromNltrackJSON = (json) ->
     track.spline.isConnected = true
     track.spline.rebuild()
 
-  track.trackStyle = json.track.style
+  track.trackStyle = TRACK_STYLES[json.track.style] || LW.BMTrack
   track.carsPerTrain = json.track.num_cars
 
   applyColors = (source, target) ->
@@ -37,12 +46,10 @@ LW.TrackModel.fromNltrackJSON = (json) ->
 
   applyColors(json.track, track)
 
-  types = ['TrackSegment', 'StationSegment', 'LiftSegment', 'TransportSegment', 'BreakSegment']
-
   for s, i in json.segments.segments
     sep = new LW.Separator
     sep.position = track.findTFromPoint(track.vertices[i].position)
-    sep.type = types[s.type]
+    sep.type = SEGMENT_TYPES[s.type]
     sep.settings = s.settings
     applyColors(s, sep) if s.individual_track_color
     track.separators.push(sep)
