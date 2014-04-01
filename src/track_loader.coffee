@@ -3,6 +3,8 @@ TRACK_STYLES = {
   5: LW.IntaminTrack
 }
 
+SEGMENT_TYPES = ['TrackSegment', 'StationSegment', 'LiftSegment', 'TransportSegment', 'BrakeSegment']
+
 LW.TrackModel.fromNltrackJSON = (json) ->
   SCALE = 5
   points = []
@@ -44,12 +46,10 @@ LW.TrackModel.fromNltrackJSON = (json) ->
 
   applyColors(json.track, track)
 
-  types = ['TrackSegment', 'StationSegment', 'LiftSegment', 'TransportSegment', 'BreakSegment']
-
   for s, i in json.segments.segments
     sep = new LW.Separator
     sep.position = track.findTFromPoint(track.vertices[i].position)
-    sep.type = types[s.type]
+    sep.type = SEGMENT_TYPES[s.type]
     sep.settings = s.settings
     applyColors(s, sep) if s.individual_track_color
     track.separators.push(sep)
