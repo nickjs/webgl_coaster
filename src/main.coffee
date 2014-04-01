@@ -19,6 +19,7 @@
 
 #= require bm_sitdown_track
 #= require bm_inverted_track
+#= require intamin_track
 
 #= require track_loader
 

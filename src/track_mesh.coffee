@@ -292,7 +292,8 @@ class LW.TrackMesh extends THREE.Object3D
       else
         grid = []
         xDistance = if i % 2 == 0 then @railDistance else -@railDistance
-        yDistance = if i > 1 then -@railDistance else 0
+        xDistance = 0 if @numberOfRails == 3 && i == 2
+        yDistance = if i >= 2 then -@railDistance * 2 else 0
 
         for j in [0..@railRadialSegments]
           v = j / @railRadialSegments * 2 * Math.PI
@@ -352,7 +353,7 @@ class LW.TrackMesh extends THREE.Object3D
     @spineGeometry = new THREE.Geometry
     return if @wireframe
 
-    if @spineShapeNeedsUpdate and @spineShape
+    if @spineShapeNeedsUpdate && @spineShape
       @spineShapeNeedsUpdate = false
 
       @_spineVertices = @spineShape.extractPoints(1).shape
@@ -364,14 +365,14 @@ class LW.TrackMesh extends THREE.Object3D
     if @wireframe
       @_extrudeVertices(@wireframeSpine, @spineGeometry.vertices, pos, normal, binormal)
       @spineGeometry.colors.push(@segmentWireframeColor)
-    else
-      return if !@spineShape
+    else if @spineShape
       @_extrudeVertices(@_spineVertices, @spineGeometry.vertices, pos, normal, binormal)
 
   finalizeSpine: (spineSteps) ->
     if @wireframe
       @spineMesh = new THREE.Line(@spineGeometry, @wireframeMaterial)
     else
+      return if !@spineShape
       @_joinFaces(@_spineVertices, @_spineFaces, @spineGeometry, spineSteps, 0, @spineGeometry.vertices.length - @_spineVertices.length)
 
       @spineGeometry.computeCentroids()
@@ -409,33 +410,38 @@ class LW.TrackMesh extends THREE.Object3D
       @_extrudeVertices(@wireframeTies, @tieGeometry.vertices, pos, normal, binormal)
       for i in [0..@wireframeTies.length / 2]
         @tieGeometry.colors.push(@segmentWireframeColor)
-    else
-      return if !@tieShape
+    else if @tieShape
+      iterations = if @numberOfRails == 2 then 1 else @numberOfRails
+      for i in [0...iterations]
+        offset = @tieGeometry.vertices.length
+        vertices = if useExtended then @_extendedTieVertices else @_tieVertices
+        faces = if useExtended then @_extendedTieFaces else @_tieFaces
 
-      offset = @tieGeometry.vertices.length
-      vertices = if useExtended then @_extendedTieVertices else @_tieVertices
-      faces = if useExtended then @_extendedTieFaces else @_tieFaces
+        if i > 0
+          pos = pos.clone()
+          pos.y -= 2
 
-      _cross.crossVectors(normal, binormal).normalize()
-      _cross.setLength(@tieDepth / 2).negate()
-      @_extrudeVertices(vertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
+        _cross.crossVectors(normal, binormal).normalize()
+        _cross.setLength(@tieDepth / 2).negate()
+        @_extrudeVertices(vertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
 
-      _cross.negate()
-      @_extrudeVertices(vertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
+        _cross.negate()
+        @_extrudeVertices(vertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
 
-      @_joinFaces(vertices, faces, @tieGeometry, 1, offset, vertices.length, true)
+        @_joinFaces(vertices, faces, @tieGeometry, 1, offset, vertices.length, true)
 
   finalizeTies: (tieSteps) ->
     if @wireframe
       @tieMesh = new THREE.Line(@tieGeometry, @wireframeMaterial, THREE.LinePieces)
-    else
+      @add(@tieMesh)
+    else if @tieShape
       @tieGeometry.computeCentroids()
       @tieGeometry.computeFaceNormals()
 
       @tieMesh = new THREE.Mesh(@tieGeometry, @tieMaterial)
       @tieMesh.castShadow = true
 
-    @add(@tieMesh)
+      @add(@tieMesh)
 
   ###
   # Extras
@@ -484,7 +490,7 @@ class LW.TrackMesh extends THREE.Object3D
     @extraGeometry.computeFaceNormals()
 
     @liftMaterial = new THREE.MeshLambertMaterial(color: 0xffffff)
-    texture1 = THREE.ImageUtils.loadTexture "#{BASE_URL}/textures/chain.png", undefined, =>
+    texture1 = THREE.ImageUtils.loadTexture @liftTexture || "#{BASE_URL}/textures/chain.png", undefined, =>
       texture1.wrapT = THREE.RepeatWrapping
       texture1.offset.setX(0.5)
       @liftMaterial.map = texture1

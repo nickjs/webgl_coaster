@@ -1,3 +1,8 @@
+TRACK_STYLES = {
+  4: LW.BMInvertedTrack
+  5: LW.IntaminTrack
+}
+
 LW.TrackModel.fromNltrackJSON = (json) ->
   SCALE = 5
   points = []
@@ -18,7 +23,7 @@ LW.TrackModel.fromNltrackJSON = (json) ->
     track.spline.isConnected = true
     track.spline.rebuild()
 
-  track.trackStyle = json.track.style
+  track.trackStyle = TRACK_STYLES[json.track.style] || LW.BMTrack
   track.carsPerTrain = json.track.num_cars
 
   applyColors = (source, target) ->
