@@ -65,8 +65,9 @@ class LW.TrackMesh extends THREE.Object3D
     totalLength = Math.ceil(@model.spline.getLength())
     spineSteps = 0
 
+    up = LW.UP.clone()
+    rolledUp = up.clone()
     binormal = new THREE.Vector3
-    normal = new THREE.Vector3
 
     separators = @model.separators
     segment = -1
@@ -89,28 +90,42 @@ class LW.TrackMesh extends THREE.Object3D
       pos = @model.spline.getPointAt(u)
       tangent = @model.spline.getTangentAt(u).normalize()
 
-      binormal.copy(LW.UP).applyAxisAngle(tangent, bank)
       [bank, relative] = @model.getBankAt(u)
 
-      normal.crossVectors(tangent, binormal).normalize()
-      binormal.crossVectors(normal, tangent).normalize()
+      if relative
+        binormal.crossVectors(tangent, up).normalize()
+        up.crossVectors(binormal, tangent).normalize()
+
+        rolledUp.copy(up).applyAxisAngle(tangent, bank).normalize()
+        binormal.crossVectors(tangent, rolledUp).normalize()
+      else
+        up.copy(LW.UP).applyAxisAngle(tangent, bank)
+
+        binormal.crossVectors(tangent, up).normalize()
+        up.crossVectors(binormal, tangent).normalize()
+        rolledUp.copy(up)
+
+      matrix = new THREE.Matrix4(binormal.x, rolledUp.x, -tangent.x, 0,
+                                 binormal.y, rolledUp.y, -tangent.y, 0,
+                                 binormal.z, rolledUp.z, -tangent.z, 0
+                                 0, 0, 0, 1)
 
       if !lastSpinePos or lastSpinePos.distanceTo(pos) >= @spineDivisionLength
-        @tieStep(pos, normal, binormal, spineSteps % 7 == 0)
-        @spineStep(pos, normal, binormal)
+        @tieStep(pos, binormal, rolledUp, matrix, spineSteps % 7 == 0)
+        @spineStep(pos, matrix)
 
         if @model.debugNormals
           @add(new THREE.ArrowHelper(tangent, pos, 5, 0xff0000))
-          @add(new THREE.ArrowHelper(normal, pos, 5, 0x00ff00))
-          @add(new THREE.ArrowHelper(binormal, pos, 5, 0x0000ff))
+          @add(new THREE.ArrowHelper(binormal, pos, 5, 0x00ff00))
+          @add(new THREE.ArrowHelper(rolledUp, pos, 5, 0x0000ff))
 
         spineSteps++
         lastSpinePos = pos
 
-      @railStep(pos, normal, binormal)
-      @extrasStep(pos, normal, binormal, separator.type)
+      @railStep(pos, binormal, rolledUp)
+      @extrasStep(pos, matrix, separator.type)
 
-    @spineStep(pos, normal, binormal)
+    @spineStep(pos, matrix)
 
     @finalizeRails(totalLength)
     @finalizeTies(spineSteps)
@@ -218,12 +233,12 @@ class LW.TrackMesh extends THREE.Object3D
 
     return
 
-  spineStep: (pos, normal, binormal) ->
+  spineStep: (pos, matrix) ->
     if @wireframe
-      @_extrudeVertices(@wireframeSpine, @spineGeometry.vertices, pos, normal, binormal)
+      @_extrudeVertices(@wireframeSpine, @spineGeometry.vertices, pos, matrix)
       @spineGeometry.colors.push(@segmentWireframeColor)
     else if @spineShape
-      @_extrudeVertices(@_spineVertices, @spineGeometry.vertices, pos, normal, binormal)
+      @_extrudeVertices(@_spineVertices, @spineGeometry.vertices, pos, matrix)
 
   finalizeSpine: (spineSteps) ->
     if @wireframe
@@ -262,7 +277,7 @@ class LW.TrackMesh extends THREE.Object3D
 
   _cross = new THREE.Vector3
 
-  tieStep: (pos, normal, binormal, useExtended) ->
+  tieStep: (pos, normal, binormal, matrix, useExtended) ->
     if @wireframe
       @_extrudeVertices(@wireframeTies, @tieGeometry.vertices, pos, normal, binormal)
       for i in [0..@wireframeTies.length / 2]
@@ -280,10 +295,10 @@ class LW.TrackMesh extends THREE.Object3D
 
         _cross.crossVectors(normal, binormal).normalize()
         _cross.setLength(@tieDepth / 2).negate()
-        @_extrudeVertices(vertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
+        @_extrudeVertices(vertices, @tieGeometry.vertices, pos, matrix, _cross)
 
         _cross.negate()
-        @_extrudeVertices(vertices, @tieGeometry.vertices, pos, normal, binormal, _cross)
+        @_extrudeVertices(vertices, @tieGeometry.vertices, pos, matrix, _cross)
 
         @_joinFaces(vertices, faces, @tieGeometry, 1, offset, vertices.length, true)
 
@@ -308,18 +323,19 @@ class LW.TrackMesh extends THREE.Object3D
     @extraGeometry = new THREE.Geometry
 
     if @liftShape
+      @_liftSteps = 0
       @_liftVertices = @liftShape.extractPoints(1).shape
       @_liftFaces = THREE.Shape.Utils.triangulateShape(@_liftVertices, [])
 
-  liftSteps = 0
-  extrasStep: (pos, normal, binormal, segmentType) ->
+  extrasStep: (pos, matrix, segmentType) ->
+    return if !@liftShape
     if segmentType == LW.Separator.TYPE.LIFT
-      @_extrudeVertices(@_liftVertices, @extraGeometry.vertices, pos, normal, binormal)
-      liftSteps++
+      @_extrudeVertices(@_liftVertices, @extraGeometry.vertices, pos, matrix)
+      @_liftSteps++
 
   finalizeExtras: (totalLength) ->
     # Sides
-    return if liftSteps < 3
+    return if @_liftSteps < 3 || !@liftShape
     vertices = @_liftVertices
     target = @extraGeometry
     i = vertices.length
@@ -328,7 +344,7 @@ class LW.TrackMesh extends THREE.Object3D
       k = i - 1
       k = vertices.length - 1 if k < 0
 
-      for s in [0..liftSteps - 3]
+      for s in [0..@_liftSteps - 3]
         slen1 = vertices.length * s
         slen2 = vertices.length * (s + 1)
         a = j + slen1
@@ -339,7 +355,7 @@ class LW.TrackMesh extends THREE.Object3D
         target.faces.push(new THREE.Face3(a, b, d, null, null, null))
         target.faces.push(new THREE.Face3(b, c, d, null, null, null))
 
-        uvs = uvgen.generateSideWallUV(target, null, null, null, a, b, c, d, s, liftSteps - 2, j, k)
+        uvs = uvgen.generateSideWallUV(target, null, null, null, a, b, c, d, s, @_liftSteps - 2, j, k)
         target.faceVertexUvs[0].push([uvs[0], uvs[1], uvs[3]])
         target.faceVertexUvs[0].push([uvs[1], uvs[2], uvs[3]])
 
@@ -444,20 +460,13 @@ class LW.TrackMesh extends THREE.Object3D
   # Helpers
   ###
 
-  _normal = new THREE.Vector3
-  _binormal = new THREE.Vector3
-  _pos = new THREE.Vector3
-
-  _extrudeVertices: (template, target, pos, normal, binormal, extra) ->
+  _extrudeVertices: (template, target, pos, matrix, extra) ->
     for vertex in template
-      _normal.copy(normal).multiplyScalar(vertex.x)
-      _binormal.copy(binormal).multiplyScalar(vertex.y)
-      _pos.copy(pos).add(_normal).add(_binormal)
-
-      _pos.add(extra) if extra
-
-      target.push(_pos.clone())
-
+      v = new THREE.Vector3(vertex.x, vertex.y, 0)
+      v.applyMatrix4(matrix)
+      v.add(pos)
+      v.add(extra) if extra
+      target.push(v)
     return
 
   _joinFaces: (vertices, template, target, totalSteps, startOffset, endOffset, flipOutside) ->
