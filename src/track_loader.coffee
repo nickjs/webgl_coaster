@@ -14,7 +14,9 @@ LW.TrackModel.fromNltrackJSON = (json) ->
       p.cp2_x * SCALE, p.cp2_y * SCALE, p.cp2_z * SCALE,
     )
 
-    point.setBank(-THREE.Math.radToDeg(p.roll), p.continues_roll, p.relative_roll)
+    # bank = -THREE.Math.radToDeg(p.roll)
+    bank = -p.roll.toFixed(6)
+    point.setBank(bank, p.continues_roll, p.relative_roll)
     points.push(point)
 
   track = new LW.TrackModel(points, LW.BezierSpline)

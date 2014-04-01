@@ -89,8 +89,8 @@ class LW.TrackMesh extends THREE.Object3D
       pos = @model.spline.getPointAt(u)
       tangent = @model.spline.getTangentAt(u).normalize()
 
-      bank = THREE.Math.degToRad(@model.getBankAt(u))
       binormal.copy(LW.UP).applyAxisAngle(tangent, bank)
+      [bank, relative] = @model.getBankAt(u)
 
       normal.crossVectors(tangent, binormal).normalize()
       binormal.crossVectors(normal, tangent).normalize()
