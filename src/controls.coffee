@@ -8,6 +8,7 @@ class LW.Controls
 
     @pitchObject = new THREE.Object3D
     @pitchObject.add(@camera)
+    # LW.renderer.scene.add(@camera)
 
     @yawObject = new THREE.Object3D
     @yawObject.add(@pitchObject)
@@ -75,9 +76,11 @@ class LW.Controls
   onPointerLockChange: (e) =>
     @enabled = document.pointerLockElement == @domElement || document.mozPointerLockElement == @domElement || document.webkitPointerLockElement == @domElement
     if @enabled
-      @domElement.removeEventListener('click', @onClick)
+      @domElement.removeEventListener('dblclick', @onClick)
+      @domElement.removeEventListener('contextmenu', @onClick)
     else
-      @domElement.addEventListener('click', @onClick)
+      @domElement.addEventListener('dblclick', @onClick)
+      @domElement.addEventListener('contextmenu', @onClick)
 
   update: (delta) ->
     return if !@enabled
@@ -92,3 +95,7 @@ class LW.Controls
     @yawObject.translateX(x) if x
     @yawObject.translateY(y) if y
     @yawObject.translateZ(z) if z
+
+    # @camera.position.copy(@yawObject.position)
+    # @camera.rotation.x = @pitchObject.rotation.x
+    # @camera.rotation.y = @yawObject.rotation.y
