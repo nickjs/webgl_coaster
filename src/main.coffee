@@ -55,8 +55,7 @@ window.LW =
       @renderer.scene.remove(@train)
       @train = null
 
-    klass = LW.TrackModel.classForTrackStyle(model.trackStyle)
-    @track = new klass
+    @track = new model.trackStyle
     @renderer.scene.add(@track)
 
     @gui?.modelChanged(model)
