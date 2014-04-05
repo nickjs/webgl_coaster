@@ -14,9 +14,6 @@
 #= require ./track_mesh
 #= require ./edit_mesh
 
-#= require ./edit_controller
-#= require ./gui_controller
-
 #= require ./bm_sitdown_track
 #= require ./bm_inverted_track
 #= require ./intamin_track
@@ -32,8 +29,6 @@ window.LW =
 
     @terrain = new LW.TerrainMesh
     @renderer.scene.add(@terrain)
-
-    @gui = new LW.GUIController
 
     @renderer.render()
 
