@@ -57,22 +57,40 @@ LW.Observable = {
 
 LW.UP = new THREE.Vector3(0, 1, 0)
 LW.DOWN = new THREE.Vector3(0, -1, 0)
-normal = new THREE.Vector3
+
+up = LW.UP.clone()
+rolledUp = up.clone()
 binormal = new THREE.Vector3
+tangent = null
+
+LW.getMatrixAt = (spline, u) ->
+  tangent = spline.getTangentAt(u).normalize()
+
+  [bank, relative] = spline.getBankAt(u)
+
+  if relative
+    binormal.crossVectors(tangent, up).normalize()
+    up.crossVectors(binormal, tangent).normalize()
+
+    rolledUp.copy(up).applyAxisAngle(tangent, bank).normalize()
+    binormal.crossVectors(tangent, rolledUp).normalize()
+  else
+    up.copy(LW.UP).applyAxisAngle(tangent, bank)
+
+    binormal.crossVectors(tangent, up).normalize()
+    up.crossVectors(binormal, tangent).normalize()
+    rolledUp.copy(up)
+
+  matrix = new THREE.Matrix4(binormal.x, rolledUp.x, -tangent.x, 0,
+                             binormal.y, rolledUp.y, -tangent.y, 0,
+                             binormal.z, rolledUp.z, -tangent.z, 0
+                             0, 0, 0, 1)
+
 appliedOffset = new THREE.Vector3
-matrix = new THREE.Matrix4
 
 LW.positionObjectOnSpline = (object, spline, u, offset, offsetRotation) ->
   pos = spline.getPointAt(u)
-  tangent = spline.getTangentAt(u).normalize()
-
-  bank = THREE.Math.degToRad(@model.getBankAt(u))
-  binormal.copy(LW.UP).applyAxisAngle(tangent, bank)
-
-  normal.crossVectors(tangent, binormal).normalize()
-  binormal.crossVectors(normal, tangent).normalize()
-
-  matrix.set(normal.x, binormal.x, -tangent.x, 0, normal.y, binormal.y, -tangent.y, 0, normal.z, binormal.z, -tangent.z, 0, 0, 0, 0, 1)
+  matrix = @getMatrixAt(spline, u)
 
   object.position.copy(pos)
 

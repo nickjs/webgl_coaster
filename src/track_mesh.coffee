@@ -65,10 +65,6 @@ class LW.TrackMesh extends THREE.Object3D
     totalLength = Math.ceil(@model.spline.getLength())
     spineSteps = 0
 
-    up = LW.UP.clone()
-    rolledUp = up.clone()
-    binormal = new THREE.Vector3
-
     separators = @model.separators
     segment = -1
     separator = @model.defaultSeparator
@@ -88,30 +84,11 @@ class LW.TrackMesh extends THREE.Object3D
         @segmentMeshColor = separator.meshColor = new THREE.Color(separator.spineColor || @model.spineColor)
 
       pos = @model.spline.getPointAt(u)
-      tangent = @model.spline.getTangentAt(u).normalize()
-
-      [bank, relative] = @model.getBankAt(u)
-
-      if relative
-        binormal.crossVectors(tangent, up).normalize()
-        up.crossVectors(binormal, tangent).normalize()
-
-        rolledUp.copy(up).applyAxisAngle(tangent, bank).normalize()
-        binormal.crossVectors(tangent, rolledUp).normalize()
-      else
-        up.copy(LW.UP).applyAxisAngle(tangent, bank)
-
-        binormal.crossVectors(tangent, up).normalize()
-        up.crossVectors(binormal, tangent).normalize()
-        rolledUp.copy(up)
-
-      matrix = new THREE.Matrix4(binormal.x, rolledUp.x, -tangent.x, 0,
-                                 binormal.y, rolledUp.y, -tangent.y, 0,
-                                 binormal.z, rolledUp.z, -tangent.z, 0
-                                 0, 0, 0, 1)
+      matrix = LW.getMatrixAt(@model.spline, u)
 
       if !lastSpinePos or lastSpinePos.distanceTo(pos) >= @spineDivisionLength
-        @tieStep(pos, binormal, rolledUp, matrix, spineSteps % 7 == 0)
+        tangent = @model.spline.getTangentAt(u)
+        @tieStep(pos, tangent, matrix, spineSteps % 7 == 0)
         @spineStep(pos, matrix)
 
         if @model.debugNormals
@@ -122,7 +99,7 @@ class LW.TrackMesh extends THREE.Object3D
         spineSteps++
         lastSpinePos = pos
 
-      @railStep(pos, binormal, rolledUp)
+      @railStep(pos, matrix)
       @extrasStep(pos, matrix, separator.type)
 
     @spineStep(pos, matrix)
@@ -151,9 +128,7 @@ class LW.TrackMesh extends THREE.Object3D
       for i in [0..@numberOfRails - 1]
         @_railGrids.push([])
 
-  _pos = new THREE.Vector3
-
-  railStep: (pos, normal, binormal) ->
+  railStep: (pos, matrix) ->
     return if !@numberOfRails
 
     for i in [0..@numberOfRails - 1]
@@ -174,12 +149,10 @@ class LW.TrackMesh extends THREE.Object3D
           cx = -@railRadius * Math.cos(v) + xDistance
           cy = @railRadius * Math.sin(v) + yDistance
 
-          _pos.copy(pos)
-          _pos.x += cx * normal.x + cy * binormal.x;
-          _pos.y += cx * normal.y + cy * binormal.y;
-          _pos.z += cx * normal.z + cy * binormal.z;
+          vertex = new THREE.Vector3(cx, cy, 0)
+          vertex.applyMatrix4(matrix).add(pos)
 
-          grid.push(@railGeometry.vertices.push(_pos.clone()) - 1)
+          grid.push(@railGeometry.vertices.push(vertex) - 1)
 
         @_railGrids[i].push(grid)
 
@@ -279,7 +252,7 @@ class LW.TrackMesh extends THREE.Object3D
 
   _cross = new THREE.Vector3
 
-  tieStep: (pos, normal, binormal, matrix, useExtended) ->
+  tieStep: (pos, tangent, matrix, useExtended) ->
     if @wireframe
       @_extrudeVertices(@wireframeTies, @tieGeometry.vertices, pos, normal, binormal)
       for i in [0..@wireframeTies.length / 2]
@@ -295,8 +268,7 @@ class LW.TrackMesh extends THREE.Object3D
           pos = pos.clone()
           pos.y -= 2
 
-        _cross.crossVectors(normal, binormal).normalize()
-        _cross.setLength(@tieDepth / 2).negate()
+        _cross.copy(tangent).setLength(@tieDepth / 2)
         @_extrudeVertices(vertices, @tieGeometry.vertices, pos, matrix, _cross)
 
         _cross.negate()

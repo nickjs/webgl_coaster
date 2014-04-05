@@ -110,7 +110,6 @@ class LW.Train extends THREE.Object3D
       else
         pos = lastPos
 
-
       if pos
         tangent = LW.positionObjectOnSpline(car, model.spline, deltaPoint, null, @carRot)
         lastPos = pos

@@ -15,6 +15,9 @@ class LW.Controls
 
     LW.renderer.scene.add(@yawObject)
 
+    @domElement.requestPointerLock ||= @domElement.requestPointerLock || @domElement.mozRequestPointerLock || @domElement.webkitRequestPointerLock
+    document.exitPointerLock ||= document.exitPointerLock || document.mozExitPointerLock || document.webkitExitPointerLock
+
     document.addEventListener('pointerlockchange', @onPointerLockChange, false)
     document.addEventListener('mozpointerlockchange', @onPointerLockChange, false)
     document.addEventListener('webkitpointerlockchange', @onPointerLockChange, false)
@@ -24,6 +27,13 @@ class LW.Controls
     document.addEventListener('mousemove', @onMouseMove, false)
     document.addEventListener('keydown', @onKeyDown, false)
     document.addEventListener('keyup', @onKeyUp, false)
+
+    if @domElement.requestPointerLock
+      @domElement.addEventListener('click', @onClick)
+      @domElement.addEventListener('contextmenu', @onClick)
+
+    @domElement.addEventListener('mousedown', @mouseDownFallback)
+    @domElement.addEventListener('mouseup', @mouseUpFallback)
 
   pickCamera: (e) ->
     if LW.renderer.useQuadView
@@ -38,15 +48,19 @@ class LW.Controls
   HALF_PI = Math.PI / 2
 
   onMouseMove: (e) =>
-    return if !@enabled
+    if @lastMouse
+      x = e.screenX - @lastMouse.x
+      y = e.screenY - @lastMouse.y
+      @lastMouse.set(e.screenX, e.screenY)
+    else if @enabled
+      x = e.movementX || e.mozMovementX || e.webkitMovementX || 0
+      y = e.movementY || e.mozMovementY || e.webkitMovementY || 0
 
-    x = e.movementX || e.mozMovementX || e.webkitMovementX || 0
-    y = e.movementY || e.mozMovementY || e.webkitMovementY || 0
+    if x || y
+      @yawObject.rotation.y -= x * @lookSpeed
+      @pitchObject.rotation.x -= y * @lookSpeed
 
-    @yawObject.rotation.y -= x * @lookSpeed
-    @pitchObject.rotation.x -= y * @lookSpeed
-
-    @pitchObject.rotation.x = Math.max(-HALF_PI, Math.min(HALF_PI, @pitchObject.rotation.x))
+      @pitchObject.rotation.x = Math.max(-HALF_PI, Math.min(HALF_PI, @pitchObject.rotation.x))
 
   onKeyDown: (e) =>
     switch e.keyCode
@@ -69,22 +83,28 @@ class LW.Controls
       when 16 then @moveSpeed *= 0.5
 
   onClick: (e) =>
-    @domElement.requestPointerLock ||= @domElement.requestPointerLock || @domElement.mozRequestPointerLock || @domElement.webkitRequestPointerLock
-    @domElement.requestPointerLock()
+    if !@lastMouse
+      if @enabled
+        document.exitPointerLock()
+      else
+        @domElement.requestPointerLock()
+
     e.preventDefault()
 
   onPointerLockChange: (e) =>
     @enabled = document.pointerLockElement == @domElement || document.mozPointerLockElement == @domElement || document.webkitPointerLockElement == @domElement
-    if @enabled
-      @domElement.removeEventListener('dblclick', @onClick)
-      @domElement.removeEventListener('contextmenu', @onClick)
+
+  mouseDownFallback: (e) =>
+    @lastMouse = new THREE.Vector2(e.screenX, e.screenY)
+    @mouseDownEvent = @lastMouse.clone()
+
+  mouseUpFallback: (e) =>
+    if e.screenX - @mouseDownEvent.x > 10 || e.screenY - @mouseDownEvent.y > 10
+      setTimeout => @lastMouse = null # prevents pointerlock
     else
-      @domElement.addEventListener('dblclick', @onClick)
-      @domElement.addEventListener('contextmenu', @onClick)
+      @lastMouse = null
 
   update: (delta) ->
-    return if !@enabled
-
     x = -@moveSpeed * delta if @moveLeft
     x = @moveSpeed * delta if @moveRight
     y = @moveSpeed * delta if @moveUp
