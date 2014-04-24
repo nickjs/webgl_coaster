@@ -18,8 +18,6 @@
 #= require ./bm_inverted_track
 #= require ./intamin_track
 
-#= require ./track_loader
-
 window.BASE_URL ?= "/resources"
 
 window.LW =
