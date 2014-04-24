@@ -26,7 +26,7 @@ class LW.Train extends THREE.Object3D
 
         @rebuild()
     else
-      geo = new THREE.CubeGeometry(8,8,16)
+      geo = new THREE.BoxGeometry(8,8,16)
       mat = new THREE.MeshLambertMaterial(color: 0xeeeeee)
       @carProto = new THREE.Mesh(geo, mat)
 

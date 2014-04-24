@@ -183,7 +183,6 @@ class LW.TrackMesh extends THREE.Object3D
             @railGeometry.faces.push(new THREE.Face3(d, c, b))
             @railGeometry.faceVertexUvs[0].push([uvb.clone(), uvc, uvd.clone()])
 
-      @railGeometry.computeCentroids()
       @railGeometry.computeFaceNormals()
       @railGeometry.computeVertexNormals()
 
@@ -222,7 +221,6 @@ class LW.TrackMesh extends THREE.Object3D
       return if !@spineShape
       @_joinFaces(@_spineVertices, @_spineFaces, @spineGeometry, spineSteps, 0, @spineGeometry.vertices.length - @_spineVertices.length)
 
-      @spineGeometry.computeCentroids()
       @spineGeometry.computeFaceNormals()
 
       @spineMesh = new THREE.Mesh(@spineGeometry, @spineMaterial)
@@ -281,7 +279,6 @@ class LW.TrackMesh extends THREE.Object3D
       @tieMesh = new THREE.Line(@tieGeometry, @wireframeMaterial, THREE.LinePieces)
       @add(@tieMesh)
     else if @tieShape
-      @tieGeometry.computeCentroids()
       @tieGeometry.computeFaceNormals()
 
       @tieMesh = new THREE.Mesh(@tieGeometry, @tieMaterial)
@@ -333,7 +330,6 @@ class LW.TrackMesh extends THREE.Object3D
         target.faceVertexUvs[0].push([uvs[0], uvs[1], uvs[3]])
         target.faceVertexUvs[0].push([uvs[1], uvs[2], uvs[3]])
 
-    @extraGeometry.computeCentroids()
     @extraGeometry.computeFaceNormals()
 
     @liftMaterial = new THREE.MeshLambertMaterial(color: 0xffffff)
@@ -371,7 +367,7 @@ class LW.TrackMesh extends THREE.Object3D
         footerMaterial = new THREE.MeshPhongMaterial(color: 0xffffff, specular: 0x111111, map: footerTexture, bumpMap: footerBump, bumpScale: 20, metal: true)
 
         size = 7
-        geo = new THREE.CubeGeometry(size, LW.FoundationNode::height, size)
+        geo = new THREE.BoxGeometry(size, LW.FoundationNode::height, size)
 
         for node in @model.foundationNodes
           mesh = new THREE.Mesh(geo, footerMaterial)
@@ -415,7 +411,7 @@ class LW.TrackMesh extends THREE.Object3D
           continue if height < 0.5
 
           if tube.isBox
-            geo = new THREE.CubeGeometry(tube.size, height, tube.size)
+            geo = new THREE.BoxGeometry(tube.size, height, tube.size)
           else
             geo = new THREE.CylinderGeometry(tube.size, tube.size, height)
 

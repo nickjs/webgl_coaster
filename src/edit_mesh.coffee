@@ -4,8 +4,8 @@ STYLE_NODE_COLOR = 0x00ffff
 SELECTED_COLOR = 0xffffff
 
 VERTEX_GEO = new THREE.SphereGeometry(1)
-ROLL_NODE_GEO = new THREE.CubeGeometry(2, 2, 2)
-STYLE_NODE_GEO = new THREE.CubeGeometry(3, 3, 1)
+ROLL_NODE_GEO = new THREE.BoxGeometry(2, 2, 2)
+STYLE_NODE_GEO = new THREE.BoxGeometry(3, 3, 1)
 
 class LW.EditMesh extends THREE.Object3D
   constructor: ->

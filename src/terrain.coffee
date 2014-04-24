@@ -94,7 +94,7 @@ class LW.TerrainMesh extends THREE.Object3D
     @ground.receiveShadow = true
     @add(@ground)
 
-    @sky = new THREE.Mesh(new THREE.CubeGeometry(10000, 10000, 10000), @skyMaterial)
+    @sky = new THREE.Mesh(new THREE.BoxGeometry(10000, 10000, 10000), @skyMaterial)
     @add(@sky)
 
     if terrain.useWater
