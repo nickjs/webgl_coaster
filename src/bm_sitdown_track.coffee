@@ -80,7 +80,6 @@ class LW.BMTrack extends LW.TrackMesh
   shapes: {
     spine: {shape: boxShape, every: 7}
     tie: {shape: tieShape, every: 7, depth: 0.4}
-    lowbeamTie: {shape: lowbeamTieShape, every: 8, depth: 0.4, disabled: true}
     lift: {shape: liftShape, segment: 'LiftSegment'}
   }
 
@@ -98,38 +97,40 @@ class LW.BMTrack extends LW.TrackMesh
 
     @liftMaterial = new THREE.MeshLambertMaterial(map: liftTexture)
 
-    @stationMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc)
+    @stationMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, map: LW.textures.brick)
 
     station = new THREE.Shape
-    station.moveTo(-35, -50)
-    station.lineTo(-35, 0)
+    station.moveTo(-30, -500)
+    station.lineTo(-30, 0)
     station.lineTo(-6, 0)
-    station.lineTo(-6, -8)
-    station.lineTo(6, -8)
+    station.lineTo(-6, -7)
+    station.lineTo(6, -7)
     station.lineTo(6, 0)
-    station.lineTo(35, 0)
-    station.lineTo(35, -50)
+    station.lineTo(30, 0)
+    station.lineTo(30, -500)
     @shapes.station = {shape: station, segment: 'StationSegment'}
 
-    frictionWheels = new THREE.BoxGeometry(3.8, 3.6, 7)
-    frictionWheels.applyMatrix(new THREE.Matrix4().makeTranslation(0, -1.2, 4.6))
+    frictionWheels = new THREE.BoxGeometry(3.8, 3.6, 6)
+    frictionWheels.applyMatrix(new THREE.Matrix4().makeTranslation(0, -1.2, 0))
 
     color = @model.defaultSeparator.spineColor
     material = new THREE.MeshPhongMaterial(specular: 0xaaaaaa)
     mesh = new THREE.Mesh(frictionWheels, material)
-    @shapes.frictionWheels = {mesh, every: 8, disabled: true}
+    @shapes.frictionWheels = {mesh, every: 7, disabled: true}
 
   enterSegment: (segment) ->
     if "TransportSegment,BrakeSegment,StationSegment".indexOf(segment.type) != -1
       @shapes.spine.offset = new THREE.Vector2(0, -2)
-      @shapes.lowbeamTie.disabled = false
-      @shapes.tie.disabled = true
+      @shapes.tie.shape = lowbeamTieShape
+      @shapes.tie.prepare()
 
       @shapes.frictionWheels.mesh.material.color = segment.colorObject('tieColor')
       @shapes.frictionWheels.disabled = false
+      @shapes.frictionWheels.skipFirst = true
 
   leaveSegment: (segment) ->
     @shapes.spine.offset = null
-    @shapes.tie.disabled = false
-    @shapes.lowbeamTie.disabled = true
+    @shapes.tie.shape = tieShape
+    @shapes.tie.prepare()
+
     @shapes.frictionWheels.disabled = true

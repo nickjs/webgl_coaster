@@ -60,7 +60,7 @@ class LW.TrackMesh extends THREE.Object3D
 
       @steps++
 
-    if @model.isConnected && @shapes.spine
+    if @model.isConnected
       @leaveSegment?(@separator)
       @separator = if separators[0].position == 0 then separators[0] else @model.defaultSeparator
       @enterSegment?(@separator)
@@ -69,9 +69,11 @@ class LW.TrackMesh extends THREE.Object3D
       matrix = LW.getMatrixAt(@model.spline, 0)
 
       @stepRails(pos, matrix)
+      @stepShapes(pos, matrix)
 
-      @_continuousShape(@shapes.spine, pos, matrix)
-      @_shapeFaces(@shapes.spine, @shapes.spine._steps)
+      if @shapes.spine
+        @_continuousShape(@shapes.spine, pos, matrix)
+        @_shapeFaces(@shapes.spine, true)
 
     @finalizeRails()
     @finalizeShapes()
@@ -82,7 +84,7 @@ class LW.TrackMesh extends THREE.Object3D
     specular = 0x888888
     @railMaterial = new THREE.MeshPhongMaterial({specular, color: @model.defaultSeparator.railColor, vertexColors: THREE.FaceColors})
     @shapeMaterial = new THREE.MeshPhongMaterial({specular, color: @model.defaultSeparator.spineColor, vertexColors: THREE.FaceColors})
-    @supportMaterial = new THREE.MeshPhongMaterial({specular, color: @model.defaultSeparator.supportColor})
+    @supportMaterial = new THREE.MeshPhongMaterial({color: @model.defaultSeparator.supportColor})
 
   ###
   # Rail Drawing
@@ -146,10 +148,12 @@ class LW.TrackMesh extends THREE.Object3D
 
       continue if shape.mesh
 
-      shape._geometry = new THREE.Geometry
+      shape.prepare = ->
+        @_geometry ||= new THREE.Geometry
+        @_vertices = @shape.extractPoints(1).shape
+        @_faces = THREE.Shape.Utils.triangulateShape(@_vertices, [])
 
-      shape._vertices = shape.shape.extractPoints(1).shape
-      shape._faces = THREE.Shape.Utils.triangulateShape(shape._vertices, [])
+      shape.prepare()
 
     return
 
@@ -160,7 +164,7 @@ class LW.TrackMesh extends THREE.Object3D
 
       if shape.segment && shape.segment != @separator.type
         if shape._steps > 0
-          @_shapeFaces(shape, 0, false, true, true)
+          @_shapeFaces(shape, false, false, true, true)
           shape._steps = 0
         continue
 
@@ -171,6 +175,10 @@ class LW.TrackMesh extends THREE.Object3D
 
       if shape.mesh
         shape._steps++
+        if shape.skipFirst
+          shape.skipFirst = false
+          continue
+
         mesh = shape.mesh.clone()
         mesh.position.copy(pos)
         mesh.rotation.setFromRotationMatrix(matrix)
@@ -178,13 +186,13 @@ class LW.TrackMesh extends THREE.Object3D
 
       else if shape.depth
         @_depthShape(shape, pos, matrix)
-        @_shapeFaces(shape, shape._steps + 1, true, true)
+        @_shapeFaces(shape, true, true, true)
         shape._steps += 2
 
       else
         steps = shape._steps++
         @_continuousShape(shape, pos, matrix)
-        @_shapeFaces(shape, steps, steps == 1, false, true) if steps > 0
+        @_shapeFaces(shape, true, steps == 1, false, true) if steps > 0
 
     return
 
@@ -220,14 +228,13 @@ class LW.TrackMesh extends THREE.Object3D
 
     @_continuousShape(shape, _posCopy, matrix)
 
-  _shapeFaces: (shape, steps, topFace, bottomFace, flipTopBottom) ->
+  _shapeFaces: (shape, sideFaces, topFace, bottomFace, flipTopBottom) ->
     color = @separator.colorObject("#{shape.key}Color")
 
-    totalVertices = shape._vertices.length
-    startOffset = (steps - 1) * totalVertices
-    endOffset = (steps || shape._steps - 1) * totalVertices
-
     target = shape._geometry
+    totalVertices = shape._vertices.length
+    endOffset = target.vertices.length - totalVertices
+    startOffset = endOffset - totalVertices
 
     if topFace || bottomFace
       for face in shape._faces
@@ -245,7 +252,7 @@ class LW.TrackMesh extends THREE.Object3D
           target.faces.push(new THREE.Face3(a, b, c, null, color))
           target.faceVertexUvs[0].push(uvgen.generateTopUV(target, shape.shape, null, a, b, c))
 
-    if steps > 0
+    if sideFaces
       for i in [0...totalVertices]
         k = i - 1
         k = totalVertices - 1 if k < 0
@@ -258,7 +265,7 @@ class LW.TrackMesh extends THREE.Object3D
         target.faces.push(new THREE.Face3(d, b, a, null, color))
         target.faces.push(new THREE.Face3(d, c, b, null, color))
 
-        uvs = uvgen.generateSideWallUV(target, shape.shape, null, null, a, b, c, d, steps, @totalSteps)
+        uvs = uvgen.generateSideWallUV(target, shape.shape, null, null, a, b, c, d)
         target.faceVertexUvs[0].push([uvs[0], uvs[1], uvs[3]])
         target.faceVertexUvs[0].push([uvs[1], uvs[2], uvs[3]])
 
@@ -266,14 +273,12 @@ class LW.TrackMesh extends THREE.Object3D
 
   finalizeShapes: ->
     for key, shape of @shapes
-      continue if shape.mesh
+      if shape._geometry
+        shape._geometry.computeFaceNormals()
+        shape.mesh = new THREE.Mesh(shape._geometry, shape.material || @["#{shape.key}Material"] || @shapeMaterial)
+        @add(shape.mesh)
 
-      shape._geometry.computeFaceNormals()
-
-      shape.mesh = new THREE.Mesh(shape._geometry, shape.material || @["#{shape.key}Material"] || @shapeMaterial)
       shape.mesh.castShadow = true
-
-      @add(shape.mesh)
 
     return
 
