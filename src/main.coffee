@@ -30,6 +30,23 @@ window.LW =
 
     @renderer.render()
 
+  initializeTextures: (textures) ->
+    @textures ||= {}
+    for key, data of textures
+      if Array.isArray(data)
+        image = []
+        for imageData in data
+          subImage = new Image
+          subImage.src = imageData
+          image.push(subImage)
+      else
+        image = new Image
+        image.src = data
+
+      texture = new THREE.Texture(image)
+      texture.needsUpdate = true
+      @textures[key] = texture
+
   getTrain: ->
     if !@train
       @train = new LW.Train(@track, numberOfCars: @model.carsPerTrain)

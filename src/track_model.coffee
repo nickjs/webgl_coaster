@@ -28,17 +28,23 @@ class LW.Separator extends LW.TrackNode
     STATION: 'StationSegment'
     LIFT: 'LiftSegment'
     TRANSPORT: 'TransportSegment'
-    BREAK: 'BreakSegment'
+    BRAKE: 'BrakeSegment'
   }
 
   mode: 0
   type: 'TrackSegment'
 
+  individualColors: false
   spineColor: '#ffffff'
   tieColor: '#ffffff'
   railColor: '#ffffff'
   supportColor: '#ffffff'
   wireframeColor: '#0000ff'
+
+  colorObject: (colorKey) ->
+    return LW.model.defaultSeparator.colorObject(colorKey) if !@individualColors
+    @_colorCache ||= {}
+    @_colorCache[colorKey] ||= new THREE.Color(@[colorKey])
 
 class LW.TrackModel
   name: ""
@@ -62,6 +68,7 @@ class LW.TrackModel
 
   defaultSeparator: new LW.Separator(
     position: null
+    individualColors: true
   )
 
   terrain: null

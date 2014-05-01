@@ -19,7 +19,7 @@ class LW.TerrainMesh extends THREE.Object3D
     @loadTextures()
 
   buildWater: (width, height) ->
-    waterNormals = THREE.ImageUtils.loadTexture "#{BASE_URL}/textures/waternormals.jpg"
+    waterNormals = LW.textures.waterNormals
     waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping
 
     @water = new THREE.Water(LW.renderer.renderer, LW.renderer.camera, LW.renderer.scene, {
@@ -40,33 +40,19 @@ class LW.TerrainMesh extends THREE.Object3D
 
   loadTextures: ->
     # Ground
-    @groundMaterial ||= new THREE.MeshPhongMaterial(color: 0xffffff, specular: 0x111111)
+    groundTexture = LW.textures.grass
+    groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping
+    groundTexture.repeat.set(25, 25)
+    groundTexture.anisotropy = 16
 
-    groundTexture = THREE.ImageUtils.loadTexture "#{BASE_URL}/textures/grass.jpg", undefined, =>
-      groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping
-      groundTexture.repeat.set(25, 25)
-      groundTexture.anisotropy = 16
-
-      @groundMaterial.map = groundTexture
-      @groundMaterial.needsUpdate = true
-
-      if @ground
-        @groundGeo.buffersNeedUpdate = true
-        @groundGeo.uvsNeedUpdate = true
+    @groundMaterial = new THREE.MeshLambertMaterial(map: groundTexture)
 
     # Skybox
-    path = "#{BASE_URL}/textures/skybox/"
-    format = '.jpg'
-    urls = [
-      path + 'px' + format, path + 'nx' + format
-      path + 'py' + format, path + 'ny' + format
-      path + 'pz' + format, path + 'nz' + format
-    ]
-
-    textureCube = THREE.ImageUtils.loadTextureCube(urls, new THREE.CubeRefractionMapping())
+    skyTexture = LW.textures.skyBox
+    skyTexture.flipY = false
 
     shader = THREE.ShaderLib["cube"]
-    shader.uniforms["tCube"].value = textureCube
+    shader.uniforms["tCube"].value = skyTexture
 
     @skyMaterial = new THREE.ShaderMaterial({
       fragmentShader: shader.fragmentShader
