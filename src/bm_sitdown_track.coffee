@@ -98,6 +98,19 @@ class LW.BMTrack extends LW.TrackMesh
 
     @liftMaterial = new THREE.MeshLambertMaterial(map: liftTexture)
 
+    @stationMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc)
+
+    station = new THREE.Shape
+    station.moveTo(-35, -50)
+    station.lineTo(-35, 0)
+    station.lineTo(-6, 0)
+    station.lineTo(-6, -8)
+    station.lineTo(6, -8)
+    station.lineTo(6, 0)
+    station.lineTo(35, 0)
+    station.lineTo(35, -50)
+    @shapes.station = {shape: station, segment: 'StationSegment'}
+
   enterSegment: (segment) ->
     if "TransportSegment,BrakeSegment,StationSegment".indexOf(segment.type) != -1
       @shapes.spine.offset = new THREE.Vector2(0, -2)

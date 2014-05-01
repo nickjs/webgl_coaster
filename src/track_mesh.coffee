@@ -258,7 +258,7 @@ class LW.TrackMesh extends THREE.Object3D
     for key, shape of @shapes
       shape._geometry.computeFaceNormals()
 
-      shape.mesh = new THREE.Mesh(shape._geometry, @["#{shape.key}Material"] || @shapeMaterial)
+      shape.mesh = new THREE.Mesh(shape._geometry, shape.material || @["#{shape.key}Material"] || @shapeMaterial)
       shape.mesh.castShadow = true
 
       @add(shape.mesh)
