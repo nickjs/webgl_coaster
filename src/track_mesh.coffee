@@ -79,9 +79,10 @@ class LW.TrackMesh extends THREE.Object3D
     @renderSupports()
 
   prepareMaterials: ->
-    @railMaterial = new THREE.MeshPhongMaterial(shininess: 40, color: @model.defaultSeparator.railColor, vertexColors: THREE.FaceColors)
-    @shapeMaterial = new THREE.MeshPhongMaterial(shininess: 50, color: @model.defaultSeparator.spineColor, vertexColors: THREE.FaceColors)
-    @supportMaterial = new THREE.MeshPhongMaterial(shininess: 50, color: @model.defaultSeparator.supportColor)
+    specular = 0x888888
+    @railMaterial = new THREE.MeshPhongMaterial({specular, color: @model.defaultSeparator.railColor, vertexColors: THREE.FaceColors})
+    @shapeMaterial = new THREE.MeshPhongMaterial({specular, color: @model.defaultSeparator.spineColor, vertexColors: THREE.FaceColors})
+    @supportMaterial = new THREE.MeshPhongMaterial({specular, color: @model.defaultSeparator.supportColor})
 
   ###
   # Rail Drawing

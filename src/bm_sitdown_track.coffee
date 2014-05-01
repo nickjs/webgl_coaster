@@ -113,15 +113,20 @@ class LW.BMTrack extends LW.TrackMesh
 
     frictionWheels = new THREE.BoxGeometry(4, 3, 7)
     frictionWheels.applyMatrix(new THREE.Matrix4().makeTranslation(0, -1.45, 4.6))
-    mesh = new THREE.Mesh(frictionWheels, @stationMaterial)
+
+    color = @model.defaultSeparator.spineColor
+    material = new THREE.MeshPhongMaterial(specular: 0xaaaaaa)
+    mesh = new THREE.Mesh(frictionWheels, material)
     @shapes.frictionWheels = {mesh, every: 8, disabled: true, skipFirst: true}
 
   enterSegment: (segment) ->
     if "TransportSegment,BrakeSegment,StationSegment".indexOf(segment.type) != -1
       @shapes.spine.offset = new THREE.Vector2(0, -2)
       @shapes.lowbeamTie.disabled = false
-      @shapes.frictionWheels.disabled = false
       @shapes.tie.disabled = true
+
+      @shapes.frictionWheels.mesh.material.color = segment.colorObject('tieColor')
+      @shapes.frictionWheels.disabled = false
 
   leaveSegment: (segment) ->
     @shapes.spine.offset = null
