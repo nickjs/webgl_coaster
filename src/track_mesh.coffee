@@ -13,7 +13,7 @@ class LW.TrackMesh extends THREE.Object3D
     colorKey: the key of the color to query the separator for this shape
   }
   ###
-  shapes: []
+  shapes: {}
 
   uvgen = THREE.ExtrudeGeometry.WorldUVGenerator
 
@@ -141,17 +141,18 @@ class LW.TrackMesh extends THREE.Object3D
   prepareShapes: ->
     for key, shape of @shapes
       shape.key ||= key
+      shape._steps = 0
+
+      continue if shape.mesh
 
       shape._geometry = new THREE.Geometry
 
       shape._vertices = shape.shape.extractPoints(1).shape
       shape._faces = THREE.Shape.Utils.triangulateShape(shape._vertices, [])
 
-      shape._steps = 0
-
     return
 
-  stepShapes: (pos, matrix, forceStep) ->
+  stepShapes: (pos, matrix) ->
     for key, shape of @shapes
       if shape.disabled
         continue
@@ -162,15 +163,23 @@ class LW.TrackMesh extends THREE.Object3D
           shape._steps = 0
         continue
 
-      if shape.every && shape._lastPos?.distanceTo(pos) < shape.every && !forceStep
+      if shape.every && shape._lastPos?.distanceTo(pos) < shape.every
         continue
 
       shape._lastPos = pos
 
-      if shape.depth && !forceStep
+      if shape.mesh
+        shape._steps++
+        mesh = shape.mesh.clone()
+        mesh.position.copy(pos)
+        mesh.rotation.setFromRotationMatrix(matrix)
+        @add(mesh)
+
+      else if shape.depth
         @_depthShape(shape, pos, matrix)
         @_shapeFaces(shape, shape._steps + 1, true, true)
         shape._steps += 2
+
       else
         steps = shape._steps++
         @_continuousShape(shape, pos, matrix)
@@ -256,6 +265,8 @@ class LW.TrackMesh extends THREE.Object3D
 
   finalizeShapes: ->
     for key, shape of @shapes
+      continue if shape.mesh
+
       shape._geometry.computeFaceNormals()
 
       shape.mesh = new THREE.Mesh(shape._geometry, shape.material || @["#{shape.key}Material"] || @shapeMaterial)
