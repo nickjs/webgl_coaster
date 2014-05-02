@@ -138,6 +138,16 @@ class LW.BMTrack extends LW.TrackMesh
     @shapes.catwalkLeft = {shape: catwalkLeft, disabled: true, material: @catwalkMaterial}
     @shapes.catwalkRight = {shape: catwalkRight, disabled: true, material: @catwalkMaterial}
 
+    tunnel = new THREE.Shape
+    radius = 10
+    tunnel.moveTo(-radius, -radius)
+    tunnel.lineTo(radius, -radius)
+    tunnel.lineTo(radius, radius)
+    tunnel.lineTo(-radius, radius)
+
+    @tunnelMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, side: THREE.DoubleSide)
+    @shapes.roundTunnel = {shape: tunnel, disabled: true, material: @tunnelMaterial, open: true}
+
   enterSegment: (segment) ->
     if "TransportSegment,BrakeSegment,StationSegment".indexOf(segment.type) != -1
       @shapes.spine.offset = new THREE.Vector2(0, -2)
@@ -150,6 +160,8 @@ class LW.BMTrack extends LW.TrackMesh
 
     @shapes.catwalkLeft.disabled = !segment.settings.railing_left
     @shapes.catwalkRight.disabled = !segment.settings.railing_right
+
+    @shapes.roundTunnel.disabled = !segment.settings.use_tunnel
 
   leaveSegment: (segment) ->
     @shapes.spine.offset = null

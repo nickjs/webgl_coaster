@@ -165,7 +165,7 @@ class LW.TrackMesh extends THREE.Object3D
 
       if shape.segment && shape.segment != @separator.type
         if shape._steps > 0
-          @_shapeFaces(shape, false, false, true, true)
+          @_shapeFaces(shape, false, false, true, true) unless shape.open
           shape._steps = 0
         continue
 
@@ -196,7 +196,7 @@ class LW.TrackMesh extends THREE.Object3D
         if shape._wasDisabled
           shape._wasDisabled = false
         else
-          @_shapeFaces(shape, true, steps == 1, false, true) if steps > 0
+          @_shapeFaces(shape, true, steps == 1 && !shape.open, false, true) if steps > 0
 
     return
 
@@ -280,9 +280,9 @@ class LW.TrackMesh extends THREE.Object3D
       if shape._geometry
         shape._geometry.computeFaceNormals()
         shape.mesh = new THREE.Mesh(shape._geometry, shape.material || @["#{shape.key}Material"] || @shapeMaterial)
+        shape.mesh.castShadow = true
+        # shape.mesh.receiveShadow = true
         @add(shape.mesh)
-
-      shape.mesh.castShadow = true
 
     return
 
