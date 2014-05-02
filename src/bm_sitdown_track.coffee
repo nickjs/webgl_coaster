@@ -118,6 +118,26 @@ class LW.BMTrack extends LW.TrackMesh
     mesh = new THREE.Mesh(frictionWheels, material)
     @shapes.frictionWheels = {mesh, every: 7, disabled: true}
 
+    catwalkLeft = new THREE.Shape
+    catwalkLeft.moveTo(-10, 0)
+    catwalkLeft.lineTo(-10, 3.2)
+    catwalkLeft.lineTo(-9.9, 3.2)
+    catwalkLeft.lineTo(-9.9, 0.1)
+    catwalkLeft.lineTo(-4.2, 0.1)
+    catwalkLeft.lineTo(-4.2, 0)
+
+    catwalkRight = new THREE.Shape
+    catwalkRight.moveTo(4.2, 0)
+    catwalkRight.lineTo(4.2, 0.1)
+    catwalkRight.lineTo(9.9, 0.1)
+    catwalkRight.lineTo(9.9, 3.2)
+    catwalkRight.lineTo(10, 3.2)
+    catwalkRight.lineTo(10, 0)
+
+    @catwalkMaterial = new THREE.MeshPhongMaterial(map: LW.textures.grate)
+    @shapes.catwalkLeft = {shape: catwalkLeft, disabled: true, material: @catwalkMaterial}
+    @shapes.catwalkRight = {shape: catwalkRight, disabled: true, material: @catwalkMaterial}
+
   enterSegment: (segment) ->
     if "TransportSegment,BrakeSegment,StationSegment".indexOf(segment.type) != -1
       @shapes.spine.offset = new THREE.Vector2(0, -2)
@@ -127,6 +147,9 @@ class LW.BMTrack extends LW.TrackMesh
       @shapes.frictionWheels.mesh.material.color = segment.colorObject('tieColor')
       @shapes.frictionWheels.disabled = false
       @shapes.frictionWheels.skipFirst = true
+
+    @shapes.catwalkLeft.disabled = !segment.settings.railing_left
+    @shapes.catwalkRight.disabled = !segment.settings.railing_right
 
   leaveSegment: (segment) ->
     @shapes.spine.offset = null

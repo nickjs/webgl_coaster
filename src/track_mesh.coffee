@@ -160,6 +160,7 @@ class LW.TrackMesh extends THREE.Object3D
   stepShapes: (pos, matrix) ->
     for key, shape of @shapes
       if shape.disabled
+        shape._wasDisabled = true
         continue
 
       if shape.segment && shape.segment != @separator.type
@@ -192,7 +193,10 @@ class LW.TrackMesh extends THREE.Object3D
       else
         steps = shape._steps++
         @_continuousShape(shape, pos, matrix)
-        @_shapeFaces(shape, true, steps == 1, false, true) if steps > 0
+        if shape._wasDisabled
+          shape._wasDisabled = false
+        else
+          @_shapeFaces(shape, true, steps == 1, false, true) if steps > 0
 
     return
 
