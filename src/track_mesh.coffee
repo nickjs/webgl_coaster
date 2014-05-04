@@ -44,13 +44,13 @@ class LW.TrackMesh extends THREE.Object3D
       u = i / totalSteps
 
       if @nextSeparator && u >= @nextSeparator.position
-        @leaveSegment?(@separator)
+        @leaveSegment(@separator)
 
         segment++
         @separator = @nextSeparator
         @nextSeparator = separators[segment + 1]
 
-        @enterSegment?(@separator)
+        @enterSegment(@separator)
 
       pos = @model.spline.getPointAt(u)
       matrix = LW.getMatrixAt(@model.spline, u)
@@ -73,7 +73,7 @@ class LW.TrackMesh extends THREE.Object3D
 
       if @shapes.spine
         @_continuousShape(@shapes.spine, pos, matrix)
-        @_shapeFaces(@shapes.spine, true)
+        @_sideFaces(@shapes.spine)
 
     @finalizeRails()
     @finalizeShapes()
@@ -86,9 +86,29 @@ class LW.TrackMesh extends THREE.Object3D
     @shapeMaterial = new THREE.MeshPhongMaterial({specular, color: @model.defaultSeparator.spineColor, vertexColors: THREE.FaceColors})
     @supportMaterial = new THREE.MeshPhongMaterial({color: @model.defaultSeparator.supportColor})
 
+    liftTexture = LW.textures.liftChain
+    liftTexture.wrapT = THREE.RepeatWrapping
+    liftTexture.offset.setX(0.5)
+    @liftMaterial = new THREE.MeshLambertMaterial(map: liftTexture)
+
+    @stationMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, map: LW.textures.brick)
+    @catwalkMaterial = new THREE.MeshPhongMaterial(map: LW.textures.grate)
+    @tunnelMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, side: THREE.DoubleSide)
+
   ###
   # Rail Drawing
   ###
+
+  @rails: (newRails) ->
+    final = {}
+
+    for key of newRails
+      final[key] = LW.mixin({}, @::rails[key], newRails[key])
+
+    for key, value of @::rails
+      final[key] = value if !final[key]
+
+    return @::rails = final
 
   prepareRails: ->
     @railGeometry = new THREE.Geometry
@@ -96,7 +116,7 @@ class LW.TrackMesh extends THREE.Object3D
   stepRails: (pos, matrix) ->
     color = @separator.colorObject('railColor')
 
-    for rail in @rails
+    for key, rail of @rails
       grid = []
       radius = rail.radius || @defaultRailRadius
       segments = rail.radialSegments || @defaultRailRadialSegments
@@ -141,6 +161,17 @@ class LW.TrackMesh extends THREE.Object3D
   # Shape Drawing
   ###
 
+  @shapes: (newShapes) ->
+    final = {}
+
+    for key of newShapes
+      final[key] = LW.mixin({}, @::shapes[key], newShapes[key])
+
+    for key, value of @::shapes
+      final[key] = value if !final[key]
+
+    return @::shapes = final
+
   prepareShapes: ->
     for key, shape of @shapes
       shape.key ||= key
@@ -165,7 +196,7 @@ class LW.TrackMesh extends THREE.Object3D
 
       if shape.segment && shape.segment != @separator.type
         if shape._steps > 0
-          @_shapeFaces(shape, false, false, true, true) unless shape.open
+          @_bottomFace(shape, true) if !shape.open
           shape._steps = 0
         continue
 
@@ -196,7 +227,8 @@ class LW.TrackMesh extends THREE.Object3D
         if shape._wasDisabled
           shape._wasDisabled = false
         else
-          @_shapeFaces(shape, true, steps == 1 && !shape.open, false, true) if steps > 0
+          @_topFace(shape, true) if steps == 1 && !shape.open
+          @_sideFaces(shape) if steps > 0
 
     return
 
@@ -231,6 +263,13 @@ class LW.TrackMesh extends THREE.Object3D
     _posCopy.add(tangent.negate())
 
     @_continuousShape(shape, _posCopy, matrix)
+
+  _topFace: (shape, flip) ->
+    @_shapeFaces(shape, false, true, false, flip)
+  _bottomFace: (shape, flip) ->
+    @_shapeFaces(shape, false, false, true, flip)
+  _sideFaces: (shape, flip) ->
+    @_shapeFaces(shape, true)
 
   _shapeFaces: (shape, sideFaces, topFace, bottomFace, flipTopBottom) ->
     color = @separator.colorObject("#{shape.key}Color")
@@ -279,9 +318,12 @@ class LW.TrackMesh extends THREE.Object3D
     for key, shape of @shapes
       if shape._geometry
         shape._geometry.computeFaceNormals()
-        shape.mesh = new THREE.Mesh(shape._geometry, shape.material || @["#{shape.key}Material"] || @shapeMaterial)
+
+        material = shape.material || @["#{shape.materialKey || shape.key}Material"] || @shapeMaterial
+        shape.mesh = new THREE.Mesh(shape._geometry, material)
         shape.mesh.castShadow = true
         # shape.mesh.receiveShadow = true
+
         @add(shape.mesh)
 
     return
@@ -366,3 +408,69 @@ class LW.TrackMesh extends THREE.Object3D
       mesh.position = position
       mesh.castShadow = true
       @add(mesh)
+
+  ###
+  # Extras
+  ###
+
+  liftShape = new THREE.Shape
+  liftShape.moveTo(-0.7, -0.3)
+  liftShape.lineTo(-0.7, 0.3)
+  liftShape.lineTo(0.7, 0.3)
+  liftShape.lineTo(0.7, -0.3)
+
+  gearGeometry = new THREE.CylinderGeometry(3, 3, 1.35)
+  gearGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(Math.PI / 2))
+  gearGeometry: gearGeometry
+
+  gearOffset: new THREE.Vector3(-0.7, 2.25, 0)
+
+  stationShape = new THREE.Shape
+  stationShape.moveTo(-30, -500)
+  stationShape.lineTo(-30, 0)
+  stationShape.lineTo(-6, 0)
+  stationShape.lineTo(-6, -7)
+  stationShape.lineTo(6, -7)
+  stationShape.lineTo(6, 0)
+  stationShape.lineTo(30, 0)
+  stationShape.lineTo(30, -500)
+
+  catwalkLeft = new THREE.Shape
+  catwalkLeft.moveTo(-10, 0)
+  catwalkLeft.lineTo(-10, 3.2)
+  catwalkLeft.lineTo(-9.9, 3.2)
+  catwalkLeft.lineTo(-9.9, 0.1)
+  catwalkLeft.lineTo(-4.2, 0.1)
+  catwalkLeft.lineTo(-4.2, 0)
+
+  catwalkRight = new THREE.Shape
+  catwalkRight.moveTo(4.2, 0)
+  catwalkRight.lineTo(4.2, 0.1)
+  catwalkRight.lineTo(9.9, 0.1)
+  catwalkRight.lineTo(9.9, 3.2)
+  catwalkRight.lineTo(10, 3.2)
+  catwalkRight.lineTo(10, 0)
+
+  tunnelRadius = 10
+  squareTunnel = new THREE.Shape
+  squareTunnel.moveTo(-tunnelRadius, -tunnelRadius)
+  squareTunnel.lineTo(tunnelRadius, -tunnelRadius)
+  squareTunnel.lineTo(tunnelRadius, tunnelRadius)
+  squareTunnel.lineTo(-tunnelRadius, tunnelRadius)
+
+  @shapes {
+    lift: {shape: liftShape, segment: 'LiftSegment'}
+    station: {shape: stationShape, segment: 'StationSegment'}
+    catwalkLeft: {shape: catwalkLeft, disabled: true, materialKey: 'catwalk'}
+    catwalkRight: {shape: catwalkRight, disabled: true, materialKey: 'catwalk'}
+    squareTunnel: {shape: squareTunnel, disabled: true, open: true, materialKey: 'tunnel'}
+  }
+
+  enterSegment: (segment) ->
+    @shapes.catwalkLeft.disabled = !segment.settings.railing_left
+    @shapes.catwalkRight.disabled = !segment.settings.railing_right
+
+    @shapes.squareTunnel.disabled = !segment.settings.use_tunnel
+
+  leaveSegment: (segment) ->
+

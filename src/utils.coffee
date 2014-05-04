@@ -24,9 +24,11 @@ THREE.Vector4::add = (v) ->
   @z += v.z
   @w += v.w if v.w?
 
-LW.mixin = (context, mixin) ->
-  for own key, val of mixin
-    context[key] = val
+LW.mixin = (context, mixins...) ->
+  for mixin in mixins
+    if mixin
+      for own key, val of mixin
+        context[key] = val
 
   return context
 

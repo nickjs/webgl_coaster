@@ -48,108 +48,32 @@ class LW.BMTrack extends LW.TrackMesh
   lowbeamTieShape.lineTo(boxSize, boxSize - 5)
 
   railDistance = offsetX - radius
-  offsetY = boxSize - 3 - padding
 
-  liftShape = new THREE.Shape
-  liftShape.moveTo(-0.7, -0.3)
-  liftShape.lineTo(-0.7, 0.3)
-  liftShape.lineTo(0.7, 0.3)
-  liftShape.lineTo(0.7, -0.3)
-
-  gearGeometry = new THREE.CylinderGeometry(3, 3, 1.35)
-  gearGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(Math.PI / 2))
-  gearGeometry: gearGeometry
-
-  gearOffset: new THREE.Vector3(-0.7, 2.25, 0)
-
-  wireframeSpine: [new THREE.Vector3(0, offsetY)]
-  wireframeTies: [
-    new THREE.Vector3(railDistance, 0)
-    new THREE.Vector3(boxSize, offsetY)
-
-    new THREE.Vector3(boxSize, offsetY) # line pieces
-    new THREE.Vector3(-boxSize, offsetY)
-
-    new THREE.Vector3(-boxSize, offsetY)
-    new THREE.Vector3(-railDistance, 0)
-  ]
+  frictionWheels = new THREE.BoxGeometry(3.8, 3.6, 6)
+  frictionWheels.applyMatrix(new THREE.Matrix4().makeTranslation(0, -1.2, 0))
+  material = new THREE.MeshPhongMaterial(specular: 0xaaaaaa)
+  frictionWheels = new THREE.Mesh(frictionWheels, material)
 
   carDistance: 20
   onRideCameraOffset: new THREE.Vector3(2, 5, -5)
 
-  shapes: {
-    spine: {shape: boxShape, every: 7}
-    tie: {shape: tieShape, every: 7, depth: 0.4}
-    lift: {shape: liftShape, segment: 'LiftSegment'}
+  tieDistance = 8
+
+  @shapes {
+    spine: {shape: boxShape, every: tieDistance}
+    tie: {shape: tieShape, every: tieDistance, depth: 0.4}
+    frictionWheels: {mesh: frictionWheels, every: tieDistance, disabled: true}
   }
 
-  rails: [
-    {radius, distance: new THREE.Vector2(railDistance, 0)}
-    {radius, distance: new THREE.Vector2(-railDistance, 0)}
-  ]
-
-  prepareMaterials: ->
-    super
-
-    liftTexture = LW.textures.liftChain
-    liftTexture.wrapT = THREE.RepeatWrapping
-    liftTexture.offset.setX(0.5)
-
-    @liftMaterial = new THREE.MeshLambertMaterial(map: liftTexture)
-
-    @stationMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, map: LW.textures.brick)
-
-    station = new THREE.Shape
-    station.moveTo(-30, -500)
-    station.lineTo(-30, 0)
-    station.lineTo(-6, 0)
-    station.lineTo(-6, -7)
-    station.lineTo(6, -7)
-    station.lineTo(6, 0)
-    station.lineTo(30, 0)
-    station.lineTo(30, -500)
-    @shapes.station = {shape: station, segment: 'StationSegment'}
-
-    frictionWheels = new THREE.BoxGeometry(3.8, 3.6, 6)
-    frictionWheels.applyMatrix(new THREE.Matrix4().makeTranslation(0, -1.2, 0))
-
-    color = @model.defaultSeparator.spineColor
-    material = new THREE.MeshPhongMaterial(specular: 0xaaaaaa)
-    mesh = new THREE.Mesh(frictionWheels, material)
-    @shapes.frictionWheels = {mesh, every: 7, disabled: true}
-
-    catwalkLeft = new THREE.Shape
-    catwalkLeft.moveTo(-10, 0)
-    catwalkLeft.lineTo(-10, 3.2)
-    catwalkLeft.lineTo(-9.9, 3.2)
-    catwalkLeft.lineTo(-9.9, 0.1)
-    catwalkLeft.lineTo(-4.2, 0.1)
-    catwalkLeft.lineTo(-4.2, 0)
-
-    catwalkRight = new THREE.Shape
-    catwalkRight.moveTo(4.2, 0)
-    catwalkRight.lineTo(4.2, 0.1)
-    catwalkRight.lineTo(9.9, 0.1)
-    catwalkRight.lineTo(9.9, 3.2)
-    catwalkRight.lineTo(10, 3.2)
-    catwalkRight.lineTo(10, 0)
-
-    @catwalkMaterial = new THREE.MeshPhongMaterial(map: LW.textures.grate)
-    @shapes.catwalkLeft = {shape: catwalkLeft, disabled: true, material: @catwalkMaterial}
-    @shapes.catwalkRight = {shape: catwalkRight, disabled: true, material: @catwalkMaterial}
-
-    tunnel = new THREE.Shape
-    radius = 10
-    tunnel.moveTo(-radius, -radius)
-    tunnel.lineTo(radius, -radius)
-    tunnel.lineTo(radius, radius)
-    tunnel.lineTo(-radius, radius)
-
-    @tunnelMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, side: THREE.DoubleSide)
-    @shapes.roundTunnel = {shape: tunnel, disabled: true, material: @tunnelMaterial, open: true}
+  @rails {
+    left: {radius, distance: new THREE.Vector2(railDistance, 0)}
+    right: {radius, distance: new THREE.Vector2(-railDistance, 0)}
+  }
 
   enterSegment: (segment) ->
-    if "TransportSegment,BrakeSegment,StationSegment".indexOf(segment.type) != -1
+    super
+
+    if !@shapes.spine.offset && "TransportSegment,BrakeSegment,StationSegment".indexOf(segment.type) != -1
       @shapes.spine.offset = new THREE.Vector2(0, -2)
       @shapes.tie.shape = lowbeamTieShape
       @shapes.tie.prepare()
@@ -158,14 +82,12 @@ class LW.BMTrack extends LW.TrackMesh
       @shapes.frictionWheels.disabled = false
       @shapes.frictionWheels.skipFirst = true
 
-    @shapes.catwalkLeft.disabled = !segment.settings.railing_left
-    @shapes.catwalkRight.disabled = !segment.settings.railing_right
-
-    @shapes.roundTunnel.disabled = !segment.settings.use_tunnel
-
   leaveSegment: (segment) ->
-    @shapes.spine.offset = null
-    @shapes.tie.shape = tieShape
-    @shapes.tie.prepare()
+    super
+
+    if @shapes.spine.offset
+      @shapes.spine.offset = null
+      @shapes.tie.shape = tieShape
+      @shapes.tie.prepare()
 
     @shapes.frictionWheels.disabled = true

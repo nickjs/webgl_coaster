@@ -1,4 +1,4 @@
-class LW.BMInvertedTrack extends LW.TrackMesh
+class LW.BMInvertedTrack extends LW.BMTrack
   boxSize = 2
   offsetY = 3
 
@@ -7,10 +7,6 @@ class LW.BMInvertedTrack extends LW.TrackMesh
   boxShape.lineTo(-boxSize, boxSize + offsetY)
   boxShape.lineTo(boxSize, boxSize + offsetY)
   boxShape.lineTo(boxSize, -boxSize + offsetY)
-  boxShape.lineTo(-boxSize, -boxSize + offsetY)
-
-  spineShape: boxShape
-  spineDivisionLength: 7
 
   radius = 0.5
   offsetX = boxSize + 2
@@ -27,52 +23,29 @@ class LW.BMInvertedTrack extends LW.TrackMesh
   tieShape.lineTo(offsetX - radius * 1.5, 0)
   tieShape.lineTo(boxSize, -boxSize + 3 + padding)
 
-  tieShape: tieShape
+  extendedTieShape = new THREE.Shape
+  extendedTieShape.moveTo(-boxSize - padding, -boxSize + 3 + padding)
+  extendedTieShape.lineTo(-offsetX + radius * 1.5, 0)
+  extendedTieShape.lineTo(-offsetX + radius * 1.5, -offsetY)
+  extendedTieShape.lineTo(-boxSize / 2, -boxSize + 2.5)
+  extendedTieShape.lineTo(boxSize / 2, -boxSize + 2.5)
+  extendedTieShape.lineTo(offsetX - radius * 1.5, -offsetY)
+  extendedTieShape.lineTo(offsetX - radius * 1.5, 0)
+  extendedTieShape.lineTo(boxSize + padding, -boxSize + 3 + padding)
+  extendedTieShape.lineTo(boxSize + padding, boxSize + 3 + padding)
+  extendedTieShape.lineTo(-boxSize - padding, boxSize + 3 + padding)
 
-  tieShape = new THREE.Shape
-  tieShape.moveTo(-boxSize - padding, -boxSize + 3 + padding)
-  tieShape.lineTo(-offsetX + radius * 1.5, 0)
-  tieShape.lineTo(-offsetX + radius * 1.5, -offsetY)
-  tieShape.lineTo(-boxSize / 2, -boxSize + 2.5)
-  tieShape.lineTo(boxSize / 2, -boxSize + 2.5)
-  tieShape.lineTo(offsetX - radius * 1.5, -offsetY)
-  tieShape.lineTo(offsetX - radius * 1.5, 0)
-  tieShape.lineTo(boxSize + padding, -boxSize + 3 + padding)
-  tieShape.lineTo(boxSize + padding, boxSize + 3 + padding)
-  tieShape.lineTo(-boxSize - padding, boxSize + 3 + padding)
-
-  extendedTieShape: tieShape
-  tieDepth: 0.4
-
-  railRadius: radius
-  railDistance: railDistance = offsetX - radius
-
-  offsetY = -boxSize + 3 + padding
-
-  liftShape = new THREE.Shape
-  liftShape.moveTo(0.7, 0)
-  liftShape.lineTo(0.7, 0.3)
-  liftShape.lineTo(-0.7, 0.3)
-  liftShape.lineTo(-0.7, 0)
-  liftShape: liftShape
-
-  gearGeometry = new THREE.CylinderGeometry(3, 3, 1.35)
-  gearGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(Math.PI / 2))
-  gearGeometry: gearGeometry
-
-  gearOffset: new THREE.Vector3(-0.7, -2.65, 0)
-
-  wireframeSpine: [new THREE.Vector3(0, offsetY)]
-  wireframeTies: [
-    new THREE.Vector3(railDistance, 0)
-    new THREE.Vector3(boxSize, offsetY)
-
-    new THREE.Vector3(boxSize, offsetY) # line pieces
-    new THREE.Vector3(-boxSize, offsetY)
-
-    new THREE.Vector3(-boxSize, offsetY)
-    new THREE.Vector3(-railDistance, 0)
-  ]
+  lowbeamTieShape = new THREE.Shape
+  lowbeamTieShape.moveTo(-boxSize, -boxSize + 3 + padding)
+  lowbeamTieShape.lineTo(-offsetX + radius * 1.5, 0)
+  lowbeamTieShape.lineTo(-offsetX + radius * 1.5, -offsetY)
+  lowbeamTieShape.lineTo(-boxSize / 2, -boxSize + 2.5)
+  lowbeamTieShape.lineTo(boxSize / 2, -boxSize + 2.5)
+  lowbeamTieShape.lineTo(offsetX - radius * 1.5, -offsetY)
+  lowbeamTieShape.lineTo(offsetX - radius * 1.5, 0)
+  lowbeamTieShape.lineTo(boxSize, -boxSize + 3 + padding)
+  lowbeamTieShape.lineTo(boxSize, boxSize + 3)
+  lowbeamTieShape.lineTo(-boxSize, boxSize + 3)
 
   carModel: 'inverted.dae'
   carScale: new THREE.Vector3(0.0429, 0.0429, 0.037)
@@ -80,3 +53,36 @@ class LW.BMInvertedTrack extends LW.TrackMesh
   carDistance: 9
 
   onRideCameraOffset: new THREE.Vector3(3.85, -7.3, -0.5)
+
+  frictionWheels = new THREE.BoxGeometry(3.8, 3.6, 6)
+  frictionWheels.applyMatrix(new THREE.Matrix4().makeTranslation(0, 1.2, 0))
+  material = new THREE.MeshPhongMaterial(specular: 0xaaaaaa)
+  frictionWheels = new THREE.Mesh(frictionWheels, material)
+
+  invertedOffset = -16.5
+
+  @shapes {
+    spine: {shape: boxShape}
+    tie: {shape: tieShape}
+    frictionWheels: {mesh: frictionWheels}
+    catwalkLeft: {offset: new THREE.Vector2(0, invertedOffset)}
+    catwalkRight: {offset: new THREE.Vector2(0, invertedOffset)}
+    station: {offset: new THREE.Vector2(0, invertedOffset)}
+  }
+
+  enterSegment: (segment) ->
+    hasOffset = !!@shapes.spine.offset
+    super
+
+    if !hasOffset && @shapes.spine.offset
+      @shapes.spine.offset.negate()
+      @shapes.tie.shape = lowbeamTieShape
+      @shapes.tie.prepare()
+
+  leaveSegment: (segment) ->
+    hasOffset = !!@shapes.spine.offset
+    super
+
+    if hasOffset && !@shapes.spine.offset
+      @shapes.tie.shape = tieShape
+      @shapes.tie.prepare()
