@@ -53,11 +53,15 @@ class LW.Train extends THREE.Object3D
     @add(@cameraHelper)
     @add(@camera)
 
+    oldShouldSimulate = false
+    @shouldSimulate = true
+    @update(0)
+    @shouldSimulate = oldShouldSimulate
+
   start: ->
     @shouldSimulate = true
     @velocity = @initialVelocity
     @displacement = 0
-    @rebuild()
 
   stop: ->
     @shouldSimulate = false
@@ -96,17 +100,17 @@ class LW.Train extends THREE.Object3D
 
     lastPos = model.spline.getPointAt(@currentTime)
     deltaPoint = @currentTime
-    desiredDistance = @track.carDistance
+    desiredDistance = @track.carDistance * @track.carDistance
 
     for car, i in @cars
       pos = null
 
       if i > 0
-        while deltaPoint > 0
+        while deltaPoint >= 0
           pos = model.spline.getPointAt(deltaPoint)
-          break if pos.distanceTo(lastPos) >= desiredDistance
+          break if pos.distanceToSquared(lastPos) >= desiredDistance
           deltaPoint -= 0.001
-          deltaPoint = 0 if deltaPoint < 0
+          deltaPoint = 1 + deltaPoint if deltaPoint < 0
       else
         pos = lastPos
 
@@ -117,7 +121,7 @@ class LW.Train extends THREE.Object3D
         if i == 0
           @lastTangent = tangent
 
-          if model.onRideCamera || @cameraHelper.visible
+          if model.onRideCamera || @cameraHelper?.visible
             LW.positionObjectOnSpline(@camera, model.spline, deltaPoint, @track.onRideCameraOffset)
 
     return
