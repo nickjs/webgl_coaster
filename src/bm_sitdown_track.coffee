@@ -50,19 +50,16 @@ class LW.BMTrack extends LW.TrackMesh
   railDistance = offsetX - radius
 
   frictionWheels = new THREE.BoxGeometry(3.8, 3.6, 6)
-  frictionWheels.applyMatrix(new THREE.Matrix4().makeTranslation(0, -1.2, 0))
   material = new THREE.MeshPhongMaterial(specular: 0xaaaaaa)
   frictionWheels = new THREE.Mesh(frictionWheels, material)
 
   carDistance: 20
   onRideCameraOffset: new THREE.Vector3(2, 5, -5)
 
-  tieDistance = 8
-
   @shapes {
-    spine: {shape: boxShape, every: tieDistance}
-    tie: {shape: tieShape, every: tieDistance, depth: 0.4}
-    frictionWheels: {mesh: frictionWheels, every: tieDistance, disabled: true}
+    spine: {shape: boxShape, every: 8}
+    tie: {shape: tieShape, on: 'spine', depth: 0.4}
+    frictionWheels: {mesh: frictionWheels, on: 'tie', offset: new THREE.Vector3(0, -1.2, 4.5)}
   }
 
   @rails {

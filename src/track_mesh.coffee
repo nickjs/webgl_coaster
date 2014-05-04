@@ -228,6 +228,7 @@ class LW.TrackMesh extends THREE.Object3D
 
         mesh = shape.mesh.clone()
         mesh.position.copy(pos)
+        mesh.position.add(shape.offset.clone().applyMatrix4(matrix)) if shape.offset
         mesh.rotation.setFromRotationMatrix(matrix)
         @add(mesh)
 

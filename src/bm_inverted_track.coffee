@@ -54,17 +54,12 @@ class LW.BMInvertedTrack extends LW.BMTrack
 
   onRideCameraOffset: new THREE.Vector3(3.85, -7.3, -0.5)
 
-  frictionWheels = new THREE.BoxGeometry(3.8, 3.6, 6)
-  frictionWheels.applyMatrix(new THREE.Matrix4().makeTranslation(0, 1.2, 0))
-  material = new THREE.MeshPhongMaterial(specular: 0xaaaaaa)
-  frictionWheels = new THREE.Mesh(frictionWheels, material)
-
   invertedOffset = -16.5
 
   @shapes {
     spine: {shape: boxShape}
     tie: {shape: tieShape}
-    frictionWheels: {mesh: frictionWheels}
+    frictionWheels: {offset: new THREE.Vector3(0, 1.2, 4.5)}
     catwalkLeft: {offset: new THREE.Vector2(0, invertedOffset)}
     catwalkRight: {offset: new THREE.Vector2(0, invertedOffset)}
     station: {offset: new THREE.Vector2(0, invertedOffset)}
