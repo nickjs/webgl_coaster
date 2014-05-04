@@ -19,6 +19,7 @@ class LW.TrackMesh extends THREE.Object3D
 
   constructor: (options) ->
     super()
+    @stepCallbacks = {}
     LW.mixin(this, options)
 
   rebuild: ->
@@ -54,6 +55,9 @@ class LW.TrackMesh extends THREE.Object3D
 
       pos = @model.spline.getPointAt(u)
       matrix = LW.getMatrixAt(@model.spline, u)
+
+      for key, func of @stepCallbacks
+        func.call(this, u, pos, matrix)
 
       @stepRails(pos, matrix)
       @stepShapes(pos, matrix)
@@ -94,7 +98,11 @@ class LW.TrackMesh extends THREE.Object3D
     stationTexture.wrapS = stationTexture.wrapT = THREE.RepeatWrapping
     @stationMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, map: stationTexture)
 
-    @catwalkMaterial = new THREE.MeshBasicMaterial(map: LW.textures.grate, transparent: true)
+    @catwalkMaterial = @shapeMaterial.clone()
+    @catwalkMaterial.transparent = true
+    @catwalkMaterial.map = LW.textures.grate
+    @shapes.catwalkStepsLeft.mesh.material = @catwalkMaterial
+
     @tunnelMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, side: THREE.DoubleSide)
 
   ###
@@ -232,6 +240,12 @@ class LW.TrackMesh extends THREE.Object3D
         mesh.position.copy(pos)
         mesh.position.add(shape.offset.clone().applyMatrix4(matrix)) if shape.offset
         mesh.rotation.setFromRotationMatrix(matrix)
+
+        if shape.rotation
+          mesh.rotation.x = shape.rotation.x if typeof shape.rotation.x == 'number'
+          mesh.rotation.y = shape.rotation.y if typeof shape.rotation.y == 'number'
+          mesh.rotation.z = shape.rotation.z if typeof shape.rotation.z == 'number'
+
         @add(mesh)
 
       else if shape.depth
@@ -457,21 +471,14 @@ class LW.TrackMesh extends THREE.Object3D
   stationShape.lineTo(30, 0)
   stationShape.lineTo(30, -500)
 
-  catwalkLeft = new THREE.Shape
-  catwalkLeft.moveTo(-10, 0)
-  catwalkLeft.lineTo(-10, 3.2)
-  catwalkLeft.lineTo(-9.9, 3.2)
-  catwalkLeft.lineTo(-9.9, 0.1)
-  catwalkLeft.lineTo(-4.2, 0.1)
-  catwalkLeft.lineTo(-4.2, 0)
+  catwalkStep = new THREE.BoxGeometry(8, 0.4, 3.95)
+  catwalkStep = new THREE.Mesh(catwalkStep)
 
-  catwalkRight = new THREE.Shape
-  catwalkRight.moveTo(4.2, 0)
-  catwalkRight.lineTo(4.2, 0.1)
-  catwalkRight.lineTo(9.9, 0.1)
-  catwalkRight.lineTo(9.9, 3.2)
-  catwalkRight.lineTo(10, 3.2)
-  catwalkRight.lineTo(10, 0)
+  catwalkShape = new THREE.Shape
+  catwalkShape.moveTo(-4, 0)
+  catwalkShape.lineTo(4, 0)
+  catwalkShape.lineTo(4, -0.4)
+  catwalkShape.lineTo(-4, -0.4)
 
   tunnelRadius = 10
   squareTunnel = new THREE.Shape
@@ -483,16 +490,33 @@ class LW.TrackMesh extends THREE.Object3D
   @shapes {
     lift: {shape: liftShape, segment: 'LiftSegment'}
     station: {shape: stationShape, every: 10, segment: 'StationSegment'}
-    catwalkLeft: {shape: catwalkLeft, every: 10, disabled: true, materialKey: 'catwalk'}
-    catwalkRight: {shape: catwalkRight, every: 10, disabled: true, materialKey: 'catwalk'}
-    squareTunnel: {shape: squareTunnel, every: 10, disabled: true, open: true, materialKey: 'tunnel'}
+    catwalkStepsLeft: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(-8.5, 0, 0), rotation: {x: 0, z: 0}}
+    catwalkStepsRight: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(8.5, 0, 0), rotation: {x: 0, z: 0}}
+    catwalkLeft: {shape: catwalkShape, every: 10, offset: new THREE.Vector3(-8.5, 0, 0), materialKey: 'catwalk'}
+    catwalkRight: {shape: catwalkShape, every: 10, offset: new THREE.Vector3(8.5, 0, 0), materialKey: 'catwalk'}
+    squareTunnel: {shape: squareTunnel, every: 10, open: true, materialKey: 'tunnel'}
   }
 
   enterSegment: (segment) ->
-    @shapes.catwalkLeft.disabled = !segment.settings.railing_left
-    @shapes.catwalkRight.disabled = !segment.settings.railing_right
+    railingLeft = segment.settings.railing_left
+    railingRight = segment.settings.railing_right
+    if railingLeft || railingRight
+      @stepCallbacks.decideOnCatwalks = (u) ->
+        tangent = @model.spline.getTangentAt(u)
+        flatAngle = Math.PI / 2
+        tangentAngle = Math.abs(LW.DOWN.angleTo(tangent))
+        flat = Math.abs(tangentAngle - flatAngle) < 0.4
+
+        @shapes.catwalkLeft.disabled = !railingLeft || !flat
+        @shapes.catwalkRight.disabled = !railingRight || !flat
+        @shapes.catwalkStepsLeft.disabled = !railingLeft || flat
+        @shapes.catwalkStepsRight.disabled = !railingRight || flat
 
     @shapes.squareTunnel.disabled = !segment.settings.use_tunnel
 
   leaveSegment: (segment) ->
-
+    delete @stepCallbacks.decideOnCatwalks
+    @shapes.catwalkLeft.disabled = true
+    @shapes.catwalkRight.disabled = true
+    @shapes.catwalkStepsLeft.disabled = true
+    @shapes.catwalkStepsRight.disabled = true
