@@ -88,11 +88,13 @@ class LW.TrackMesh extends THREE.Object3D
 
     liftTexture = LW.textures.liftChain
     liftTexture.wrapT = THREE.RepeatWrapping
-    liftTexture.offset.setX(0.5)
     @liftMaterial = new THREE.MeshLambertMaterial(map: liftTexture)
 
-    @stationMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, map: LW.textures.brick)
-    @catwalkMaterial = new THREE.MeshPhongMaterial(map: LW.textures.grate)
+    stationTexture = LW.textures.brick
+    stationTexture.wrapS = stationTexture.wrapT = THREE.RepeatWrapping
+    @stationMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, map: stationTexture)
+
+    @catwalkMaterial = new THREE.MeshBasicMaterial(map: LW.textures.grate, transparent: true)
     @tunnelMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, side: THREE.DoubleSide)
 
   ###
@@ -325,8 +327,12 @@ class LW.TrackMesh extends THREE.Object3D
         target.faces.push(new THREE.Face3(d, c, b, null, color))
 
         uvs = uvgen.generateSideWallUV(target, shape.shape, null, null, a, b, c, d)
-        target.faceVertexUvs[0].push([uvs[0], uvs[1], uvs[3]])
-        target.faceVertexUvs[0].push([uvs[1], uvs[2], uvs[3]])
+        uva = new THREE.Vector2(0, 0)
+        uvb = new THREE.Vector2(1, 0)
+        uvc = new THREE.Vector2(0, 1)
+        uvd = new THREE.Vector2(1, 1)
+        target.faceVertexUvs[0].push([uvc, uvb, uvd])
+        target.faceVertexUvs[0].push([uvc, uva, uvb])
 
     return
 
@@ -476,10 +482,10 @@ class LW.TrackMesh extends THREE.Object3D
 
   @shapes {
     lift: {shape: liftShape, segment: 'LiftSegment'}
-    station: {shape: stationShape, segment: 'StationSegment'}
-    catwalkLeft: {shape: catwalkLeft, disabled: true, materialKey: 'catwalk'}
-    catwalkRight: {shape: catwalkRight, disabled: true, materialKey: 'catwalk'}
-    squareTunnel: {shape: squareTunnel, disabled: true, open: true, materialKey: 'tunnel'}
+    station: {shape: stationShape, every: 10, segment: 'StationSegment'}
+    catwalkLeft: {shape: catwalkLeft, every: 10, disabled: true, materialKey: 'catwalk'}
+    catwalkRight: {shape: catwalkRight, every: 10, disabled: true, materialKey: 'catwalk'}
+    squareTunnel: {shape: squareTunnel, every: 10, disabled: true, open: true, materialKey: 'tunnel'}
   }
 
   enterSegment: (segment) ->
