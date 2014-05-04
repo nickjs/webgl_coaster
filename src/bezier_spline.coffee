@@ -68,13 +68,21 @@ class LW.BezierSpline extends THREE.CurvePath
 
         relative = curve.p1?.relativeRoll || curve.p2?.relativeRoll
 
-        # if p0?
-        #   if p0 < 0 && p1 < p0 && p2 > 0
-        #     p2 = -Math.PI * 2 + p2
-        #   else if p0 > 0 && p1 > p0 && p2 < 0
-        #     p2 = Math.PI * 2 + p2
+        rangeZero = 2 * Math.PI
+        diff = Math.abs(p2 - p1)
+        if diff > Math.PI
+          if p2 > p1
+            p1 += rangeZero
+          else
+            p2 += rangeZero
 
-        return [THREE.Curve.Utils.interpolate(p0 || p1, p1, p2, p3 || p2, u), relative]
+        interpolated = p1 + ((p2 - p1) * u)
+        if interpolated >= 0 && interpolated <= rangeZero
+          undefined
+        else
+          interpolated = interpolated % rangeZero
+
+        return [interpolated, relative]
 
       i++
 
