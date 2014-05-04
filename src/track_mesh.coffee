@@ -296,10 +296,17 @@ class LW.TrackMesh extends THREE.Object3D
 
     footerTexture.anisotropy = 4
     footerBump.anisotropy = 4
-    footerMaterial = new THREE.MeshPhongMaterial(color: 0xffffff, specular: 0x111111, map: footerTexture, bumpMap: footerBump, bumpScale: 20, metal: true)
+    textureMaterial = new THREE.MeshPhongMaterial(color: 0xffffff, specular: 0x111111, map: footerTexture, bumpMap: footerBump, bumpScale: 20, metal: true)
+    colorMaterial = new THREE.MeshLambertMaterial(color: 0x737373)
+    footerMaterial = new THREE.MeshFaceMaterial([textureMaterial, colorMaterial])
 
     size = 7
     geo = new THREE.BoxGeometry(size, LW.FoundationNode::height, size)
+    for face, i in geo.faces
+      if i in [4, 5]
+        face.materialIndex = 0
+      else
+        face.materialIndex = 1
 
     for node in @model.foundationNodes
       mesh = new THREE.Mesh(geo, footerMaterial)
