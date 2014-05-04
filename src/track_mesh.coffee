@@ -113,10 +113,21 @@ class LW.TrackMesh extends THREE.Object3D
   prepareRails: ->
     @railGeometry = new THREE.Geometry
 
+    for key, rail of @rails
+      rail.key ||= key
+      rail._steps = 0
+
+    return
+
   stepRails: (pos, matrix) ->
     color = @separator.colorObject('railColor')
 
     for key, rail of @rails
+      if rail.disabled
+        rail._steps = 0
+        rail._lastGrid = null
+        continue
+
       grid = []
       radius = rail.radius || @defaultRailRadius
       segments = rail.radialSegments || @defaultRailRadialSegments
@@ -132,7 +143,7 @@ class LW.TrackMesh extends THREE.Object3D
 
         grid.push(@railGeometry.vertices.push(vertex) - 1)
 
-      if @steps > 0
+      if rail._steps > 0
         for i in [0...segments]
           ip = (i + 1) % segments
 
@@ -145,6 +156,7 @@ class LW.TrackMesh extends THREE.Object3D
           @railGeometry.faces.push(new THREE.Face3(b, c, d, null, color))
 
       rail._lastGrid = grid
+      rail._steps++
 
     return
 
@@ -201,6 +213,9 @@ class LW.TrackMesh extends THREE.Object3D
         continue
 
       if shape.every && shape._lastPos?.distanceTo(pos) < shape.every
+        continue
+
+      if shape.on && @shapes[shape.on]._lastPos != pos
         continue
 
       shape._lastPos = pos
@@ -272,7 +287,7 @@ class LW.TrackMesh extends THREE.Object3D
     @_shapeFaces(shape, true)
 
   _shapeFaces: (shape, sideFaces, topFace, bottomFace, flipTopBottom) ->
-    color = @separator.colorObject("#{shape.key}Color")
+    color = @separator.colorObject("#{shape.materialKey || shape.key}Color")
 
     target = shape._geometry
     totalVertices = shape._vertices.length
