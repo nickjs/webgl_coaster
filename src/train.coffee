@@ -72,7 +72,7 @@ class LW.Train extends THREE.Object3D
   mat = new THREE.Matrix4()
 
   update: (delta) ->
-    return if !@shouldSimulate or !@cars.length or !(model = @track.model)
+    return if !@shouldSimulate or !@cars?.length or !(model = @track.model)
 
     separator = model.findSeparatorFromT(@currentTime)
     if separator.type == LW.Separator.TYPE.LIFT
