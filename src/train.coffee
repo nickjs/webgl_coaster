@@ -2,6 +2,8 @@ class LW.Train extends THREE.Object3D
   velocity: 20
   initialVelocity: 20
   displacement: 0
+  acceleration: 0
+  initialAcceleration: -0.01
 
   numberOfCars: 1
 
@@ -53,15 +55,19 @@ class LW.Train extends THREE.Object3D
     @add(@cameraHelper)
     @add(@camera)
 
-    oldShouldSimulate = false
-    @shouldSimulate = true
-    @update(0)
-    @shouldSimulate = oldShouldSimulate
+    # oldShouldSimulate = false
+    # @shouldSimulate = true
+    # @update(0)
+    # @shouldSimulate = oldShouldSimulate
 
   start: ->
     @shouldSimulate = true
+    @acceleration = @initialAcceleration
     @velocity = @initialVelocity
     @displacement = 0
+
+    @separator = LW.model.separators[0]
+    @nextSeparator = LW.model.separators[1]
 
   stop: ->
     @shouldSimulate = false
@@ -74,18 +80,33 @@ class LW.Train extends THREE.Object3D
   update: (delta) ->
     return if !@shouldSimulate or !@cars?.length or !(model = @track.model)
 
-    separator = model.findSeparatorFromT(@currentTime)
-    if separator.type == LW.Separator.TYPE.LIFT
-      @velocity = Math.max(@velocity, separator.settings.lift_speed * 10)
+    if @currentTime >= @nextSeparator.position
+      @leaveSegment?(@separator, @nextSeparator)
+      @separator = @nextSeparator
+      @nextSeparator = model.separators[model.separators.indexOf(@nextSeparator) + 1] || model.separators[0]
+      @enterSegment?(@separator, @nextSeparator)
 
-      # chain animation
-      LW.track.liftMaterial.map.offset.y -= 0.4
-      # for gear in LW.track.gears
-      #   gear.rotation.x -= 0.1
+    switch @separator.type
+      when LW.Separator.TYPE.LIFT
+        @velocity = Math.max(@velocity, @separator.settings.lift_speed * 10)
+
+        # chain animation
+        LW.track.liftMaterial.map.offset.y -= 0.4
+        # for gear in LW.track.gears
+        #   gear.rotation.x -= 0.1
+
+      when LW.Separator.TYPE.BRAKE
+        if @separator.decelApplied
+          if @velocity <= @separator.settings.speed_limit * 10
+            @acceleration += @separator.settings.decel * 10
+            @separator.decelApplied = false
+        else if @velocity > @separator.settings.speed_limit * 10
+          @acceleration -= @separator.settings.decel * 10
+          @separator.decelApplied = true
 
     if @lastTangent
       alpha = down.angleTo(@lastTangent)
-      a = 29.43 * Math.cos(alpha)
+      a = 29.43 * Math.cos(alpha) + @acceleration
       @velocity = @velocity + a * delta
 
     @displacement = @displacement + @velocity * delta

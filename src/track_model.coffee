@@ -116,13 +116,6 @@ class LW.TrackModel
 
     return bestT
 
-  findSeparatorFromT: (seekingT) ->
-    for separator, i in @separators
-      if seekingT <= separator.position
-        return @separators[i - 1] || @defaultSeparator
-
-    return @defaultSeparator
-
   addRollNode: (position, amount) ->
     rollNode = new LW.RollNode({position, amount})
     @rollNodes.push(rollNode)
