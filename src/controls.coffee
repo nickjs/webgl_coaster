@@ -3,12 +3,9 @@ class LW.Controls
   moveSpeed: 80
   lookSpeed: 0.01
 
-  constructor: (@cameras, @domElement) ->
-    @camera = @cameras[@cameras.length - 1]
-
+  constructor: (@camera, @domElement) ->
     @pitchObject = new THREE.Object3D
     @pitchObject.add(@camera)
-    # LW.renderer.scene.add(@camera)
 
     @yawObject = new THREE.Object3D
     @yawObject.add(@pitchObject)
@@ -34,16 +31,6 @@ class LW.Controls
 
     @domElement.addEventListener('mousedown', @mouseDownFallback)
     @domElement.addEventListener('mouseup', @mouseUpFallback)
-
-  pickCamera: (e) ->
-    if LW.renderer.useQuadView
-      camIndex = 0
-      camIndex += 1 if e.clientX > window.innerWidth / 2
-      camIndex += 2 if e.clientY > window.innerHeight / 2
-    else
-      camIndex = 3
-
-    @camera = @cameras[camIndex]
 
   HALF_PI = Math.PI / 2
 

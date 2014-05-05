@@ -23,7 +23,7 @@ window.BASE_URL ?= "/resources"
 window.LW =
   init: (container = document.body) ->
     @renderer = new LW.Renderer(container)
-    @controls = new LW.Controls([@renderer.topCamera, @renderer.sideCamera, @renderer.frontCamera, @renderer.camera], @renderer.domElement)
+    @controls = new LW.Controls(@renderer.camera, @renderer.domElement)
 
     @terrain = new LW.TerrainMesh
     @renderer.scene.add(@terrain)
@@ -69,6 +69,8 @@ window.LW =
     @edit?.modelChanged(model)
     @terrain?.rebuild()
     @track?.rebuild()
+
+    @controls.yawObject.position.copy(@model.spline.getPointAt(0)).add(@track.onRideCameraOffset)
 
   kill: ->
     @renderer.kill()
