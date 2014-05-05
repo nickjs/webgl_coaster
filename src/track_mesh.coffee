@@ -98,9 +98,11 @@ class LW.TrackMesh extends THREE.Object3D
     stationTexture.wrapS = stationTexture.wrapT = THREE.RepeatWrapping
     @stationMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, map: stationTexture)
 
-    @catwalkMaterial = @shapeMaterial.clone()
-    @catwalkMaterial.transparent = true
-    @catwalkMaterial.map = LW.textures.grate
+    grateMaterial = @shapeMaterial.clone()
+    grateMaterial.transparent = true
+    grateMaterial.map = LW.textures.grate
+
+    @catwalkMaterial = new THREE.MeshFaceMaterial([grateMaterial, @shapeMaterial])
     @shapes.catwalkStepsLeft.mesh.material = @catwalkMaterial
 
     @tunnelMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, side: THREE.DoubleSide)
@@ -212,14 +214,12 @@ class LW.TrackMesh extends THREE.Object3D
 
   stepShapes: (pos, matrix) ->
     for key, shape of @shapes
-      if shape.disabled
-        shape._wasDisabled = true
-        continue
-
-      if shape.segment && shape.segment != @separator.type
+      if (shape.segment && shape.segment != @separator.type) || shape.disabled
         if shape._steps > 0
-          @_bottomFace(shape, true) if !shape.open
+          @_bottomFace(shape, true) if !shape.open && shape._geometry
           shape._steps = 0
+        if shape.disabled
+          shape._wasDisabled = true
         continue
 
       if shape.every && shape._lastPos?.distanceTo(pos) < shape.every
@@ -317,14 +317,14 @@ class LW.TrackMesh extends THREE.Object3D
           a = face[if flipTopBottom then 0 else 2] + startOffset
           b = face[1] + startOffset
           c = face[if flipTopBottom then 2 else 0] + startOffset
-          target.faces.push(new THREE.Face3(a, b, c, null, color))
+          target.faces.push(new THREE.Face3(a, b, c, null, color, 1))
           target.faceVertexUvs[0].push(uvgen.generateBottomUV(target, shape.shape, null, a, b, c))
 
         if bottomFace
           a = face[if flipTopBottom then 2 else 0] + endOffset
           b = face[1] + endOffset
           c = face[if flipTopBottom then 0 else 2] + endOffset
-          target.faces.push(new THREE.Face3(a, b, c, null, color))
+          target.faces.push(new THREE.Face3(a, b, c, null, color, 1))
           target.faceVertexUvs[0].push(uvgen.generateTopUV(target, shape.shape, null, a, b, c))
 
     if sideFaces
@@ -337,8 +337,8 @@ class LW.TrackMesh extends THREE.Object3D
         c = k + startOffset
         d = k + endOffset
 
-        target.faces.push(new THREE.Face3(d, b, a, null, color))
-        target.faces.push(new THREE.Face3(d, c, b, null, color))
+        target.faces.push(new THREE.Face3(d, b, a, null, color, 0))
+        target.faces.push(new THREE.Face3(d, c, b, null, color, 0))
 
         uvs = uvgen.generateSideWallUV(target, shape.shape, null, null, a, b, c, d)
         uva = new THREE.Vector2(0, 0)
@@ -472,6 +472,11 @@ class LW.TrackMesh extends THREE.Object3D
   stationShape.lineTo(30, -500)
 
   catwalkStep = new THREE.BoxGeometry(8, 0.4, 3.95)
+  for face, i in catwalkStep.faces
+    if i in [4, 5, 6, 7]
+      face.materialIndex = 0
+    else
+      face.materialIndex = 1
   catwalkStep = new THREE.Mesh(catwalkStep)
 
   catwalkShape = new THREE.Shape
@@ -490,10 +495,10 @@ class LW.TrackMesh extends THREE.Object3D
   @shapes {
     lift: {shape: liftShape, segment: 'LiftSegment'}
     station: {shape: stationShape, every: 10, segment: 'StationSegment'}
-    catwalkStepsLeft: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(-8.5, 0, 0), rotation: {x: 0, z: 0}}
-    catwalkStepsRight: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(8.5, 0, 0), rotation: {x: 0, z: 0}}
-    catwalkLeft: {shape: catwalkShape, every: 10, offset: new THREE.Vector3(-8.5, 0, 0), materialKey: 'catwalk'}
-    catwalkRight: {shape: catwalkShape, every: 10, offset: new THREE.Vector3(8.5, 0, 0), materialKey: 'catwalk'}
+    catwalkStepsLeft: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(-8.5, -4, 0), rotation: {x: 0, z: 0}}
+    catwalkStepsRight: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(8.5, -4, 0), rotation: {x: 0, z: 0}}
+    catwalkLeft: {shape: catwalkShape, every: 10, offset: new THREE.Vector3(-8.5, -3, 0), materialKey: 'catwalk'}
+    catwalkRight: {shape: catwalkShape, every: 10, offset: new THREE.Vector3(8.5, -3, 0), materialKey: 'catwalk'}
     squareTunnel: {shape: squareTunnel, every: 10, open: true, materialKey: 'tunnel'}
   }
 
@@ -501,7 +506,7 @@ class LW.TrackMesh extends THREE.Object3D
     railingLeft = segment.settings.railing_left
     railingRight = segment.settings.railing_right
     if railingLeft || railingRight
-      @stepCallbacks.decideOnCatwalks = (u) ->
+      @stepCallbacks.decideOnCatwalks ||= (u) ->
         tangent = @model.spline.getTangentAt(u)
         flatAngle = Math.PI / 2
         tangentAngle = Math.abs(LW.DOWN.angleTo(tangent))
@@ -511,11 +516,12 @@ class LW.TrackMesh extends THREE.Object3D
         @shapes.catwalkRight.disabled = !railingRight || !flat
         @shapes.catwalkStepsLeft.disabled = !railingLeft || flat
         @shapes.catwalkStepsRight.disabled = !railingRight || flat
+    else if @stepCallbacks.decideOnCatwalks
+      delete @stepCallbacks.decideOnCatwalks
 
     @shapes.squareTunnel.disabled = !segment.settings.use_tunnel
 
   leaveSegment: (segment) ->
-    delete @stepCallbacks.decideOnCatwalks
     @shapes.catwalkLeft.disabled = true
     @shapes.catwalkRight.disabled = true
     @shapes.catwalkStepsLeft.disabled = true
