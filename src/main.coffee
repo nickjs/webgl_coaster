@@ -18,7 +18,7 @@
 #= require ./bm_inverted_track
 #= require ./intamin_track
 
-window.BASE_URL ?= "/resources"
+window.BASE_URL ?= "/assets"
 
 window.LW =
   init: (container = document.body) ->
