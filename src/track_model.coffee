@@ -117,9 +117,9 @@ class LW.TrackModel
     return bestT
 
   findSeparatorFromT: (seekingT) ->
-    for separator in @separators
+    for separator, i in @separators
       if seekingT <= separator.position
-        return separator
+        return @separators[i - 1] || @defaultSeparator
 
     return @defaultSeparator
 
