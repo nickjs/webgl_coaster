@@ -485,6 +485,12 @@ class LW.TrackMesh extends THREE.Object3D
   catwalkShape.lineTo(4, -0.4)
   catwalkShape.lineTo(-4, -0.4)
 
+  catwalkCenterShape = new THREE.Shape
+  catwalkCenterShape.moveTo(-4.5, 0)
+  catwalkCenterShape.lineTo(4.5, 0)
+  catwalkCenterShape.lineTo(4.5, -0.4)
+  catwalkCenterShape.lineTo(-4.5, -0.4)
+
   tunnelRadius = 10
   squareTunnel = new THREE.Shape
   squareTunnel.moveTo(-tunnelRadius, -tunnelRadius)
@@ -497,8 +503,9 @@ class LW.TrackMesh extends THREE.Object3D
     station: {shape: stationShape, every: 10, segment: 'StationSegment'}
     catwalkStepsLeft: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(-8.5, -4, 0), rotation: {x: 0, z: 0}}
     catwalkStepsRight: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(8.5, -4, 0), rotation: {x: 0, z: 0}}
-    catwalkLeft: {shape: catwalkShape, every: 10, offset: new THREE.Vector3(-8.5, -3, 0), materialKey: 'catwalk'}
-    catwalkRight: {shape: catwalkShape, every: 10, offset: new THREE.Vector3(8.5, -3, 0), materialKey: 'catwalk'}
+    catwalkLeft: {shape: catwalkShape, every: 10, offset: new THREE.Vector2(-8.5, -3), materialKey: 'catwalk'}
+    catwalkRight: {shape: catwalkShape, every: 10, offset: new THREE.Vector2(8.5, -3), materialKey: 'catwalk'}
+    catwalkCenter: {shape: catwalkCenterShape, every: 10, offset: new THREE.Vector2(0, -3), materialKey: 'catwalk'}
     squareTunnel: {shape: squareTunnel, every: 10, open: true, materialKey: 'tunnel'}
   }
 
@@ -516,6 +523,8 @@ class LW.TrackMesh extends THREE.Object3D
         @shapes.catwalkRight.disabled = !railingRight || !flat
         @shapes.catwalkStepsLeft.disabled = !railingLeft || flat
         @shapes.catwalkStepsRight.disabled = !railingRight || flat
+
+        @shapes.catwalkCenter.disabled = !railingLeft || !railingRight || !@shapes.catwalkCenter.enabled
     else if @stepCallbacks.decideOnCatwalks
       delete @stepCallbacks.decideOnCatwalks
 
@@ -526,3 +535,4 @@ class LW.TrackMesh extends THREE.Object3D
     @shapes.catwalkRight.disabled = true
     @shapes.catwalkStepsLeft.disabled = true
     @shapes.catwalkStepsRight.disabled = true
+    @shapes.catwalkCenter.disabled = true
