@@ -79,8 +79,13 @@ class LW.IntaminTrack extends LW.TrackMesh
   enterSegment: (segment) ->
     super
 
-    @rails.third.disabled = segment.settings.flags != 32
-    @rails.fourthLeft.disabled = @rails.fourthRight.disabled = segment.settings.flags != 36
+    four = segment.settings.flags & 4
+    two = segment.settings.flags & 8 || segment.type in [LW.Separator.TYPE.STATION, LW.Separator.TYPE.BRAKE]
+    three = !four && !two
 
-    @shapes.threeTie.disabled = segment.settings.flags != 32
-    @shapes.fourTie.disabled = segment.settings.flags != 36
+    @rails.third.disabled = !three
+    @rails.fourthLeft.disabled = !four
+    @rails.fourthRight.disabled = !four
+
+    @shapes.threeTie.disabled = !three
+    @shapes.fourTie.disabled = !four
