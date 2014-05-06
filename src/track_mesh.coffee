@@ -499,10 +499,10 @@ class LW.TrackMesh extends THREE.Object3D
   @shapes {
     lift: {shape: liftShape, segment: 'LiftSegment'}
     station: {shape: stationShape, every: 10, segment: 'StationSegment'}
-    catwalkStepsLeft: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(-8.5, -4, 0), rotation: {x: 0, z: 0}}
-    catwalkStepsRight: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(8.5, -4, 0), rotation: {x: 0, z: 0}}
-    catwalkLeft: {shape: catwalkShape, every: 10, offset: new THREE.Vector2(-8.5, -3), materialKey: 'catwalk'}
-    catwalkRight: {shape: catwalkShape, every: 10, offset: new THREE.Vector2(8.5, -3), materialKey: 'catwalk'}
+    catwalkStepsLeft: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(-7.5, -4, 0), rotation: {x: 0, z: 0}}
+    catwalkStepsRight: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(7.5, -4, 0), rotation: {x: 0, z: 0}}
+    catwalkLeft: {shape: catwalkShape, every: 10, offset: new THREE.Vector2(-7.5, -3), materialKey: 'catwalk'}
+    catwalkRight: {shape: catwalkShape, every: 10, offset: new THREE.Vector2(7.5, -3), materialKey: 'catwalk'}
     catwalkCenter: {shape: catwalkCenterShape, every: 10, offset: new THREE.Vector2(0, -3), materialKey: 'catwalk'}
     squareTunnel: {shape: squareTunnel, every: 10, open: true, materialKey: 'tunnel'}
   }
