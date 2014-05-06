@@ -57,7 +57,10 @@ class LW.IntaminTrack extends LW.TrackMesh
 
   # gearOffset: new THREE.Vector3(-1, 5.8, 0)
 
+  supportOffset: new THREE.Vector3(0, -1, 0)
+
   @shapes {
+    lift: {offset: new THREE.Vector2(0, 0.5)}
     tie: {shape: tieShape, every: 6, depth: tieHeight * 2}
     threeTie: {shape: threeTie, on: 'tie', depth: tieHeight * 2, materialKey: 'tie'}
     fourTie: {shape: fourTie, on: 'tie', depth: tieHeight * 2, materialKey: 'tie'}
