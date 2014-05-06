@@ -19,10 +19,9 @@ class LW.FreeNode
 class LW.TrackConnectionNode
   position: null
   segment: 0
-  offsetHeight: -4
+  offsetHeight: 0
 
-  constructor: (x, y, z) ->
-    @position = new THREE.Vector3(x, y, z)
+  constructor: (@position) ->
 
 class LW.SupportTube
   node1: null

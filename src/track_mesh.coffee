@@ -368,6 +368,8 @@ class LW.TrackMesh extends THREE.Object3D
   # Supports
   ###
 
+  supportOffset: new THREE.Vector3(0, -4, 0)
+
   renderSupports: ->
     footerTexture = LW.textures.footer
     footerBump = LW.textures.footerBump
@@ -397,6 +399,15 @@ class LW.TrackMesh extends THREE.Object3D
       mesh.position = node.position
       @add(mesh)
 
+    for node in @model.trackConnectionNodes
+      continue if typeof node.position != "number"
+
+      pos = @model.spline.getPointAt(node.position)
+      matrix = LW.getMatrixAt(@model.spline, node.position)
+
+      node.position = pos.clone()
+      node.position.add(@supportOffset.clone().applyMatrix4(matrix))
+
     orientation = new THREE.Matrix4
     offsetRotation = new THREE.Matrix4
     offsetPosition = new THREE.Matrix4
@@ -410,21 +421,8 @@ class LW.TrackMesh extends THREE.Object3D
       p1.copy(tube.node1.position)
       p2.copy(tube.node2.position)
 
-      if tube.node1 instanceof LW.TrackConnectionNode
-        delta.subVectors(p1, p2).normalize()
-        ray = new THREE.Raycaster(p2, delta, 1, 1000)
-        point = ray.intersectObject(spineMesh)[0]
-        p1.copy(point.point) if point?.point
-      else
-        p1.y += tube.node1.offsetHeight
-
-      if tube.node2 instanceof LW.TrackConnectionNode
-        delta.subVectors(p2, p1).normalize()
-        ray = new THREE.Raycaster(p1, delta, 1, 1000)
-        point = ray.intersectObject(spineMesh)[0]
-        p2.copy(point.point) if point?.point
-      else
-        p2.y += tube.node2.offsetHeight
+      p1.y += tube.node1.offsetHeight
+      p2.y += tube.node2.offsetHeight
 
       height = p1.distanceTo(p2)
       continue if height < 0.5
