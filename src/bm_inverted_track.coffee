@@ -56,6 +56,8 @@ class LW.BMInvertedTrack extends LW.BMTrack
 
   invertedOffset = -15
 
+  supportOffset: new THREE.Vector3(0, 4, 0)
+
   @shapes {
     spine: {shape: boxShape}
     tie: {shape: tieShape}
@@ -64,6 +66,8 @@ class LW.BMInvertedTrack extends LW.BMTrack
     catwalkStepsRight: {offset: new THREE.Vector3(8.5, invertedOffset - 1)}
     catwalkLeft: {offset: new THREE.Vector2(-8.5, invertedOffset)}
     catwalkRight: {offset: new THREE.Vector2(8.5, invertedOffset)}
+    catwalkRailingLeft: {offset: new THREE.Vector2(-13.5, invertedOffset)}
+    catwalkRailingRight: {offset: new THREE.Vector2(13.5, invertedOffset)}
     catwalkCenter: {offset: new THREE.Vector2(0, invertedOffset), enabled: true}
     station: {offset: new THREE.Vector2(0, invertedOffset)}
   }

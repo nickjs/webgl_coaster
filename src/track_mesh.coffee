@@ -102,7 +102,12 @@ class LW.TrackMesh extends THREE.Object3D
     grateMaterial.transparent = true
     grateMaterial.map = LW.textures.grate
 
+    fenceMaterial = @shapeMaterial.clone()
+    fenceMaterial.transparent = true
+    fenceMaterial.map = LW.textures.fence
+
     @catwalkMaterial = new THREE.MeshFaceMaterial([grateMaterial, @shapeMaterial])
+    @catwalkFenceMaterial = @shapeMaterial.clone()
     @shapes.catwalkStepsLeft.mesh.material = @catwalkMaterial
 
     @tunnelMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, side: THREE.DoubleSide)
@@ -358,7 +363,7 @@ class LW.TrackMesh extends THREE.Object3D
         material = shape.material || @["#{shape.materialKey || shape.key}Material"] || @shapeMaterial
         shape.mesh = new THREE.Mesh(shape._geometry, material)
         shape.mesh.castShadow = true
-        # shape.mesh.receiveShadow = true
+        shape.mesh.receiveShadow = true if shape.receiveShadow
 
         @add(shape.mesh)
 
@@ -469,7 +474,7 @@ class LW.TrackMesh extends THREE.Object3D
   stationShape.lineTo(30, 0)
   stationShape.lineTo(30, -500)
 
-  catwalkStep = new THREE.BoxGeometry(8, 0.4, 3.95)
+  catwalkStep = new THREE.BoxGeometry(10, 0.4, 3.95)
   for face, i in catwalkStep.faces
     if i in [4, 5, 6, 7]
       face.materialIndex = 0
@@ -478,16 +483,38 @@ class LW.TrackMesh extends THREE.Object3D
   catwalkStep = new THREE.Mesh(catwalkStep)
 
   catwalkShape = new THREE.Shape
-  catwalkShape.moveTo(-4, 0)
-  catwalkShape.lineTo(4, 0)
-  catwalkShape.lineTo(4, -0.4)
-  catwalkShape.lineTo(-4, -0.4)
+  catwalkShape.moveTo(-5, 0)
+  catwalkShape.lineTo(5, 0)
+  catwalkShape.lineTo(5, -0.4)
+  catwalkShape.lineTo(-5, -0.4)
 
   catwalkCenterShape = new THREE.Shape
   catwalkCenterShape.moveTo(-4.5, 0)
   catwalkCenterShape.lineTo(4.5, 0)
   catwalkCenterShape.lineTo(4.5, -0.4)
   catwalkCenterShape.lineTo(-4.5, -0.4)
+
+  catwalkRailing = new THREE.Shape
+  catwalkRailing.moveTo(-0.25, -0.5)
+  catwalkRailing.lineTo(-0.25, 0)
+  catwalkRailing.lineTo(0, 0)
+  catwalkRailing.lineTo(0, 3.5)
+  catwalkRailing.lineTo(-0.25, 3.5)
+  catwalkRailing.lineTo(-0.25, 4)
+  catwalkRailing.lineTo(0, 4)
+  catwalkRailing.lineTo(0, 7.5)
+  catwalkRailing.lineTo(-0.25, 7.5)
+  catwalkRailing.lineTo(-0.25, 8)
+  catwalkRailing.lineTo(0.25, 8)
+  catwalkRailing.lineTo(0.25, 7.5)
+  catwalkRailing.lineTo(0.1, 7.5)
+  catwalkRailing.lineTo(0.1, 4)
+  catwalkRailing.lineTo(0.25, 4)
+  catwalkRailing.lineTo(0.25, 3.5)
+  catwalkRailing.lineTo(0.1, 3.5)
+  catwalkRailing.lineTo(0.1, 0)
+  catwalkRailing.lineTo(0.25, 0)
+  catwalkRailing.lineTo(0.25, -0.5)
 
   tunnelRadius = 10
   squareTunnel = new THREE.Shape
@@ -503,8 +530,10 @@ class LW.TrackMesh extends THREE.Object3D
     catwalkStepsRight: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(7.5, -4, 0), rotation: {x: 0, z: 0}}
     catwalkLeft: {shape: catwalkShape, every: 10, offset: new THREE.Vector2(-7.5, -3), materialKey: 'catwalk'}
     catwalkRight: {shape: catwalkShape, every: 10, offset: new THREE.Vector2(7.5, -3), materialKey: 'catwalk'}
+    catwalkRailingLeft: {shape: catwalkRailing, every: 10, offset: new THREE.Vector2(-12.5, -4), materialKey: 'catwalkFence'}
+    catwalkRailingRight: {shape: catwalkRailing, every: 10, offset: new THREE.Vector2(12.5, -4), materialKey: 'catwalkFence'}
     catwalkCenter: {shape: catwalkCenterShape, every: 10, offset: new THREE.Vector2(0, -3), materialKey: 'catwalk'}
-    squareTunnel: {shape: squareTunnel, every: 10, open: true, materialKey: 'tunnel'}
+    squareTunnel: {shape: squareTunnel, every: 10, open: true, materialKey: 'tunnel', receiveShadow: true}
   }
 
   enterSegment: (segment) ->
@@ -521,6 +550,8 @@ class LW.TrackMesh extends THREE.Object3D
         @shapes.catwalkRight.disabled = !railingRight || !flat
         @shapes.catwalkStepsLeft.disabled = !railingLeft || flat
         @shapes.catwalkStepsRight.disabled = !railingRight || flat
+        @shapes.catwalkRailingLeft.disabled = !railingLeft
+        @shapes.catwalkRailingRight.disabled = !railingRight
 
         @shapes.catwalkCenter.disabled = !railingLeft || !railingRight || !@shapes.catwalkCenter.enabled
     else if @stepCallbacks.decideOnCatwalks
@@ -533,4 +564,6 @@ class LW.TrackMesh extends THREE.Object3D
     @shapes.catwalkRight.disabled = true
     @shapes.catwalkStepsLeft.disabled = true
     @shapes.catwalkStepsRight.disabled = true
+    @shapes.catwalkRailingLeft.disabled = true
+    @shapes.catwalkRailingRight.disabled = true
     @shapes.catwalkCenter.disabled = true

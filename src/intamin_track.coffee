@@ -57,13 +57,18 @@ class LW.IntaminTrack extends LW.TrackMesh
 
   # gearOffset: new THREE.Vector3(-1, 5.8, 0)
 
+  launchFins = new THREE.BoxGeometry(3.8, 3.6, 6)
+  material = new THREE.MeshPhongMaterial(specular: 0xaaaaaa)
+  launchFins = new THREE.Mesh(launchFins, material)
+
   supportOffset: new THREE.Vector3(0, -1, 0)
 
   @shapes {
-    lift: {offset: new THREE.Vector2(0, 0.5)}
+    lift: {offset: new THREE.Vector2(0, 0.5), segment: null}
     tie: {shape: tieShape, every: 6, depth: tieHeight * 2}
     threeTie: {shape: threeTie, on: 'tie', depth: tieHeight * 2, materialKey: 'tie'}
     fourTie: {shape: fourTie, on: 'tie', depth: tieHeight * 2, materialKey: 'tie'}
+    launchFins: {mesh: launchFins, on: 'tie', offset: new THREE.Vector3(0, -1.2, 4.2)}
   }
 
   carDistance: 20
@@ -72,7 +77,7 @@ class LW.IntaminTrack extends LW.TrackMesh
   prepareMaterials: ->
     super
 
-    liftTexture = LW.textures.liftCable
+    liftTexture = LW.textures.cable
     liftTexture.wrapT = THREE.RepeatWrapping
     @liftMaterial.map = liftTexture
 
@@ -89,3 +94,6 @@ class LW.IntaminTrack extends LW.TrackMesh
 
     @shapes.threeTie.disabled = !three
     @shapes.fourTie.disabled = !four
+
+    @shapes.launchFins.disabled = segment.type != "TransportSegment"
+    @shapes.lift.disabled = !(segment.type in ["TransportSegment", "LiftSegment"])
