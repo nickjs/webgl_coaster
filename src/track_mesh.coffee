@@ -90,7 +90,7 @@ class LW.TrackMesh extends THREE.Object3D
     @shapeMaterial = new THREE.MeshPhongMaterial({specular, color: @model.defaultSeparator.spineColor, vertexColors: THREE.FaceColors})
     @supportMaterial = new THREE.MeshPhongMaterial({color: @model.defaultSeparator.supportColor})
 
-    liftTexture = LW.textures.liftChain
+    liftTexture = LW.textures.chain
     liftTexture.wrapT = THREE.RepeatWrapping
     @liftMaterial = new THREE.MeshLambertMaterial(map: liftTexture)
 

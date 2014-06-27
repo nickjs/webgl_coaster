@@ -32,17 +32,7 @@ window.LW =
 
   initializeTextures: (textures) ->
     @textures ||= {}
-    for key, data of textures
-      if Array.isArray(data)
-        image = []
-        for imageData in data
-          subImage = new Image
-          subImage.src = imageData
-          image.push(subImage)
-      else
-        image = new Image
-        image.src = data
-
+    for key, image of textures
       texture = new THREE.Texture(image)
       texture.needsUpdate = true
       @textures[key] = texture

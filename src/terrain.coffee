@@ -19,7 +19,7 @@ class LW.TerrainMesh extends THREE.Object3D
     @loadTextures()
 
   buildWater: (width, height) ->
-    waterNormals = LW.textures.waterNormals
+    waterNormals = LW.textures.waternormals
     waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping
 
     @water = new THREE.Water(LW.renderer.renderer, LW.renderer.camera, LW.renderer.scene, {
@@ -48,7 +48,7 @@ class LW.TerrainMesh extends THREE.Object3D
     @groundMaterial = new THREE.MeshLambertMaterial(map: groundTexture)
 
     # Skybox
-    skyTexture = LW.textures.skyBox
+    skyTexture = LW.textures.skybox
     skyTexture.flipY = false
 
     shader = THREE.ShaderLib["cube"]
