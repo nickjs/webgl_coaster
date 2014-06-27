@@ -1,6 +1,7 @@
 class LW.NurbsSpline extends THREE.NURBSCurve
   constructor: (@vertices, @rollNodes) ->
     @rollSpline = new LW.RollSpline(@rollNodes)
+    @rebuild()
 
   rebuild: ->
     knots = [0,0,0,0]
