@@ -109,7 +109,7 @@ class LW.TrackModel
     for i in [0..totalLength]
       u = i / totalLength
       currentPos = @spline.getPointAt(u)
-      distance = currentPos.distanceTo(seekingPos)
+      distance = currentPos.distanceToSquared(seekingPos)
       if distance < bestDistance
         bestT = u
         bestDistance = distance

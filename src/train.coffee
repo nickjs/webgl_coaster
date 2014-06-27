@@ -1,6 +1,6 @@
 class LW.Train extends THREE.Object3D
-  velocity: 20
-  initialVelocity: 20
+  velocity: 0
+  initialVelocity: 0
   displacement: 0
   acceleration: 0
   initialAcceleration: -0.01
@@ -31,6 +31,7 @@ class LW.Train extends THREE.Object3D
       geo = new THREE.BoxGeometry(8,8,16)
       mat = new THREE.MeshLambertMaterial(color: 0xeeeeee)
       @carProto = new THREE.Mesh(geo, mat)
+      @carProto.castShadow = true
 
       @rebuild()
 
@@ -61,13 +62,26 @@ class LW.Train extends THREE.Object3D
     # @shouldSimulate = oldShouldSimulate
 
   start: ->
+    return unless @model = LW.model
+
     @shouldSimulate = true
     @acceleration = @initialAcceleration
     @velocity = @initialVelocity
-    @displacement = 0
 
-    @separator = LW.model.separators[0]
-    @nextSeparator = LW.model.separators[1]
+    for separator, i in @model.separators
+      if separator.type == LW.Separator.TYPE.STATION
+        @separator = separator
+        @nextSeparator = @model.separators[i + 1]
+        break
+
+    totalLength = @model.spline.getLength()
+    distance = if @nextSeparator
+      @nextSeparator.position * totalLength - @separator.position * totalLength
+    else
+      totalLength - @separator.position * totalLength
+
+    @displacement = distance / 2 + @separator.position * totalLength
+
 
   stop: ->
     @shouldSimulate = false
@@ -78,12 +92,12 @@ class LW.Train extends THREE.Object3D
   mat = new THREE.Matrix4()
 
   update: (delta) ->
-    return if !@shouldSimulate or !@cars?.length or !(model = @track.model)
+    return if !@shouldSimulate or !@cars?.length or !(model = @model)
 
-    if @currentTime >= @nextSeparator.position
+    if @nextSeparator && @currentTime >= @nextSeparator.position
       @leaveSegment?(@separator, @nextSeparator)
       @separator = @nextSeparator
-      @nextSeparator = model.separators[model.separators.indexOf(@nextSeparator) + 1] || model.separators[0]
+      @nextSeparator = model.separators[model.separators.indexOf(@nextSeparator) + 1]
       @enterSegment?(@separator, @nextSeparator)
 
     switch @separator.type
@@ -91,7 +105,7 @@ class LW.Train extends THREE.Object3D
         @velocity = Math.max(@velocity, @separator.settings.lift_speed * 10)
 
         # chain animation
-        LW.track.liftMaterial.map.offset.y -= 0.4
+        LW.track.liftMaterial.map.offset.y -= @separator.settings.lift_speed - 0.01
         # for gear in LW.track.gears
         #   gear.rotation.x -= 0.1
 
@@ -104,20 +118,37 @@ class LW.Train extends THREE.Object3D
           @acceleration -= @separator.settings.decel * 10
           @separator.decelApplied = true
 
-    if @lastTangent
+      when LW.Separator.TYPE.TRANSPORT, LW.Separator.TYPE.STATION
+        if @separator.accelApplied
+          if @velocity > @separator.settings.transportSpeed * 10
+            @acceleration -= @separator.settings.transportAccel * 10
+            @separator.accelApplied = false
+        else if @velocity <= @separator.settings.transportSpeed * 10
+          @acceleration += @separator.settings.transportAccel * 10
+          @separator.accelApplied = true
+
+        if @separator.type == LW.Separator.TYPE.STATION
+          if !@startHoldTime
+            @startHoldTime = new Date()
+          else
+            @holdHere = new Date() - @startHoldTime < 2000
+
+    if @lastTangent && !@holdHere
       alpha = down.angleTo(@lastTangent)
       a = 29.43 * Math.cos(alpha) + @acceleration
       @velocity = @velocity + a * delta
 
-    @displacement = @displacement + @velocity * delta
+    @displacement = @displacement + @velocity * delta unless @holdHere
 
-    if @displacement <= 0
-      @currentTime = 0
-    else
-      @currentTime = @displacement / model.spline.getLength()
-    if @currentTime > 1
+
+    totalLength = model.spline.getLength()
+    if @displacement <= 0 || @displacement >= totalLength
       @currentTime = 0
       @displacement = 0
+      @separator = model.separators[0]
+      @nextSeparator = model.separators[1]
+    else
+      @currentTime = @displacement / totalLength
 
     lastPos = model.spline.getPointAt(@currentTime)
     deltaPoint = @currentTime
@@ -146,3 +177,14 @@ class LW.Train extends THREE.Object3D
             LW.positionObjectOnSpline(@camera, model.spline, deltaPoint, @track.onRideCameraOffset)
 
     return
+
+  leaveSegment: (segment) ->
+    if segment.accelApplied
+      @acceleration -= segment.settings.transportAccel * 10
+      segment.accelApplied = false
+    if segment.decelApplied
+      @acceleration += segment.settings.decel * 10
+      segment.decelApplied = false
+
+    if @startHoldTime
+      @startHoldTime = null
