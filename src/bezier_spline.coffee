@@ -66,7 +66,7 @@ class LW.BezierSpline extends THREE.CurvePath
         p2 = curve.p2?.bank
         p3 = @curves[i + 1]?.p2?.bank
 
-        relative = curve.p1?.relativeRoll || curve.p2?.relativeRoll
+        # relative = curve.p1?.relativeRoll || curve.p2?.relativeRoll
 
         rangeZero = 2 * Math.PI
         diff = Math.abs(p2 - p1)
@@ -82,7 +82,8 @@ class LW.BezierSpline extends THREE.CurvePath
         else
           interpolated = interpolated % rangeZero
 
-        return [interpolated, relative]
+        # return [interpolated, relative]
+        return interpolated
 
       i++
 
