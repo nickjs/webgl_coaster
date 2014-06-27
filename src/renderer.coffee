@@ -46,6 +46,8 @@ class LW.Renderer
     @dirLight.shadowCameraTop = d
     @dirLight.shadowCameraBottom = -d
 
+    @audioContext = new AudioContext
+
     window.addEventListener('resize', @onResize, false)
 
   render: =>

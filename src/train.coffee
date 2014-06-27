@@ -12,6 +12,11 @@ class LW.Train extends THREE.Object3D
 
     LW.mixin(this, options)
 
+    @sound = new Sound(LW.renderer.audioContext)
+    @sound.load("/assets/sounds/slide.ogg")
+    @sound.setVolume(0.5)
+    @sound.setLoop(true)
+
     if track?.carModel
       loader = new THREE.ColladaLoader
       loader.load "#{BASE_URL}/models/#{track.carModel}", (result) =>
@@ -82,11 +87,14 @@ class LW.Train extends THREE.Object3D
 
     @displacement = distance / 2 + @separator.position * totalLength
 
+    @sound.play()
 
   stop: ->
     @shouldSimulate = false
     @clear()
     @cars = []
+
+    @sound.stop()
 
   down = new THREE.Vector3(0, -1, 0)
   mat = new THREE.Matrix4()
@@ -140,6 +148,7 @@ class LW.Train extends THREE.Object3D
 
     @displacement = @displacement + @velocity * delta unless @holdHere
 
+    @sound.setPlayBackRate(if @holdHere then 0 else @velocity * 0.001 + 0.2)
 
     totalLength = model.spline.getLength()
     if @displacement <= 0 || @displacement >= totalLength
