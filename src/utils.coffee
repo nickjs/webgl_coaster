@@ -68,20 +68,21 @@ tangent = null
 LW.getMatrixAt = (spline, u) ->
   tangent = spline.getTangentAt(u).normalize()
 
-  [bank, relative] = spline.getBankAt(u)
+  # [bank, relative] = spline.getBankAt(u)
+  bank = spline.getBankAt(u)
 
-  if relative
-    binormal.crossVectors(tangent, up).normalize()
-    up.crossVectors(binormal, tangent).normalize()
+  # if relative
+  #   binormal.crossVectors(tangent, up).normalize()
+  #   up.crossVectors(binormal, tangent).normalize()
+  #   # FIXME: UP is wrong if we weren't stepping over the entire track
+  #   rolledUp.copy(up).applyAxisAngle(tangent, bank).normalize()
+  #   binormal.crossVectors(tangent, rolledUp).normalize()
+  # else
+  up.copy(LW.UP).applyAxisAngle(tangent, bank)
 
-    rolledUp.copy(up).applyAxisAngle(tangent, bank).normalize()
-    binormal.crossVectors(tangent, rolledUp).normalize()
-  else
-    up.copy(LW.UP).applyAxisAngle(tangent, bank)
-
-    binormal.crossVectors(tangent, up).normalize()
-    up.crossVectors(binormal, tangent).normalize()
-    rolledUp.copy(up)
+  binormal.crossVectors(tangent, up).normalize()
+  up.crossVectors(binormal, tangent).normalize()
+  rolledUp.copy(up)
 
   matrix = new THREE.Matrix4(binormal.x, rolledUp.x, -tangent.x, 0,
                              binormal.y, rolledUp.y, -tangent.y, 0,
