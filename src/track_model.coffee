@@ -104,17 +104,34 @@ class LW.TrackModel
 
   findTFromPoint: (seekingPos) ->
     totalLength = Math.ceil(@spline.getLength())
+
     bestDistance = 10
     bestT = 0
+
     for i in [0..totalLength]
       u = i / totalLength
       currentPos = @spline.getPointAt(u)
       distance = currentPos.distanceToSquared(seekingPos)
       if distance < bestDistance
-        bestT = u
         bestDistance = distance
+        bestT = u
 
     return bestT
+
+  findTFromPoints: (input) ->
+    totalLength = Math.ceil(@spline.getLength())
+
+    for i in [0..totalLength]
+      u = i / totalLength
+      currentPos = @spline.getPointAt(u)
+      for point in input
+        distance = currentPos.distanceToSquared(point.position)
+
+        if !point.best? || distance < point.best
+          point.t = u
+          point.best = distance
+
+    return input
 
   addRollNode: (position, amount) ->
     rollNode = new LW.RollNode({position, amount})
