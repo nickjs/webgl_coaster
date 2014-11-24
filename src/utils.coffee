@@ -24,6 +24,14 @@ THREE.Vector4::add = (v) ->
   @z += v.z
   @w += v.w if v.w?
 
+originalLoadTexture = THREE.ImageUtils.loadTexture
+THREE.ImageUtils.loadTexture = (url) ->
+  components = url.split('/')
+  file = components[components.length - 1]
+  file = file.split('.')[0]
+  return texture if texture = LW.textures[file]
+  return originalLoadTexture.call(THREE.ImageUtils, url)
+
 LW.mixin = (context, mixins...) ->
   for mixin in mixins
     if mixin
@@ -66,33 +74,33 @@ binormal = new THREE.Vector3
 tangent = null
 
 LW.getMatrixAt = (spline, u) ->
-  tangent = spline.getTangentAt(u).normalize()
+  tangent = spline.getTangent(u).normalize()
 
-  # [bank, relative] = spline.getBankAt(u)
-  bank = spline.getBankAt(u)
+  [bank, relative] = spline.getBankAt(u)
+  # bank = spline.getBankAt(u)
 
-  # if relative
-  #   binormal.crossVectors(tangent, up).normalize()
-  #   up.crossVectors(binormal, tangent).normalize()
-  #   # FIXME: UP is wrong if we weren't stepping over the entire track
-  #   rolledUp.copy(up).applyAxisAngle(tangent, bank).normalize()
-  #   binormal.crossVectors(tangent, rolledUp).normalize()
-  # else
-  up.copy(LW.UP).applyAxisAngle(tangent, bank)
+  if relative
+    binormal.crossVectors(tangent, up).normalize()
+    up.crossVectors(binormal, tangent).normalize()
+    # FIXME: UP is wrong if we weren't stepping over the entire track
+    rolledUp.copy(up).applyAxisAngle(tangent, bank).normalize()
+    binormal.crossVectors(tangent, rolledUp).normalize()
+  else
+    up.copy(LW.UP).applyAxisAngle(tangent, bank)
 
   binormal.crossVectors(tangent, up).normalize()
   up.crossVectors(binormal, tangent).normalize()
   rolledUp.copy(up)
 
-  matrix = new THREE.Matrix4(binormal.x, rolledUp.x, -tangent.x, 0,
-                             binormal.y, rolledUp.y, -tangent.y, 0,
-                             binormal.z, rolledUp.z, -tangent.z, 0
-                             0, 0, 0, 1)
+  return new THREE.Matrix4(binormal.x, rolledUp.x, -tangent.x, 0,
+                           binormal.y, rolledUp.y, -tangent.y, 0,
+                           binormal.z, rolledUp.z, -tangent.z, 0,
+                           0, 0, 0, 1)
 
 appliedOffset = new THREE.Vector3
 
 LW.positionObjectOnSpline = (object, spline, u, offset, offsetRotation) ->
-  pos = spline.getPointAt(u)
+  pos = spline.getPoint(u)
   matrix = @getMatrixAt(spline, u)
 
   object.position.copy(pos)

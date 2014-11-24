@@ -7,48 +7,28 @@ class LW.Train extends THREE.Object3D
 
   numberOfCars: 1
 
-  constructor: (@track, options) ->
+  constructor: (@coaster, @track, options) ->
     super()
+
+    @numberOfCars = @coaster.carsPerTrain ? @numberOfCars
 
     LW.mixin(this, options)
 
-    @sound = new Sound(LW.renderer.audioContext)
-    @sound.load(LW.sounds.coaster)
-    @sound.setVolume(1)
-    @sound.setLoop(true)
+    @coasterSound = new LW.Sound(url: LW.sounds.coaster, volume: 0.5, loop: true)
+    @tunnelSound = new LW.Sound(url: LW.sounds.tunnel, volume: 0.7, loop: true)
+    @chainSound = new LW.Sound(url: LW.sounds.chain, volume: 0.4, playbackRate: 1.1, loop: true)
+    @brakeSound = new LW.Sound(url: LW.sounds.brake, volume: 0.9, playbackRate: 1.25)
 
-    @chainSound = new Sound(LW.renderer.audioContext)
-    @chainSound.load(LW.sounds.chain)
-    @chainSound.setVolume(0.3)
-    @chainSound.setPlayBackRate(1.6)
-    @chainSound.setLoop(true)
-
-    if track?.carModel
-      loader = new THREE.ColladaLoader
-      loader.load "#{BASE_URL}/models/#{track.carModel}", (result) =>
-        @carProto = result.scene.children[0]
-        @carProto.scale.copy(track.carScale)
-        @carRot = new THREE.Matrix4().makeRotationFromEuler(track.carRotation, 'XYZ')
-
-        sizeVector = new THREE.Vector3
-        @carProto.traverse (child) ->
-          if child instanceof THREE.Mesh
-            child.geometry.computeBoundingBox()
-            if child.geometry.boundingBox.size(sizeVector).lengthSq() > 10000
-              child.castShadow = true
-
-        @rebuild()
+    if model = LW.models[track?.mesh.carModel]
+      @carProto = model
+      @carProto.isModel = true
     else
       geo = new THREE.BoxGeometry(8,8,16)
       mat = new THREE.MeshLambertMaterial(color: 0xeeeeee)
       @carProto = new THREE.Mesh(geo, mat)
       @carProto.castShadow = true
 
-      @rebuild()
-
-    @camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000)
-    @cameraHelper = new THREE.CameraHelper(@camera)
-    @cameraHelper.visible = false
+    @rebuild()
 
   rebuild: ->
     @clear()
@@ -56,7 +36,17 @@ class LW.Train extends THREE.Object3D
 
     if @numberOfCars && @carProto
       for i in [1..@numberOfCars]
-        car = @carProto.clone()
+        if @carProto.isModel
+          car = new LW.Model @carProto, (geometry) ->
+            sizeVector = new THREE.Vector3
+            geometry.traverse (child) ->
+              if child instanceof THREE.Mesh
+                child.geometry.computeBoundingBox()
+                if child.geometry.boundingBox.size(sizeVector).lengthSq() > 10000
+                  child.castShadow = true
+
+        else
+          car = @carProto.clone()
 
         if i == @numberOfCars
           car.remove(car.getObjectByName('connector'))
@@ -64,28 +54,22 @@ class LW.Train extends THREE.Object3D
         @cars.push(car)
         @add(car)
 
-    @add(@cameraHelper)
-    @add(@camera)
-
-    # oldShouldSimulate = false
-    # @shouldSimulate = true
-    # @update(0)
-    # @shouldSimulate = oldShouldSimulate
+    return
 
   start: ->
-    return unless @model = LW.model
+    return unless @track
 
     @shouldSimulate = true
     @acceleration = @initialAcceleration
     @velocity = @initialVelocity
 
-    for separator, i in @model.separators
+    for separator, i in @track.separators
       if separator.type == LW.Separator.TYPE.STATION
         @separator = separator
-        @nextSeparator = @model.separators[i + 1]
+        @nextSeparator = @track.separators[i + 1]
         break
 
-    totalLength = @model.spline.getLength()
+    totalLength = @track.spline.getLength()
     distance = if @nextSeparator
       @nextSeparator.position * totalLength - @separator.position * totalLength
     else
@@ -93,7 +77,10 @@ class LW.Train extends THREE.Object3D
 
     @displacement = distance / 2 + @separator.position * totalLength
 
-    @sound.play()
+    if @cars?[0]
+      # @sound.position = @cars[0].position
+      @sound = @coasterSound
+      @sound.start()
 
   stop: ->
     @shouldSimulate = false
@@ -105,23 +92,53 @@ class LW.Train extends THREE.Object3D
   down = new THREE.Vector3(0, -1, 0)
   mat = new THREE.Matrix4()
 
+  showAnnotation: (annotation) ->
+    return if annotation == @annotation
+
+    if @annotation?.timer
+      clearTimeout(@annotation.timer)
+      document.body.removeChild(@annotation.div)
+
+    @annotation = annotation
+
+    div = document.createElement('div')
+    div.innerHTML = "<a href='/users/#{annotation.user_info.id}'><img src='#{annotation.user_info.avatar}'>#{annotation.user_info.name}</a>: #{annotation.body}"
+    div.className = 'lw-annotation'
+    @annotation.div = div
+    document.body.appendChild(div)
+
+    @annotation.timer = setTimeout ->
+      document.body.removeChild(div)
+    , Math.max(annotation.body.length * 100, 2000)
+
   update: (delta) ->
-    return if !@shouldSimulate or !@cars?.length or !(model = @model)
+    return if !@shouldSimulate or !@cars?.length or !(track = @track)
 
     if @nextSeparator && @currentTime >= @nextSeparator.position
-      @leaveSegment?(@separator, @nextSeparator)
+      @leaveSegment(@separator, @nextSeparator)
       @separator = @nextSeparator
-      @nextSeparator = model.separators[model.separators.indexOf(@nextSeparator) + 1]
-      @enterSegment?(@separator, @nextSeparator)
+      @nextSeparator = track.separators[track.separators.indexOf(@nextSeparator) + 1]
+      @enterSegment(@separator, @nextSeparator)
+
+    index = if @annotation
+      LW.annotations.indexOf(@annotation)
+    else
+      -1
+
+    nextAnnotation = LW.annotations?[index + 1]
+    if nextAnnotation?.time? && @currentTime >= nextAnnotation.time
+      @showAnnotation(nextAnnotation)
+
+    liftSpeed = if @separator.type == LW.Separator.TYPE.LIFT
+      @separator.settings.lift_speed
+    else
+      0.05
+
+    track.mesh.liftMaterial.map.offset.y -= liftSpeed
 
     switch @separator.type
       when LW.Separator.TYPE.LIFT
         @velocity = Math.max(@velocity, @separator.settings.lift_speed * 10)
-
-        # chain animation
-        LW.track.liftMaterial.map.offset.y -= @separator.settings.lift_speed - 0.01
-        # for gear in LW.track.gears
-        #   gear.rotation.x -= 0.1
 
       when LW.Separator.TYPE.BRAKE
         if @separator.decelApplied
@@ -146,6 +163,7 @@ class LW.Train extends THREE.Object3D
             @startHoldTime = new Date()
           else
             @holdHere = new Date() - @startHoldTime < 2000
+            @enterSegment(@separator, @nextSeparator) if !@holdHere
 
     if @lastTangent && !@holdHere
       alpha = down.angleTo(@lastTangent)
@@ -154,47 +172,72 @@ class LW.Train extends THREE.Object3D
 
     @displacement = @displacement + @velocity * delta unless @holdHere
 
-    @sound.setPlayBackRate(if @holdHere then 0.0000001 else @velocity * 0.01 + 0.3)
-    @chainSound[if @separator.type == LW.Separator.TYPE.LIFT then "play" else "stop"]()
-
-    totalLength = model.spline.getLength()
+    totalLength = track.spline.getLength()
     if @displacement <= 0 || @displacement >= totalLength
       @currentTime = 0
       @displacement = 0
-      @separator = model.separators[0]
-      @nextSeparator = model.separators[1]
+      @separator = track.separators[0]
+      @nextSeparator = track.separators[1]
     else
       @currentTime = @displacement / totalLength
 
-    lastPos = model.spline.getPointAt(@currentTime)
+    lastPos = track.spline.getPoint(@currentTime)
     deltaPoint = @currentTime
-    desiredDistance = @track.carDistance * @track.carDistance
+    deltaStep = 0.1 / totalLength
+    desiredDistance = track.mesh.carDistance * track.mesh.carDistance
 
     for car, i in @cars
       pos = null
 
       if i > 0
         while deltaPoint >= 0
-          pos = model.spline.getPointAt(deltaPoint)
+          pos = track.spline.getPoint(deltaPoint)
           break if pos.distanceToSquared(lastPos) >= desiredDistance
-          deltaPoint -= 0.001
+          deltaPoint -= deltaStep
           deltaPoint = 1 + deltaPoint if deltaPoint < 0
       else
         pos = lastPos
 
       if pos
-        tangent = LW.positionObjectOnSpline(car, model.spline, deltaPoint, null, @carRot)
+        tangent = LW.positionObjectOnSpline(car, track.spline, deltaPoint)
         lastPos = pos
 
         if i == 0
           @lastTangent = tangent
 
-          if model.onRideCamera || @cameraHelper?.visible
-            LW.positionObjectOnSpline(@camera, model.spline, deltaPoint, @track.onRideCameraOffset)
+          if @coaster.onRideCamera
+            camera = LW.controls.container
+            LW.positionObjectOnSpline(camera, track.spline, deltaPoint, track.mesh.onRideCameraOffset)
+            camera.position.x += Math.random() * @velocity * 0.00015
+            camera.position.y += Math.random() * @velocity * 0.0002
+
+    @sound.update(playbackRate: if @holdHere then 0.0000001 else @velocity * 0.01 + 0.3)
 
     return
 
-  leaveSegment: (segment) ->
+  enterSegment: (segment) ->
+    return if segment.entered
+    segment.entered = true
+
+    @chainSound.start() if segment.type == LW.Separator.TYPE.LIFT
+    @brakeSound.start() if segment.type in [LW.Separator.TYPE.BRAKE, LW.Separator.TYPE.TRANSPORT, LW.Separator.TYPE.STATION]
+
+    if segment.settings.use_tunnel && @sound != @tunnelSound
+      @sound.stop()
+      @sound = @tunnelSound
+      @sound.start()
+
+  leaveSegment: (segment, nextSegment) ->
+    segment.entered = false
+
+    @chainSound.stop() if nextSegment.type != LW.Separator.TYPE.LIFT
+    @brakeSound.stop() unless nextSegment.type in [LW.Separator.TYPE.BRAKE, LW.Separator.TYPE.TRANSPORT, LW.Separator.TYPE.STATION]
+
+    if !segment.settings.use_tunnel && !nextSegment.settings.use_tunnel && @sound == @tunnelSound
+      @sound.stop()
+      @sound = @coasterSound
+      @sound.start()
+
     if segment.accelApplied
       @acceleration -= segment.settings.transportAccel * 10
       segment.accelApplied = false

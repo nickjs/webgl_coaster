@@ -4,12 +4,14 @@ class LW.TerrainModel
   groundSegmentsX: 128
   groundSegmentsZ: 128
 
+  objects: null
   heightMap: null
 
   useWater: false
   waterLevel: 0.0
 
   constructor: (options) ->
+    @objects = []
     @heightMap = []
     LW.mixin(this, options)
 
@@ -47,27 +49,11 @@ class LW.TerrainMesh extends THREE.Object3D
 
     @groundMaterial = new THREE.MeshLambertMaterial(map: groundTexture)
 
-    # Skybox
-    skyTexture = LW.textures.skybox
-    skyTexture.flipY = false
-
-    shader = THREE.ShaderLib["cube"]
-    shader.uniforms["tCube"].value = skyTexture
-
-    @skyMaterial = new THREE.ShaderMaterial({
-      fragmentShader: shader.fragmentShader
-      vertexShader: shader.vertexShader
-      uniforms: shader.uniforms
-      side: THREE.BackSide
-    })
-
-  rebuild: ->
+  rebuild: (park) ->
     @clear()
 
-    @model = LW.model if @model != LW.model
-    return if !@model
-
-    terrain = @model.terrain
+    terrain = park?.terrain
+    return if !terrain
 
     @groundGeo = new THREE.PlaneGeometry(terrain.groundWidth, terrain.groundHeight, terrain.groundSegmentsX - 1, terrain.groundSegmentsZ - 1)
     @groundGeo.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2))
@@ -80,13 +66,39 @@ class LW.TerrainMesh extends THREE.Object3D
     @ground.receiveShadow = true
     @add(@ground)
 
-    @sky = new THREE.Mesh(new THREE.BoxGeometry(10000, 10000, 10000), @skyMaterial)
-    @add(@sky)
+    @sky = new THREE.Sky
+    @add(@sky.mesh)
+
+    @sunPosition = 0
+
+    uniforms = @sky.uniforms
+    uniforms.turbidity.value = 10
+    uniforms.reileigh.value = 2
+    uniforms.luminance.value = 1
 
     if terrain.useWater
       @buildWater(terrain.groundWidth, terrain.groundHeight)
       @waterMesh.position.y += terrain.waterLevel if terrain.waterLevel?
 
+    for object in terrain.objects
+      model = new LW.Model(LW.models.tree1)
+      model.position.copy(object.position)
+      @add(model)
+
+  distance = 400000
+
   update: (delta) ->
+    inclination = @sunPosition += 0.005 * delta
+    @sunPosition = -0.5 if @sunPosition > 0.5
+
+    azimuth = 0.25
+    theta = Math.PI * (inclination - 0.5)
+    phi = Math.PI * (azimuth - 0.5)
+
+    x = distance * Math.cos(phi) * Math.sin(theta)
+    y = distance * Math.sin(phi) * Math.sin(theta)
+    z = distance * Math.sin(phi) * Math.cos(theta)
+    @sky?.uniforms.sunPosition.value.set(x, y, z)
+
     @water?.material.uniforms.time.value += 0.5 / 60.0
     @water?.render()

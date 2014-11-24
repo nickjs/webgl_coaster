@@ -41,16 +41,16 @@ class LW.Separator extends LW.TrackNode
   supportColor: '#ffffff'
   wireframeColor: '#0000ff'
 
-  colorObject: (colorKey) ->
-    return LW.model.defaultSeparator.colorObject(colorKey) if !@individualColors
-    @_colorCache ||= {}
-    @_colorCache[colorKey] ||= new THREE.Color(@[colorKey])
+  settings: {}
+
+  colorObject: (colorKey, defaultKey) ->
+    if @individualColors || @["use_#{colorKey}"]
+      @_colorCache ||= {}
+      @_colorCache[colorKey] ||= new THREE.Color(@[colorKey] || @[defaultKey])
+    else
+      @model.defaultSeparator.colorObject(colorKey, defaultKey)
 
 class LW.TrackModel
-  name: ""
-  trackStyle: 0
-  carsPerTrain: 4
-
   vertices: null
   rollNodes: null
   separators: null
@@ -64,23 +64,18 @@ class LW.TrackModel
   forceWireframe: false
   debugNormals: false
 
-  onRideCamera: false
-
-  defaultSeparator: new LW.Separator(
-    position: null
-    individualColors: true
-  )
-
-  terrain: null
+  defaultSeparator: null
 
   LW.mixin(@prototype, LW.Observable)
 
   constructor: (@vertices, @splineClass, @proxy) ->
     return if @proxy
 
+    @defaultSeparator = new LW.Separator(position: null, individualColors: true, model: this)
+
     @vertices ||= []
     @rollNodes = [
-      new LW.RollNode(isHidden: true),
+      new LW.RollNode(position: 0, isHidden: true),
       new LW.RollNode(position: 1, isHidden: true)
     ]
 
@@ -92,8 +87,6 @@ class LW.TrackModel
     @supportTubes = []
 
     @spline = new splineClass(@vertices, @rollNodes)
-
-    @terrain = new LW.TerrainModel
 
   rebuild: ->
     return if @proxy
@@ -110,7 +103,7 @@ class LW.TrackModel
 
     for i in [0..totalLength]
       u = i / totalLength
-      currentPos = @spline.getPointAt(u)
+      currentPos = @spline.getPoint(u)
       distance = currentPos.distanceToSquared(seekingPos)
       if distance < bestDistance
         bestDistance = distance
@@ -123,7 +116,7 @@ class LW.TrackModel
 
     for i in [0..totalLength]
       u = i / totalLength
-      currentPos = @spline.getPointAt(u)
+      currentPos = @spline.getPoint(u)
       for point in input
         distance = currentPos.distanceToSquared(point.position)
 

@@ -1,4 +1,6 @@
 class LW.BMTrack extends LW.TrackMesh
+  @heartlineOffset: new THREE.Vector3(0, -3.5, 0)
+
   boxSize = 2
   offsetY = -3
 

@@ -10,7 +10,10 @@ class LW.Controls
     @yawObject = new THREE.Object3D
     @yawObject.add(@pitchObject)
 
-    LW.renderer.scene.add(@yawObject)
+    @container = new THREE.Object3D
+    @container.add(@yawObject)
+
+    LW.renderer.scene.add(@container)
 
     @domElement.requestPointerLock ||= @domElement.requestPointerLock || @domElement.mozRequestPointerLock || @domElement.webkitRequestPointerLock
     document.exitPointerLock ||= document.exitPointerLock || document.mozExitPointerLock || document.webkitExitPointerLock
@@ -100,9 +103,5 @@ class LW.Controls
     z = @moveSpeed * delta if @moveBackward
 
     @yawObject.translateX(x) if x
-    @yawObject.translateY(y) if y
+    @container.translateY(y) if y
     @yawObject.translateZ(z) if z
-
-    # @camera.position.copy(@yawObject.position)
-    # @camera.rotation.x = @pitchObject.rotation.x
-    # @camera.rotation.y = @yawObject.rotation.y

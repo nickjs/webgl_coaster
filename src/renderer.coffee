@@ -3,7 +3,7 @@ class LW.Renderer
   useQuadView: false
 
   constructor: (container) ->
-    @renderer = new THREE.WebGLRenderer(antialias: true)
+    @renderer = new THREE.WebGLRenderer(antialias: true, preserveDrawingBuffer: true)
     @renderer.setSize(window.innerWidth, window.innerHeight)
     @renderer.setClearColor(0xf0f0f0)
     @renderer.autoClear = false
@@ -24,7 +24,7 @@ class LW.Renderer
     @scene = new THREE.Scene
     @clock = new THREE.Clock
 
-    @camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 10000)
+    @camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 2000000)
 
     hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.6)
     hemiLight.color.setHSL(0.58, 0.1, 0.7)
@@ -46,8 +46,6 @@ class LW.Renderer
     @dirLight.shadowCameraTop = d
     @dirLight.shadowCameraBottom = -d
 
-    @audioContext = new AudioContext
-
     window.addEventListener('resize', @onResize, false)
 
   render: =>
@@ -60,10 +58,9 @@ class LW.Renderer
     LW.controls?.update(delta)
     LW.terrain?.update?(delta)
 
-    mainCamera = LW.train?.camera if LW.model?.onRideCamera
-    mainCamera ||= @camera
+    LW.Sound.update(@camera)
 
-    @renderer.render(@scene, mainCamera)
+    @renderer.render(@scene, @camera)
     @stats?.update()
 
     requestAnimationFrame(@render)
@@ -74,11 +71,8 @@ class LW.Renderer
 
     @renderer.setSize(window.innerWidth, window.innerHeight)
 
-    for camera in [@camera, LW.train?.camera]
-      continue if not camera
-
-      camera.aspect = SCREEN_WIDTH / SCREEN_HEIGHT
-      camera.updateProjectionMatrix()
+    @camera.aspect = SCREEN_WIDTH / SCREEN_HEIGHT
+    @camera.updateProjectionMatrix()
 
   kill: ->
     @renderer = null

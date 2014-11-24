@@ -11,7 +11,13 @@ class LW.NurbsSpline extends THREE.NURBSCurve
       knot = i / denominator
       knots.push(THREE.Math.clamp(knot, 0, 1))
 
-    THREE.NURBSCurve.call(this, 3, knots, @vertices)
+    degree = 3
+    if @vertices.length == 2
+      knots = [0,0,1,1]
+      degree = 1
+
+    @knots = knots
+    THREE.NURBSCurve.call(this, degree, knots, @vertices)
 
     @rollSpline.rebuild()
 

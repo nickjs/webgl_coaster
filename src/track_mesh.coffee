@@ -17,15 +17,26 @@ class LW.TrackMesh extends THREE.Object3D
 
   uvgen = THREE.ExtrudeGeometry.WorldUVGenerator
 
-  constructor: (options) ->
+  constructor: (@model, options) ->
     super()
+
+    if @model.coaster.splinePosition == 1
+      @heartlineOffset = @constructor.heartlineOffset
+
+    shapes = {}
+    shapes[key] = LW.mixin({}, shape) for key, shape of @shapes
+    @shapes = shapes
+
+    @rails = rail for rail in @rails
+
     @stepCallbacks = {}
     LW.mixin(this, options)
+
+    @rebuild()
 
   rebuild: ->
     @clear()
 
-    @model = LW.model if @model != LW.model
     return if !@model
 
     @prepareMaterials()
@@ -38,6 +49,9 @@ class LW.TrackMesh extends THREE.Object3D
     @separator = @model.defaultSeparator
     @nextSeparator = separators[0]
 
+    @leaveSegment(null, @separator)
+    @enterSegment(@separator, @nextSeparator)
+
     @steps = 0
     @totalSteps = totalSteps = Math.ceil(@model.spline.getLength())
 
@@ -45,15 +59,15 @@ class LW.TrackMesh extends THREE.Object3D
       u = i / totalSteps
 
       if @nextSeparator && u >= @nextSeparator.position
-        @leaveSegment(@separator)
+        @leaveSegment(@separator, @nextSeparator)
 
         segment++
         @separator = @nextSeparator
         @nextSeparator = separators[segment + 1]
 
-        @enterSegment(@separator)
+        @enterSegment(@separator, @nextSeparator)
 
-      pos = @model.spline.getPointAt(u)
+      pos = @model.spline.getPoint(u)
       matrix = LW.getMatrixAt(@model.spline, u)
 
       for key, func of @stepCallbacks
@@ -69,7 +83,7 @@ class LW.TrackMesh extends THREE.Object3D
       @separator = if separators[0].position == 0 then separators[0] else @model.defaultSeparator
       @enterSegment?(@separator)
 
-      pos = @model.spline.getPointAt(0)
+      pos = @model.spline.getPoint(0)
       matrix = LW.getMatrixAt(@model.spline, 0)
 
       @stepRails(pos, matrix)
@@ -86,9 +100,10 @@ class LW.TrackMesh extends THREE.Object3D
 
   prepareMaterials: ->
     specular = 0x888888
-    @railMaterial = new THREE.MeshPhongMaterial({specular, color: @model.defaultSeparator.railColor, vertexColors: THREE.FaceColors})
-    @shapeMaterial = new THREE.MeshPhongMaterial({specular, color: @model.defaultSeparator.spineColor, vertexColors: THREE.FaceColors})
+    @railMaterial = new THREE.MeshPhongMaterial({specular, vertexColors: THREE.FaceColors})
+    @shapeMaterial = new THREE.MeshPhongMaterial({specular, vertexColors: THREE.FaceColors})
     @supportMaterial = new THREE.MeshPhongMaterial({color: @model.defaultSeparator.supportColor})
+    @tunnelMaterial = new THREE.MeshPhongMaterial({specular, color: @model.defaultSeparator.tunnelColor})
 
     liftTexture = LW.textures.chain
     liftTexture.wrapT = THREE.RepeatWrapping
@@ -102,15 +117,10 @@ class LW.TrackMesh extends THREE.Object3D
     grateMaterial.transparent = true
     grateMaterial.map = LW.textures.grate
 
-    fenceMaterial = @shapeMaterial.clone()
-    fenceMaterial.transparent = true
-    fenceMaterial.map = LW.textures.fence
-
     @catwalkMaterial = new THREE.MeshFaceMaterial([grateMaterial, @shapeMaterial])
-    @catwalkFenceMaterial = @shapeMaterial.clone()
-    @shapes.catwalkStepsLeft.mesh.material = @catwalkMaterial
 
-    @tunnelMaterial = new THREE.MeshLambertMaterial(color: 0xcccccc, side: THREE.DoubleSide)
+    @catwalkFenceMaterial = @shapeMaterial.clone()
+    @tunnelMaterial = new THREE.MeshLambertMaterial(color: @model.defaultSeparator.tunnelColor || 0xcccccc, side: THREE.DoubleSide)
 
   ###
   # Rail Drawing
@@ -156,7 +166,7 @@ class LW.TrackMesh extends THREE.Object3D
         cy = radius * Math.sin(v) + distance.y
 
         vertex = new THREE.Vector3(cx, cy, 0)
-        vertex.applyMatrix4(matrix).add(pos)
+        vertex.add(@heartlineOffset).applyMatrix4(matrix).add(pos)
 
         grid.push(@railGeometry.vertices.push(vertex) - 1)
 
@@ -206,7 +216,8 @@ class LW.TrackMesh extends THREE.Object3D
       shape.key ||= key
       shape._steps = 0
 
-      continue if shape.mesh
+      shape._geometry = new THREE.Geometry if shape.geometry
+      continue if shape.mesh || shape.geometry
 
       shape.prepare = ->
         @_geometry ||= new THREE.Geometry
@@ -221,7 +232,7 @@ class LW.TrackMesh extends THREE.Object3D
     for key, shape of @shapes
       if (shape.segment && shape.segment != @separator.type) || shape.disabled
         if shape._steps > 0
-          @_bottomFace(shape, true) if !shape.open && shape._geometry
+          @_bottomFace(shape, true) if !shape.open && shape._geometry && !shape.geometry
           shape._steps = 0
         if shape.disabled
           shape._wasDisabled = true
@@ -235,23 +246,57 @@ class LW.TrackMesh extends THREE.Object3D
 
       shape._lastPos = pos
 
-      if shape.mesh
+      if shape.mesh || shape.geometry
         shape._steps++
         if shape.skipFirst
           shape.skipFirst = false
           continue
 
-        mesh = shape.mesh.clone()
-        mesh.position.copy(pos)
-        mesh.position.add(shape.offset.clone().applyMatrix4(matrix)) if shape.offset
-        mesh.rotation.setFromRotationMatrix(matrix)
+        if shape.mesh
+          mesh = shape.mesh.clone()
+          color = @separator.colorObject("#{shape.materialKey || shape.key}Color", 'spineColor')
+          for face in mesh.geometry.faces
+            face.color = color
 
-        if shape.rotation
-          mesh.rotation.x = shape.rotation.x if typeof shape.rotation.x == 'number'
-          mesh.rotation.y = shape.rotation.y if typeof shape.rotation.y == 'number'
-          mesh.rotation.z = shape.rotation.z if typeof shape.rotation.z == 'number'
+          mesh.position.copy(pos)
+          mesh.position.add(shape.offset.clone().add(@heartlineOffset).applyMatrix4(matrix)) if shape.offset
+          mesh.rotation.setFromRotationMatrix(matrix)
 
-        @add(mesh)
+          if shape.rotation
+            mesh.rotation.x = shape.rotation.x if typeof shape.rotation.x == 'number'
+            mesh.rotation.y = shape.rotation.y if typeof shape.rotation.y == 'number'
+            mesh.rotation.z = shape.rotation.z if typeof shape.rotation.z == 'number'
+
+          @add(mesh)
+
+        else if shape.geometry
+          color = @separator.colorObject("#{shape.materialKey || shape.key}Color", 'spineColor')
+          faceOffset = shape._geometry.vertices.length
+
+          q = new THREE.Quaternion
+          q.setFromRotationMatrix(matrix)
+          q.x = shape.rotation.x if typeof shape.rotation.x == 'number'
+          q.y = shape.rotation.y if typeof shape.rotation.y == 'number'
+          q.z = shape.rotation.z if typeof shape.rotation.z == 'number'
+
+          rot = new THREE.Matrix4
+          rot.makeRotationFromQuaternion(q)
+
+          proto = shape.geometry.clone()
+          proto.applyMatrix(rot)
+
+          for vertex in proto.vertices
+            newVertex = vertex.clone().add(pos)
+            newVertex.add(shape.offset.clone().applyMatrix4(rot)) if shape.offset
+            shape._geometry.vertices.push(newVertex)
+          for face in proto.faces
+            newFace = new THREE.Face3(face.a + faceOffset, face.b + faceOffset, face.c + faceOffset, face.normal, color, face.materialIndex)
+            newFace.vertexNormals = face.vertexNormals
+            shape._geometry.faces.push(newFace)
+          for uv in proto.faceVertexUvs[0]
+            shape._geometry.faceVertexUvs[0].push(uv)
+
+          proto.dispose()
 
       else if shape.depth
         @_depthShape(shape, pos, matrix)
@@ -279,6 +324,7 @@ class LW.TrackMesh extends THREE.Object3D
         y += shape.offset.y
 
       v = new THREE.Vector3(x, y, 0)
+      v.add(@heartlineOffset)
       v.applyMatrix4(matrix)
       v.add(pos)
       shape._geometry.vertices.push(v)
@@ -288,7 +334,7 @@ class LW.TrackMesh extends THREE.Object3D
   _posCopy = new THREE.Vector3
 
   _depthShape: (shape, pos, matrix) ->
-    tangent = @model.spline.getTangentAt(@steps / @totalSteps)
+    tangent = @model.spline.getTangent(@steps / @totalSteps)
     tangent.setLength(shape.depth / 2)
 
     _posCopy.copy(pos)
@@ -309,7 +355,7 @@ class LW.TrackMesh extends THREE.Object3D
     @_shapeFaces(shape, true)
 
   _shapeFaces: (shape, sideFaces, topFace, bottomFace, flipTopBottom) ->
-    color = @separator.colorObject("#{shape.materialKey || shape.key}Color")
+    color = @separator.colorObject("#{shape.materialKey || shape.key}Color", "spineColor")
 
     target = shape._geometry
     totalVertices = shape._vertices.length
@@ -386,6 +432,7 @@ class LW.TrackMesh extends THREE.Object3D
     footerMaterial = new THREE.MeshFaceMaterial([textureMaterial, colorMaterial])
 
     size = 7
+    footerGeo = new THREE.Geometry
     geo = new THREE.BoxGeometry(size, LW.FoundationNode::height, size)
     for face, i in geo.faces
       if i in [4, 5]
@@ -394,20 +441,28 @@ class LW.TrackMesh extends THREE.Object3D
         face.materialIndex = 1
 
     for node in @model.foundationNodes
-      mesh = new THREE.Mesh(geo, footerMaterial)
-
       node.position.y = 1000
       ray = new THREE.Raycaster(node.position, LW.DOWN, 1, 2000)
       point = ray.intersectObject(LW.terrain.ground)[0]
       node.position.y = point.point.y - node.offsetHeight + 1.5
 
-      mesh.position = node.position
-      @add(mesh)
+      faceOffset = footerGeo.vertices.length
+      for vertex in geo.vertices
+        footerGeo.vertices.push(vertex.clone().add(node.position))
+      for face in geo.faces
+        newFace = new THREE.Face3(face.a + faceOffset, face.b + faceOffset, face.c + faceOffset, face.normal, face.color, face.materialIndex)
+        newFace.vertexNormals = face.vertexNormals
+        footerGeo.faces.push(newFace)
+      for uv in geo.faceVertexUvs[0]
+        footerGeo.faceVertexUvs[0].push(uv)
+
+    mesh = new THREE.Mesh(footerGeo, footerMaterial)
+    @add(mesh)
 
     for node in @model.trackConnectionNodes
       continue if typeof node.position != "number"
 
-      pos = @model.spline.getPointAt(node.position)
+      pos = @model.spline.getPoint(node.position)
       matrix = LW.getMatrixAt(@model.spline, node.position)
 
       node.position = pos.clone()
@@ -421,6 +476,7 @@ class LW.TrackMesh extends THREE.Object3D
     delta = new THREE.Vector3
 
     spineMesh = @shapes.spine?.mesh
+    supportGeo = new THREE.Geometry
 
     for tube in @model.supportTubes
       p1.copy(tube.node1.position)
@@ -443,10 +499,19 @@ class LW.TrackMesh extends THREE.Object3D
       orientation.multiply(offsetRotation)
       geo.applyMatrix(orientation)
 
-      mesh = new THREE.Mesh(geo, @supportMaterial)
-      mesh.position = position
-      mesh.castShadow = true
-      @add(mesh)
+      faceOffset = supportGeo.vertices.length
+      for vertex in geo.vertices
+        supportGeo.vertices.push(vertex.clone().add(position))
+      for face in geo.faces
+        newFace = new THREE.Face3(face.a + faceOffset, face.b + faceOffset, face.c + faceOffset, face.normal)
+        newFace.vertexNormals = face.vertexNormals
+        supportGeo.faces.push(newFace)
+
+      geo.dispose()
+
+    # supportGeo.mergeVertices()
+    supportMesh = new THREE.Mesh(supportGeo, @supportMaterial)
+    @add(supportMesh)
 
   ###
   # Extras
@@ -466,12 +531,12 @@ class LW.TrackMesh extends THREE.Object3D
 
   stationShape = new THREE.Shape
   stationShape.moveTo(-30, -500)
-  stationShape.lineTo(-30, 0)
-  stationShape.lineTo(-6, 0)
+  stationShape.lineTo(-30, 3)
+  stationShape.lineTo(-6, 3)
   stationShape.lineTo(-6, -7)
   stationShape.lineTo(6, -7)
-  stationShape.lineTo(6, 0)
-  stationShape.lineTo(30, 0)
+  stationShape.lineTo(6, 3)
+  stationShape.lineTo(30, 3)
   stationShape.lineTo(30, -500)
 
   catwalkStep = new THREE.BoxGeometry(10, 0.4, 3.95)
@@ -480,7 +545,6 @@ class LW.TrackMesh extends THREE.Object3D
       face.materialIndex = 0
     else
       face.materialIndex = 1
-  catwalkStep = new THREE.Mesh(catwalkStep)
 
   catwalkShape = new THREE.Shape
   catwalkShape.moveTo(-5, 0)
@@ -516,18 +580,18 @@ class LW.TrackMesh extends THREE.Object3D
   catwalkRailing.lineTo(0.25, 0)
   catwalkRailing.lineTo(0.25, -0.5)
 
-  tunnelRadius = 10
+  tunnelRadius = 9
   squareTunnel = new THREE.Shape
-  squareTunnel.moveTo(-tunnelRadius, -tunnelRadius)
-  squareTunnel.lineTo(tunnelRadius, -tunnelRadius)
-  squareTunnel.lineTo(tunnelRadius, tunnelRadius)
-  squareTunnel.lineTo(-tunnelRadius, tunnelRadius)
+  squareTunnel.moveTo(-tunnelRadius, -5.5)
+  squareTunnel.lineTo(tunnelRadius, -5.5)
+  squareTunnel.lineTo(tunnelRadius, tunnelRadius + 5)
+  squareTunnel.lineTo(-tunnelRadius, tunnelRadius + 5)
 
   @shapes {
     lift: {shape: liftShape, segment: 'LiftSegment'}
     station: {shape: stationShape, every: 10, segment: 'StationSegment'}
-    catwalkStepsLeft: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(-7.5, -4, 0), rotation: {x: 0, z: 0}}
-    catwalkStepsRight: {mesh: catwalkStep, every: 4, offset: new THREE.Vector3(7.5, -4, 0), rotation: {x: 0, z: 0}}
+    catwalkStepsLeft: {geometry: catwalkStep, every: 4, offset: new THREE.Vector3(-7.5, -4, 0), rotation: {x: 0, z: 0}, materialKey: 'catwalk', receiveShadow: true}
+    catwalkStepsRight: {geometry: catwalkStep, every: 4, offset: new THREE.Vector3(7.5, -4, 0), rotation: {x: 0, z: 0}, materialKey: 'catwalk', receiveShadow: true}
     catwalkLeft: {shape: catwalkShape, every: 10, offset: new THREE.Vector2(-7.5, -3), materialKey: 'catwalk'}
     catwalkRight: {shape: catwalkShape, every: 10, offset: new THREE.Vector2(7.5, -3), materialKey: 'catwalk'}
     catwalkRailingLeft: {shape: catwalkRailing, every: 10, offset: new THREE.Vector2(-12.5, -4), materialKey: 'catwalkFence'}
@@ -541,7 +605,7 @@ class LW.TrackMesh extends THREE.Object3D
     railingRight = segment.settings.railing_right
     if railingLeft || railingRight
       @stepCallbacks.decideOnCatwalks ||= (u) ->
-        tangent = @model.spline.getTangentAt(u)
+        tangent = @model.spline.getTangent(u)
         flatAngle = Math.PI / 2
         tangentAngle = Math.abs(LW.DOWN.angleTo(tangent))
         flat = Math.abs(tangentAngle - flatAngle) < 0.4

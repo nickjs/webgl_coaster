@@ -47,10 +47,8 @@ class LW.BMInvertedTrack extends LW.BMTrack
   lowbeamTieShape.lineTo(boxSize, boxSize + 3)
   lowbeamTieShape.lineTo(-boxSize, boxSize + 3)
 
-  carModel: 'inverted.dae'
-  carScale: new THREE.Vector3(0.0429, 0.0429, 0.037)
-  carRotation: new THREE.Euler(-Math.PI * 0.5, 0, Math.PI, 'XYZ')
-  carDistance: 9
+  carModel: 'inverted'
+  carDistance: 8.9
 
   onRideCameraOffset: new THREE.Vector3(3.85, -7.3, -0.5)
 

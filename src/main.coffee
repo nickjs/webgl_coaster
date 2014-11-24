@@ -1,5 +1,6 @@
 #= require_self
 #= require ./utils
+#= require ./model
 
 #= require ./bezier_spline
 #= require ./nurbs_spline
@@ -10,6 +11,7 @@
 #= require ./renderer
 #= require ./terrain
 #= require ./train
+#= require ./sound
 #= require ./supports
 #= require ./track_mesh
 #= require ./edit_mesh
@@ -39,28 +41,20 @@ window.LW =
 
   getTrain: ->
     if !@train
-      @train = new LW.Train(@track, numberOfCars: @model.carsPerTrain)
+      @train = new LW.Train(@park.coasters[0], @park.coasters[0].tracks[0])
       @renderer.scene.add(@train)
 
     return @train
 
-  setModel: (@model) ->
-    @renderer.scene.remove(@track) if @track
+  initializePark: (@park) ->
+    @terrain?.rebuild(park)
 
-    if @train
-      @train.stop()
-      @renderer.scene.remove(@train)
-      @train = null
+    for coaster in park.coasters
+      for track in coaster.tracks
+        track.mesh = new coaster.trackStyle(track)
+        @renderer.scene.add(track.mesh)
 
-    @track = new model.trackStyle
-    @renderer.scene.add(@track)
-
-    @gui?.modelChanged(model)
-    @edit?.modelChanged(model)
-    @terrain?.rebuild()
-    @track?.rebuild()
-
-    @controls.yawObject.position.copy(@model.spline.getPointAt(0)).add(@track.onRideCameraOffset)
+    return
 
   kill: ->
     @renderer.kill()
